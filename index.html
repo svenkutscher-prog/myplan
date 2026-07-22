@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ernährungs-App</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap');
+:root{
+  --bg:#EEF2E6; --card:#FCFBF7; --ink:#26311F; --ink-soft:#5C6B52; --line:#D8E0CC;
+  --olive:#4F6B44; --olive-dark:#3A4F32; --mustard:#C9862F; --mustard-bg:#F6E9D2;
+  --coral:#B3543A; --coral-bg:#F2DFD7;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;padding:2rem 1.1rem 5rem;}
+.wrap{max-width:520px;margin:0 auto;}
+h1{font-family:'Fraunces',serif;font-weight:600;font-size:26px;margin:0 0 1.1rem;}
+h2.section{font-family:'Fraunces',serif;font-weight:600;font-size:18px;margin:1.8rem 0 .8rem;}
+.tabs{display:flex;gap:6px;margin-bottom:1.4rem;border-bottom:1px solid var(--line);}
+.tab{flex:1;text-align:center;padding:.7rem 0;font-size:14px;font-weight:500;color:var(--ink-soft);cursor:pointer;border-bottom:2px solid transparent;}
+.tab.active{color:var(--olive-dark);border-bottom-color:var(--olive);}
+.tab.disabled{color:var(--line);cursor:default;}
+.panel{display:none;}
+.panel.active{display:block;}
+
+.daynav{display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:.6rem;}
+.nav-arrow{border:none;background:transparent;font-size:15px;color:var(--ink-soft);cursor:pointer;padding:4px 8px;border-radius:6px;}
+.nav-arrow:hover{background:var(--card);}
+.nav-arrow:disabled{color:var(--line);cursor:default;background:transparent;}
+.daylabel{text-align:center;}
+.daylabel p{margin:0;font-size:12px;color:var(--ink-soft);}
+.daylabel h1{margin:0;font-size:20px;}
+
+.chips{display:flex;gap:6px;justify-content:center;margin-bottom:1.1rem;}
+.chip{font-size:11px;padding:5px 11px;border-radius:20px;border:1px solid var(--line);color:var(--ink-soft);background:#fff;cursor:pointer;}
+.chip.active{background:var(--mustard-bg);border-color:var(--olive);color:var(--olive-dark);font-weight:500;}
+
+.kcal-box{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:1.1rem 1.25rem;margin-bottom:1.2rem;}
+.kcal-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;}
+.kcal-num{font-family:'IBM Plex Mono',monospace;font-size:27px;font-weight:500;}
+.kcal-of{font-size:13px;color:var(--ink-soft);}
+.bar{height:8px;border-radius:5px;background:var(--line);overflow:hidden;}
+.bar-fill{height:100%;border-radius:5px;background:var(--olive);transition:width .25s ease;}
+.kcal-note{font-size:12.5px;color:var(--ink-soft);margin:8px 0 0;}
+
+.section-label{font-size:13px;font-weight:500;color:var(--ink-soft);margin:0 0 .6rem;}
+.food-row{display:flex;align-items:center;justify-content:space-between;padding:9px 11px;background:var(--card);border:1px solid var(--line);border-radius:10px;margin-bottom:6px;cursor:pointer;}
+.food-row.checked{background:var(--mustard-bg);border-color:var(--olive);}
+.food-row .left{display:flex;align-items:center;}
+.check-ico{width:20px;height:20px;border-radius:6px;border:1.5px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff;margin-right:10px;flex-shrink:0;background:#fff;}
+.food-row.checked .check-ico{background:var(--olive);border-color:var(--olive);}
+.food-name{margin:0;font-size:14px;}
+.food-time{margin:0;font-size:11px;color:var(--ink-soft);}
+.food-kcal{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--ink-soft);flex-shrink:0;}
+.extra-row{cursor:default;}
+.extra-del{border:none;background:transparent;color:var(--coral);font-size:16px;cursor:pointer;padding:2px 6px;border-radius:6px;margin-left:8px;}
+.extra-del:hover{background:var(--coral-bg);}
+
+.quick-add{display:flex;gap:6px;margin:.5rem 0 1.3rem;}
+.quick-add input{flex:1;font-size:13px;border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:#fff;color:var(--ink);}
+.quick-add input.qkcal{flex:none;width:70px;}
+.quick-add button{width:38px;border:none;background:var(--olive);color:#fff;border-radius:8px;font-size:18px;cursor:pointer;}
+.quick-add button:hover{background:var(--olive-dark);}
+
+.weight-block, .steps-block{border-top:1px dashed var(--line);padding-top:1.1rem;margin-top:.4rem;}
+.block-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.block-head span{font-size:11px;color:var(--ink-soft);}
+.stat-row{display:flex;justify-content:space-between;align-items:center;padding:10px 11px;background:var(--card);border:1px solid var(--line);border-radius:10px;margin-bottom:10px;}
+.stat-val{font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:500;}
+.wg-labels{display:flex;justify-content:space-between;font-size:11px;color:var(--ink-soft);margin-bottom:4px;}
+.add-inline{width:100%;margin-top:10px;padding:9px;border-radius:8px;border:1px dashed var(--olive);background:transparent;color:var(--olive-dark);font-size:13px;font-weight:500;cursor:pointer;}
+.add-inline:hover{background:var(--card);}
+.inline-form{display:flex;gap:6px;margin-top:8px;}
+.inline-form input{flex:1;font-size:13px;border:1px solid var(--line);border-radius:8px;padding:7px 9px;background:#fff;}
+.inline-form button{border:none;background:var(--olive);color:#fff;border-radius:8px;padding:0 12px;font-size:13px;cursor:pointer;}
+
+/* week tab */
+.day-block{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:1rem 1.1rem;margin-bottom:1rem;}
+.day-block-head{font-family:'Fraunces',serif;font-weight:600;font-size:16px;margin-bottom:.6rem;display:flex;justify-content:space-between;align-items:baseline;}
+.day-total{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:500;color:var(--olive-dark);}
+.day-total.over{color:var(--coral);}
+.slot-row{display:flex;align-items:center;gap:.5rem;padding:8px 0;border-bottom:1px solid var(--line);}
+.slot-row:last-of-type{border-bottom:none;}
+.slot-row input[type=time]{font-family:'IBM Plex Mono',monospace;font-size:12px;border:1px solid var(--line);border-radius:7px;padding:4px 6px;background:#fff;width:78px;color:var(--ink-soft);}
+.slot-dishname{flex:1;font-size:13.5px;}
+.slot-kcal{font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--ink-soft);}
+.slot-swap{border:none;background:transparent;color:var(--olive);font-size:12px;cursor:pointer;padding:3px 7px;border-radius:6px;}
+.slot-swap:hover{background:var(--mustard-bg);}
+.slot-del{border:none;background:transparent;color:var(--coral);font-size:16px;cursor:pointer;padding:2px 6px;border-radius:6px;}
+.slot-del:hover{background:var(--coral-bg);}
+.add-slot{width:100%;margin-top:.4rem;padding:7px;border-radius:8px;border:1px dashed var(--olive);background:transparent;color:var(--olive-dark);font-size:12.5px;cursor:pointer;}
+
+.dish-lib-item{display:flex;align-items:center;justify-content:space-between;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:.6rem .9rem;margin-bottom:.5rem;}
+.dish-lib-item .dl-name{font-weight:500;font-size:14px;}
+.dish-lib-item .dl-kcal{font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--ink-soft);margin-left:8px;}
+.dish-lib-item .dl-actions button{border:none;background:transparent;color:var(--ink-soft);cursor:pointer;font-size:13px;padding:3px 7px;border-radius:6px;}
+.dish-lib-item .dl-actions button:hover{background:var(--mustard-bg);color:var(--ink);}
+.add-dish{width:100%;padding:.7rem;border-radius:10px;border:1px dashed var(--olive);background:transparent;color:var(--olive-dark);font-size:13.5px;font-weight:500;cursor:pointer;}
+
+.actions{display:flex;gap:.6rem;margin-top:1.6rem;flex-wrap:wrap;align-items:center;}
+.btn{font-family:'Inter',sans-serif;font-size:13.5px;font-weight:500;padding:.65rem 1.1rem;border-radius:9px;cursor:pointer;border:1px solid var(--line);background:var(--card);color:var(--ink);}
+.btn.primary{background:var(--olive);border-color:var(--olive);color:#fff;}
+.btn.primary:hover{background:var(--olive-dark);}
+.btn:hover{background:#fff;}
+.status{font-size:12px;color:var(--ink-soft);font-family:'IBM Plex Mono',monospace;}
+
+.modal-bg{position:fixed;inset:0;background:rgba(38,49,31,.35);display:none;align-items:flex-start;justify-content:center;padding:4rem 1rem;z-index:10;overflow:auto;}
+.modal-bg.open{display:flex;}
+.modal{background:var(--card);border-radius:14px;max-width:440px;width:100%;padding:1.5rem;border:1px solid var(--line);}
+.modal h2{font-family:'Fraunces',serif;font-size:19px;margin:0 0 .9rem;}
+.modal ul{list-style:none;padding:0;margin:0 0 1rem;max-height:320px;overflow:auto;}
+.modal li{display:flex;justify-content:space-between;padding:.45rem 0;border-bottom:1px solid var(--line);font-size:14px;}
+.modal li span.amt{font-family:'IBM Plex Mono',monospace;color:var(--ink-soft);}
+.modal-actions{display:flex;gap:.5rem;justify-content:flex-end;margin-top:.6rem;}
+.pick-row{display:flex;justify-content:space-between;align-items:center;padding:.6rem .7rem;border:1px solid var(--line);border-radius:10px;margin-bottom:.5rem;cursor:pointer;background:#fff;}
+.pick-row.selected{border-color:var(--olive);background:var(--mustard-bg);}
+.pick-row .pn{font-weight:500;font-size:14px;}
+.pick-row .pk{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--ink-soft);}
+.preview-box{border-top:1px dashed var(--line);margin-top:.8rem;padding-top:.7rem;font-size:13px;color:var(--ink-soft);min-height:20px;}
+.preview-box b{color:var(--ink);}
+.editor-row{display:flex;gap:.5rem;margin-bottom:.4rem;align-items:center;}
+.editor-row input.iname{flex:1;font-size:13.5px;border:1px solid var(--line);border-radius:7px;padding:5px 8px;background:#fff;color:var(--ink);}
+.editor-row input.iamt{width:60px;font-family:'IBM Plex Mono',monospace;font-size:13px;text-align:right;border:1px solid var(--line);border-radius:7px;padding:5px 6px;background:#fff;color:var(--ink);}
+.editor-row select.iunit{font-size:12.5px;border:1px solid var(--line);border-radius:7px;padding:5px 4px;background:#fff;color:var(--ink-soft);width:64px;}
+.editor-row button{border:none;background:transparent;color:var(--ink-soft);cursor:pointer;font-size:15px;padding:2px 5px;border-radius:6px;}
+.editor-row button:hover{background:var(--coral-bg);color:var(--coral);}
+.field{margin-bottom:.7rem;}
+.field label{display:block;font-size:12.5px;color:var(--ink-soft);margin-bottom:3px;}
+.field input{width:100%;font-size:14px;border:1px solid var(--line);border-radius:8px;padding:7px 9px;background:#fff;color:var(--ink);}
+.add-ing-editor{font-family:'Inter',sans-serif;font-size:12.5px;color:var(--olive);background:transparent;border:1px dashed var(--olive);border-radius:7px;padding:4px 10px;cursor:pointer;margin:.3rem 0 .8rem;}
+.placeholder{text-align:center;padding:3rem 1rem;color:var(--ink-soft);font-size:14px;}
+.dash-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:1.6rem;}
+.dash-stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:.9rem 1rem;}
+.ds-label{margin:0 0 4px;font-size:12px;color:var(--ink-soft);}
+.ds-val{margin:0;font-family:'IBM Plex Mono',monospace;font-size:21px;font-weight:500;}
+.ds-sub{margin:4px 0 0;font-size:11.5px;color:var(--ink-soft);}
+.chart-label{font-size:13px;font-weight:500;color:var(--ink-soft);margin:0 0 .6rem;}
+.chart-wrap{position:relative;width:100%;height:200px;margin-bottom:1.6rem;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:.8rem;box-sizing:border-box;}
+
+/* pantry */
+.pantry-row{display:flex;align-items:center;justify-content:space-between;padding:9px 11px;background:var(--card);border:1px solid var(--line);border-radius:10px;margin-bottom:6px;gap:10px;}
+.pantry-row.low{border-color:var(--coral);background:var(--coral-bg);}
+.pantry-name{margin:0;font-size:14px;}
+.pantry-hint{margin:0;font-size:11px;color:var(--ink-soft);}
+.pantry-fields{display:flex;gap:8px;flex-shrink:0;}
+.pantry-field{display:flex;flex-direction:column;align-items:center;}
+.pantry-field label{font-size:10px;color:var(--ink-soft);margin-bottom:2px;}
+.pantry-field input{width:52px;font-family:'IBM Plex Mono',monospace;font-size:13px;text-align:center;border:1px solid var(--line);border-radius:7px;padding:5px 3px;background:#fff;color:var(--ink);}
+.preview-item{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--line);font-size:13px;}
+.preview-item:last-child{border-bottom:none;}
+.preview-item .pi-amt{font-family:'IBM Plex Mono',monospace;color:var(--olive-dark);font-weight:500;}
+.section-note{font-size:12px;color:var(--ink-soft);font-weight:400;}
+.empty{text-align:center;padding:2rem 1rem;color:var(--ink-soft);font-size:13px;background:var(--card);border:1px dashed var(--line);border-radius:12px;}
+.shoplist-text{width:100%;font-family:'IBM Plex Mono',monospace;font-size:12.5px;line-height:1.6;border:1px solid var(--line);border-radius:10px;padding:.8rem .9rem;background:#fff;color:var(--ink);resize:vertical;}
+.copy-status{font-size:12px;color:var(--olive-dark);margin:.4rem 0 0;min-height:14px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Meine Ernährung</h1>
+  <div class="tabs">
+    <div class="tab active" data-tab="today">Heute</div>
+    <div class="tab" data-tab="woche">Woche</div>
+    <div class="tab" data-tab="vorrat">Vorrat</div>
+    <div class="tab" data-tab="dashboard">Dashboard</div>
+  </div>
+
+  <!-- TODAY -->
+  <div class="panel active" id="panelToday">
+    <div class="daynav">
+      <button class="nav-arrow" id="dayPrev">◀</button>
+      <div class="daylabel"><p id="dayWeekday">Montag</p><h1 id="dayDate">20. Juli</h1></div>
+      <button class="nav-arrow" id="dayNext">▶</button>
+    </div>
+    <div class="chips">
+      <div class="chip" data-target="base" id="chipBase">1800</div>
+      <div class="chip" data-target="deficit" id="chipDeficit">1400</div>
+    </div>
+
+    <div class="kcal-box">
+      <div class="kcal-top"><span class="kcal-num" id="totalKcal">0</span><span class="kcal-of">von <span id="targetVal">1400</span> kcal</span></div>
+      <div class="bar"><div class="bar-fill" id="barFill" style="width:0%"></div></div>
+      <p class="kcal-note" id="summaryNote"></p>
+    </div>
+
+    <p class="section-label">Dein Plan – antippen zum Abhaken</p>
+    <div id="planList"></div>
+
+    <p class="section-label" style="margin-top:1rem;">Zusätzlich gegessen</p>
+    <div id="extraList"></div>
+    <div class="quick-add">
+      <input type="text" id="extraName" placeholder="Neues Gericht">
+      <input type="number" id="extraKcal" class="qkcal" placeholder="kcal">
+      <button id="extraAddBtn">+</button>
+    </div>
+
+    <div class="weight-block">
+      <div class="block-head"><p class="section-label" style="margin:0;">Gewicht</p><span>wöchentlich</span></div>
+      <div class="stat-row"><div><p class="food-name" id="lastWeightDate">–</p><p class="food-time">letzte Messung</p></div><span class="stat-val" id="lastWeightVal">–</span></div>
+      <div class="wg-labels"><span id="wgStart">–</span><span id="wgGoal">Ziel: –</span></div>
+      <div class="bar"><div class="bar-fill" id="weightBarFill" style="width:0%;background:var(--mustard);"></div></div>
+      <button class="add-inline" id="showWeightForm">+ Gewicht eintragen</button>
+      <div class="inline-form" id="weightForm" style="display:none;">
+        <input type="date" id="weightDate"><input type="number" id="weightKg" placeholder="kg" step="0.1"><button id="weightSaveBtn">Speichern</button>
+      </div>
+    </div>
+
+    <div class="steps-block">
+      <div class="block-head"><p class="section-label" style="margin:0;">Schritte</p><span>ca. kcal wird geschätzt</span></div>
+      <div class="inline-form" style="margin-top:0;">
+        <input type="number" id="stepsInput" placeholder="Schritte heute">
+        <input type="number" id="stepsKcalInput" placeholder="kcal (optional)" style="max-width:130px;">
+        <button id="stepsSaveBtn">Speichern</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- WOCHE -->
+  <div class="panel" id="panelWoche">
+    <div id="weekDays"></div>
+
+    <h2 class="section">Gerichte-Bibliothek</h2>
+    <div id="dishLib"></div>
+    <button class="add-dish" id="newDishBtn">+ Neues Gericht anlegen</button>
+
+    <div class="actions">
+      <button class="btn" id="resetBtn">Neu laden</button>
+      <span class="status" id="statusText"></span>
+    </div>
+  </div>
+
+  <!-- VORRAT -->
+  <div class="panel" id="panelVorrat">
+    <p class="section-label">Bestand &amp; Mindestbestand pro Zutat – wird beim Abhaken in "Heute" automatisch verbraucht</p>
+    <div id="pantryList"></div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div class="panel" id="panelDashboard">
+    <div class="dash-stats">
+      <div class="dash-stat"><p class="ds-label">Aktuelles Gewicht</p><p class="ds-val" id="dsWeight">–</p><p class="ds-sub" id="dsWeightSub">–</p></div>
+      <div class="dash-stat"><p class="ds-label">Schritte Ø/Tag (7 Tage)</p><p class="ds-val" id="dsSteps">–</p><p class="ds-sub">letzte 7 Tage</p></div>
+      <div class="dash-stat"><p class="ds-label">Tage im Ziel</p><p class="ds-val" id="dsOnTarget">–</p><p class="ds-sub">letzte 7 Tage</p></div>
+    </div>
+
+    <h2 class="section">Einkaufsliste <span class="section-note" id="previewMeta"></span></h2>
+    <button class="btn primary" id="exportBtn" style="margin-bottom:.8rem;">Einkaufsliste generieren</button>
+    <div id="shopPreview"></div>
+
+    <p class="chart-label">Gewichtsverlauf</p>
+    <div class="chart-wrap"><canvas id="weightChart" role="img" aria-label="Gewichtsverlauf über Zeit"></canvas></div>
+
+    <p class="chart-label">Schritte, letzte 7 Tage</p>
+    <div class="chart-wrap"><canvas id="stepsChart" role="img" aria-label="Schritte pro Tag, letzte 7 Tage"></canvas></div>
+
+    <p class="chart-label">Kalorien vs. Ziel, letzte 7 Tage</p>
+    <div class="chart-wrap"><canvas id="kcalChart" role="img" aria-label="Kalorien pro Tag im Vergleich zum Ziel, letzte 7 Tage"></canvas></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="swapModalBg">
+  <div class="modal">
+    <h2>Gericht auswählen</h2>
+    <ul id="swapPickList"></ul>
+    <div class="preview-box" id="swapPreview"></div>
+    <div class="modal-actions"><button class="btn" id="swapCancel">Abbrechen</button><button class="btn primary" id="swapConfirm">Übernehmen</button></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="dishModalBg">
+  <div class="modal">
+    <h2 id="dishModalTitle">Neues Gericht</h2>
+    <div class="field"><label>Name</label><input type="text" id="dishName"></div>
+    <div class="field"><label>Kalorien (kcal)</label>
+      <div style="display:flex;gap:6px;">
+        <input type="number" id="dishKcal" style="flex:1;">
+        <button type="button" id="copyPromptBtn" class="btn" style="white-space:nowrap;">📋 kcal-Prompt erstellen</button>
+      </div>
+      <p id="promptCopyStatus" style="font-size:11.5px;color:var(--olive-dark);margin:6px 0 0;min-height:14px;"></p>
+      <textarea id="promptOutput" style="display:none;width:100%;margin-top:6px;font-size:12.5px;font-family:'IBM Plex Mono',monospace;border:1px solid var(--line);border-radius:8px;padding:8px;background:#fff;color:var(--ink);" rows="7" readonly></textarea>
+    </div>
+    <label style="display:block;font-size:12.5px;color:var(--ink-soft);margin-bottom:6px;">Zutaten</label>
+    <div id="dishIngredients"></div>
+    <button class="add-ing-editor" id="dishAddIng">+ Zutat</button>
+    <div class="modal-actions"><button class="btn" id="dishCancel">Abbrechen</button><button class="btn primary" id="dishSave">Speichern</button></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <h2>Einkaufsliste (ganze Woche)</h2>
+    <textarea id="shopListText" class="shoplist-text" rows="16" readonly></textarea>
+    <p class="copy-status" id="copyStatus"></p>
+    <div class="modal-actions"><button class="btn" id="closeModal">Schließen</button><button class="btn primary" id="copyListBtn">In Zwischenablage kopieren</button></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+/* ===== Airtable config =====
+   Repo containing this file MUST be a PRIVATE GitHub repo.
+   This token is visible to anyone who can view the page source. */
+const AIRTABLE_BASE = 'app11SOKyzyc4Tjtn';
+const AIRTABLE_TOKEN = 'patgSls2mv3n7sxqI.d0d185a2c526a705b848c30e57c54ee48f55dfae3bea2d7a1047d8d92d892dc4';
+const AT_URL = (table) => `https://api.airtable.com/v0/${AIRTABLE_BASE}/${encodeURIComponent(table)}`;
+const AT_HEADERS = { Authorization: `Bearer ${AIRTABLE_TOKEN}`, 'Content-Type': 'application/json' };
+
+async function atList(table){
+  let records = []; let offset = null;
+  do{
+    const url = AT_URL(table) + (offset ? `?offset=${offset}` : '');
+    const res = await fetch(url, { headers: AT_HEADERS });
+    if(!res.ok) throw new Error('Airtable-Fehler beim Laden von '+table);
+    const data = await res.json();
+    records = records.concat(data.records || []);
+    offset = data.offset;
+  } while(offset);
+  return records;
+}
+async function atCreate(table, fields){
+  const res = await fetch(AT_URL(table), { method:'POST', headers: AT_HEADERS, body: JSON.stringify({ records:[{fields}], typecast:true }) });
+  if(!res.ok) throw new Error('Airtable-Fehler beim Anlegen in '+table);
+  const data = await res.json();
+  return data.records[0];
+}
+async function atUpdate(table, id, fields){
+  const res = await fetch(AT_URL(table), { method:'PATCH', headers: AT_HEADERS, body: JSON.stringify({ records:[{id, fields}], typecast:true }) });
+  if(!res.ok) throw new Error('Airtable-Fehler beim Aktualisieren in '+table);
+}
+async function atDelete(table, id){
+  const res = await fetch(`${AT_URL(table)}/${id}`, { method:'DELETE', headers: AT_HEADERS });
+  if(!res.ok) throw new Error('Airtable-Fehler beim Löschen in '+table);
+}
+
+const UNITS = ['g','kg','ml','l','TL','EL','Stück','Portion'];
+const WEEKDAYS = ['Mo','Di','Mi','Do','Fr','Sa','So'];
+const WEEKDAY_NAMES = {Mo:'Montag',Di:'Dienstag',Mi:'Mittwoch',Do:'Donnerstag',Fr:'Freitag',Sa:'Samstag',So:'Sonntag'};
+const MONTH_NAMES = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+function weekdayOf(dateStr){ const d = new Date(dateStr+'T00:00:00'); return WEEKDAYS[(d.getDay()+6)%7]; }
+function fmtDate(dateStr){ const d = new Date(dateStr+'T00:00:00'); return `${d.getDate()}. ${MONTH_NAMES[d.getMonth()]}`; }
+function addDays(dateStr, n){ const d = new Date(dateStr+'T00:00:00'); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); }
+function escapeAttr(s){ return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+
+/* in-memory state, mirrors Airtable */
+let dishes = [];      // {id, name, kcal, ingredients:[]}
+let weekPlan = {};    // wd -> [{id, time, dishName}]
+let logEntries = [];  // {id, date, type, name, kcal, time}
+let weights = [];     // {id, date, kg}
+let steps = [];       // {id, date, steps, kcal}
+let pantry = [];      // {id|null, name, staple}  id null = noch nicht in Airtable angelegt
+let targets = { base:1800, deficit:1400 };
+let activeTarget = 'deficit';
+let profile = { startWeight:110, goalWeight:100 };
+
+let currentDate = todayStr();
+let swapWeekday = null, swapTargetSlot = null, swapSelectedDishName = null;
+let editingDish = null; // dish object or null
+let editorIngredients = [];
+
+function setStatus(text){ const s = document.getElementById('statusText'); if(s) s.textContent = text; }
+
+document.querySelectorAll('.tab').forEach(t=>{
+  t.addEventListener('click', ()=>{
+    if(t.classList.contains('disabled')) return;
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    document.getElementById('panel'+t.dataset.tab.charAt(0).toUpperCase()+t.dataset.tab.slice(1)).classList.add('active');
+    if(t.dataset.tab === 'dashboard') renderDashboard();
+    if(t.dataset.tab === 'vorrat'){ resyncPantryFromDishes(); renderPantry(); }
+  });
+});
+
+const chartInstances = {};
+function upsertChart(canvasId, config){
+  if(chartInstances[canvasId]) chartInstances[canvasId].destroy();
+  chartInstances[canvasId] = new Chart(document.getElementById(canvasId), config);
+}
+
+function dayTotalKcal(date){
+  const wd = weekdayOf(date);
+  const slots = weekPlan[wd] || [];
+  let total = 0;
+  logEntries.filter(l=>l.date===date).forEach(l=>{
+    if(l.type==='extra') total += l.kcal;
+    else if(l.type==='plan'){
+      const matchesSlot = slots.some(s=> s.dishName===l.name && s.time===l.time);
+      if(matchesSlot) total += l.kcal;
+    }
+  });
+  return total;
+}
+
+function renderDashboard(){
+  const muted = '#5C6B52', grid = '#D8E0CC';
+  Chart.defaults.color = muted;
+  Chart.defaults.font.family = "'Inter', sans-serif";
+
+  const sortedWeights = [...weights].sort((a,b)=> a.date.localeCompare(b.date));
+  const lastW = sortedWeights[sortedWeights.length-1];
+  const firstW = sortedWeights[0];
+  document.getElementById('dsWeight').textContent = lastW ? lastW.kg.toLocaleString('de-DE',{minimumFractionDigits:1})+' kg' : '–';
+  if(lastW && firstW && lastW.date!==firstW.date){
+    const diff = (lastW.kg - firstW.kg).toFixed(1);
+    document.getElementById('dsWeightSub').textContent = (diff<=0?'':'+') + diff + ' kg seit ' + fmtDate(firstW.date);
+  } else { document.getElementById('dsWeightSub').textContent = 'Noch wenig Daten'; }
+
+  upsertChart('weightChart', {
+    type:'line',
+    data:{ labels: sortedWeights.map(w=> fmtDate(w.date)),
+      datasets:[{ data: sortedWeights.map(w=>w.kg), borderColor:'#4F6B44', backgroundColor:'rgba(79,107,68,0.1)', fill:true, tension:0.3, pointRadius:4, pointBackgroundColor:'#4F6B44', borderWidth:2 }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
+      scales:{ y:{ grid:{color:grid} }, x:{ grid:{display:false} } } }
+  });
+
+  const last7 = []; for(let i=6;i>=0;i--) last7.push(addDays(currentDate,-i));
+  const stepsByDate = {}; steps.forEach(s=> stepsByDate[s.date]=s.steps);
+  const stepsData = last7.map(d=> stepsByDate[d]||0);
+  const avgSteps = Math.round(stepsData.reduce((a,b)=>a+b,0)/7);
+  document.getElementById('dsSteps').textContent = avgSteps.toLocaleString('de-DE');
+
+  upsertChart('stepsChart', {
+    type:'bar',
+    data:{ labels: last7.map(d=> WEEKDAY_NAMES[weekdayOf(d)].slice(0,2)),
+      datasets:[{ data: stepsData, backgroundColor: stepsData.map(v=> v>=10000?'#4F6B44':'#C9862F'), borderRadius:4, maxBarThickness:26 }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
+      scales:{ y:{ grid:{color:grid} }, x:{ grid:{display:false} } } }
+  });
+
+  const target = targets[activeTarget];
+  const kcalData = last7.map(d=> dayTotalKcal(d));
+  const onTargetCount = kcalData.filter(v=> v>0 && v<=target).length;
+  document.getElementById('dsOnTarget').textContent = onTargetCount + ' / 7';
+
+  upsertChart('kcalChart', {
+    type:'bar',
+    data:{ labels: last7.map(d=> WEEKDAY_NAMES[weekdayOf(d)].slice(0,2)),
+      datasets:[{ data: kcalData, backgroundColor: kcalData.map(v=> v>target?'#B3543A':'#4F6B44'), borderRadius:4, maxBarThickness:26 }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
+      scales:{ y:{ grid:{color:grid} }, x:{ grid:{display:false} } } }
+  });
+}
+
+function dishByName(name){ return dishes.find(d=>d.name===name); }
+
+/* sign = -1 beim Verbrauch (abgehakt), +1 beim Rückgängigmachen */
+async function adjustPantryForDish(dish, sign){
+  for(const ing of dish.ingredients){
+    const p = pantryItem(ing.name);
+    if(!p) continue;
+    p.bestand = Math.round(((p.bestand + sign*(Number(ing.amount)||0)) + Number.EPSILON) * 100) / 100;
+    await savePantryItem(p);
+  }
+}
+
+/* ================= VORRAT (Pantry) ================= */
+/* Stammdaten kommen aus den Zutaten aller Gerichte – hier wird nur gepflegt, was davon immer vorrätig ist. */
+/* ================= VORRAT (Pantry) ================= */
+/* Stammdaten kommen aus den Zutaten aller Gerichte. Bestand sinkt automatisch beim Abhaken in "Heute". */
+function syncPantry(pRecs){
+  const byName = new Map();
+  pRecs.forEach(r=> byName.set((r.fields.Name||'').trim().toLowerCase(),
+    { id:r.id, name:r.fields.Name||'', unit:r.fields.Unit||'', bestand:Number(r.fields.Bestand)||0, mindestbestand:Number(r.fields.Mindestbestand)||0 }));
+  const seen = new Set();
+  const merged = [];
+  dishes.forEach(d=> d.ingredients.forEach(ing=>{
+    const key = (ing.name||'').trim().toLowerCase();
+    if(!key || seen.has(key)) return;
+    seen.add(key);
+    const existing = byName.get(key);
+    merged.push(existing || { id:null, name: ing.name.trim(), unit: ing.unit||'', bestand:0, mindestbestand:0 });
+  }));
+  merged.sort((a,b)=> a.name.localeCompare(b.name,'de'));
+  pantry = merged;
+}
+/* Wie syncPantry, aber ausgehend vom aktuellen lokalen Bestand statt einem Airtable-Refetch –
+   damit neue Zutaten aus dem Menü sofort auftauchen, ohne "Neu laden". */
+function resyncPantryFromDishes(){
+  const byName = new Map();
+  pantry.forEach(p=> byName.set(p.name.trim().toLowerCase(), p));
+  const seen = new Set();
+  const merged = [];
+  dishes.forEach(d=> d.ingredients.forEach(ing=>{
+    const key = (ing.name||'').trim().toLowerCase();
+    if(!key || seen.has(key)) return;
+    seen.add(key);
+    const existing = byName.get(key);
+    merged.push(existing || { id:null, name: ing.name.trim(), unit: ing.unit||'', bestand:0, mindestbestand:0 });
+  }));
+  merged.sort((a,b)=> a.name.localeCompare(b.name,'de'));
+  pantry = merged;
+}
+function pantryItem(name){
+  const key = name.trim().toLowerCase();
+  return pantry.find(p=> p.name.trim().toLowerCase()===key);
+}
+async function savePantryItem(p){
+  try{
+    if(!p.id){
+      // Sperre: falls schon eine Anlage für diese Zutat läuft, darauf warten statt eine zweite zu starten
+      if(!p._creating){
+        p._creating = atCreate('Pantry', { Name:p.name, Bestand:p.bestand, Mindestbestand:p.mindestbestand, Unit:p.unit })
+          .then(rec=>{ p.id = rec.id; p._creating = null; });
+      }
+      await p._creating;
+    }
+    if(p.id) await atUpdate('Pantry', p.id, { Bestand:p.bestand, Mindestbestand:p.mindestbestand, Unit:p.unit });
+  }catch(e){ console.error(e); setStatus('Pantry-Tabelle fehlt/unvollständig (Felder: Name, Bestand, Mindestbestand, Unit)'); }
+}
+function renderPantry(){
+  const wrap = document.getElementById('pantryList');
+  if(!pantry.length){ wrap.innerHTML = '<p class="section-note">Noch keine Zutaten – lege zuerst ein paar Gerichte an.</p>'; return; }
+  wrap.innerHTML = pantry.map((p,i)=>`
+    <div class="pantry-row ${p.bestand<p.mindestbestand?'low':''}" data-i="${i}">
+      <div><p class="pantry-name">${escapeAttr(p.name)}</p><p class="pantry-hint">${p.unit||'Einheit wie im Rezept'}</p></div>
+      <div class="pantry-fields">
+        <div class="pantry-field"><label>Bestand</label><input type="number" step="any" class="pf-bestand" value="${p.bestand}"></div>
+        <div class="pantry-field"><label>Minimum</label><input type="number" step="any" class="pf-min" value="${p.mindestbestand}"></div>
+      </div>
+    </div>`).join('');
+  wrap.querySelectorAll('.pantry-row').forEach(row=>{
+    const i = Number(row.dataset.i); const p = pantry[i];
+    row.querySelector('.pf-bestand').addEventListener('change', e=>{ p.bestand = Number(e.target.value)||0; row.classList.toggle('low', p.bestand<p.mindestbestand); savePantryItem(p); });
+    row.querySelector('.pf-min').addEventListener('change', e=>{ p.mindestbestand = Number(e.target.value)||0; row.classList.toggle('low', p.bestand<p.mindestbestand); savePantryItem(p); });
+  });
+}
+
+async function loadAll(){
+  setStatus('Lädt…');
+  try{
+    const [dishRecs, wpRecs, logRecs, wRecs, sRecs] = await Promise.all([
+      atList('Dishes'), atList('WeekPlan'), atList('LogEntries'), atList('Weights'), atList('Steps')
+    ]);
+    dishes = dishRecs.map(r=>({ id:r.id, name:r.fields.Name||'', kcal:Number(r.fields.Kcal)||0,
+      ingredients: (()=>{ try{ return JSON.parse(r.fields.Ingredients||'[]'); }catch(e){ return []; } })() }));
+    let pRecs = [];
+    try{ pRecs = await atList('Pantry'); }
+    catch(e){ console.warn('Pantry-Tabelle noch nicht vorhanden – lege sie in Airtable an (Felder: Name, Staple).'); }
+    syncPantry(pRecs);
+    weekPlan = {}; WEEKDAYS.forEach(wd=> weekPlan[wd]=[]);
+    wpRecs.forEach(r=>{
+      const wd = r.fields.Weekday;
+      if(weekPlan[wd]) weekPlan[wd].push({ id:r.id, time:r.fields.Time||'12:00', dishName:r.fields.DishName||'' });
+    });
+    WEEKDAYS.forEach(wd=> weekPlan[wd].sort((a,b)=> a.time.localeCompare(b.time)));
+    logEntries = logRecs.map(r=>({ id:r.id, date:r.fields.Date, type:r.fields.Type, name:r.fields.Name, kcal:Number(r.fields.Kcal)||0, time:r.fields.Time||'' }));
+    weights = wRecs.map(r=>({ id:r.id, date:r.fields.Date, kg:Number(r.fields.Kg)||0 }));
+    steps = sRecs.map(r=>({ id:r.id, date:r.fields.Date, steps:Number(r.fields.Steps)||0, kcal:Number(r.fields.Kcal)||0 }));
+    setStatus('Verbunden');
+  }catch(e){
+    console.error(e);
+    setStatus('Verbindung fehlgeschlagen – prüfe Token/Base-ID');
+  }
+  render();
+}
+
+function render(){ renderToday(); renderWeek(); renderDishLibrary(); }
+
+/* ================= TODAY ================= */
+function renderToday(){
+  const wd = weekdayOf(currentDate);
+  document.getElementById('dayWeekday').textContent = WEEKDAY_NAMES[wd] + (currentDate===todayStr() ? ' · heute' : '');
+  document.getElementById('dayDate').textContent = fmtDate(currentDate);
+  document.getElementById('dayNext').disabled = (currentDate >= todayStr());
+
+  document.getElementById('chipBase').classList.toggle('active', activeTarget==='base');
+  document.getElementById('chipDeficit').classList.toggle('active', activeTarget==='deficit');
+  document.getElementById('chipBase').textContent = targets.base;
+  document.getElementById('chipDeficit').textContent = targets.deficit;
+
+  const slots = weekPlan[wd] || [];
+  const dayLogPlan = logEntries.filter(l=> l.date===currentDate && l.type==='plan');
+  const dayLogExtra = logEntries.filter(l=> l.date===currentDate && l.type==='extra');
+
+  const planList = document.getElementById('planList');
+  planList.innerHTML = slots.map(slot=>{
+    const dish = dishByName(slot.dishName);
+    if(!dish) return '';
+    const logHit = dayLogPlan.find(l=> l.name===dish.name && l.time===slot.time);
+    const checked = !!logHit;
+    return `<div class="food-row ${checked?'checked':''}" data-slotid="${slot.id}" data-dishname="${escapeAttr(dish.name)}" data-time="${slot.time}" data-kcal="${dish.kcal}" data-loghit="${logHit?logHit.id:''}">
+      <div class="left"><div class="check-ico">${checked?'✓':''}</div>
+      <div><p class="food-name">${escapeAttr(dish.name)}</p><p class="food-time">geplant ${slot.time}</p></div></div>
+      <span class="food-kcal">${dish.kcal} kcal</span>
+    </div>`;
+  }).join('');
+  planList.querySelectorAll('.food-row').forEach(row=>{
+    row.addEventListener('click', async ()=>{
+      row.style.opacity = '0.5';
+      const logHitId = row.dataset.loghit;
+      const dish = dishByName(row.dataset.dishname);
+      try{
+        if(logHitId){
+          await atDelete('LogEntries', logHitId);
+          logEntries = logEntries.filter(l=>l.id!==logHitId);
+          if(dish) await adjustPantryForDish(dish, +1); // Abhaken rückgängig -> Bestand zurückbuchen
+        }else{
+          const rec = await atCreate('LogEntries', { Date: currentDate, Type:'plan', Name: row.dataset.dishname, Kcal: Number(row.dataset.kcal), Time: row.dataset.time });
+          logEntries.push({ id:rec.id, date:currentDate, type:'plan', name:row.dataset.dishname, kcal:Number(row.dataset.kcal), time:row.dataset.time });
+          if(dish) await adjustPantryForDish(dish, -1); // gegessen -> Bestand verbrauchen
+        }
+      }catch(e){ console.error(e); setStatus('Fehler beim Speichern'); }
+      renderToday();
+    });
+  });
+
+  const extraList = document.getElementById('extraList');
+  extraList.innerHTML = dayLogExtra.map(e=>`
+    <div class="food-row extra-row" style="cursor:default;">
+      <div class="left"><div><p class="food-name">${escapeAttr(e.name)}</p><p class="food-time">${e.time||''}</p></div></div>
+      <span class="food-kcal">${e.kcal} kcal<button class="extra-del" data-id="${e.id}">×</button></span>
+    </div>`).join('');
+  extraList.querySelectorAll('.extra-del').forEach(b=> b.addEventListener('click', async (ev)=>{
+    ev.stopPropagation();
+    try{ await atDelete('LogEntries', b.dataset.id); logEntries = logEntries.filter(l=>l.id!==b.dataset.id); }
+    catch(e){ setStatus('Fehler beim Löschen'); }
+    renderToday();
+  }));
+
+  let total = 0;
+  slots.forEach(slot=>{ const hit = dayLogPlan.find(l=> l.name===slot.dishName && l.time===slot.time); if(hit) total += hit.kcal; });
+  dayLogExtra.forEach(e=> total += e.kcal);
+  const target = targets[activeTarget];
+  document.getElementById('totalKcal').textContent = total;
+  document.getElementById('targetVal').textContent = target;
+  const pct = Math.min(100, Math.round((total/target)*100));
+  const fill = document.getElementById('barFill');
+  fill.style.width = pct+'%';
+  fill.style.background = total>target ? 'var(--coral)' : 'var(--olive)';
+  const remaining = target-total;
+  document.getElementById('summaryNote').textContent = remaining>=0 ? `Noch ${remaining} kcal übrig` : `${Math.abs(remaining)} kcal über dem Ziel`;
+
+  renderWeightBlock();
+}
+
+document.getElementById('dayPrev').addEventListener('click', ()=>{ currentDate = addDays(currentDate,-1); renderToday(); });
+document.getElementById('dayNext').addEventListener('click', ()=>{
+  if(currentDate >= todayStr()) return;
+  currentDate = addDays(currentDate,1); renderToday();
+});
+document.getElementById('chipBase').addEventListener('click', ()=>{ activeTarget='base'; renderToday(); });
+document.getElementById('chipDeficit').addEventListener('click', ()=>{ activeTarget='deficit'; renderToday(); });
+
+document.getElementById('extraAddBtn').addEventListener('click', async ()=>{
+  const name = document.getElementById('extraName').value.trim();
+  const kcal = Number(document.getElementById('extraKcal').value)||0;
+  if(!name || kcal<=0) return;
+  const now = new Date();
+  const time = String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+  try{
+    const rec = await atCreate('LogEntries', { Date: currentDate, Type:'extra', Name:name, Kcal:kcal, Time:time });
+    logEntries.push({ id:rec.id, date:currentDate, type:'extra', name, kcal, time });
+    document.getElementById('extraName').value=''; document.getElementById('extraKcal').value='';
+    renderToday();
+  }catch(e){ setStatus('Fehler beim Speichern'); }
+});
+
+/* weight */
+function renderWeightBlock(){
+  const sorted = [...weights].sort((a,b)=> b.date.localeCompare(a.date));
+  const last = sorted[0];
+  document.getElementById('lastWeightVal').textContent = last ? last.kg.toLocaleString('de-DE',{minimumFractionDigits:1})+' kg' : '–';
+  document.getElementById('lastWeightDate').textContent = last ? fmtDate(last.date) : 'Noch keine Messung';
+  const start = profile.startWeight, goal = profile.goalWeight;
+  document.getElementById('wgStart').textContent = start+' kg';
+  document.getElementById('wgGoal').textContent = 'Ziel: '+goal+' kg';
+  const current = last ? last.kg : start;
+  const totalSpan = start-goal;
+  const done = Math.max(0, Math.min(100, totalSpan>0 ? Math.round(((start-current)/totalSpan)*100) : 0));
+  document.getElementById('weightBarFill').style.width = done+'%';
+  document.getElementById('weightDate').value = todayStr();
+}
+document.getElementById('showWeightForm').addEventListener('click', ()=>{
+  const f = document.getElementById('weightForm');
+  f.style.display = f.style.display==='none' ? 'flex' : 'none';
+});
+document.getElementById('weightSaveBtn').addEventListener('click', async ()=>{
+  const date = document.getElementById('weightDate').value || todayStr();
+  const kg = Number(document.getElementById('weightKg').value);
+  if(!kg) return;
+  try{
+    const existing = weights.find(w=>w.date===date);
+    if(existing){ await atUpdate('Weights', existing.id, { Kg: kg }); existing.kg = kg; }
+    else{ const rec = await atCreate('Weights', { Date: date, Kg: kg }); weights.push({ id:rec.id, date, kg }); }
+    document.getElementById('weightKg').value='';
+    document.getElementById('weightForm').style.display='none';
+    renderWeightBlock();
+  }catch(e){ setStatus('Fehler beim Speichern'); }
+});
+
+/* steps */
+document.getElementById('stepsSaveBtn').addEventListener('click', async ()=>{
+  const stepsVal = Number(document.getElementById('stepsInput').value)||0;
+  const kcalRaw = document.getElementById('stepsKcalInput').value;
+  if(stepsVal<=0) return;
+  const kcal = kcalRaw ? Number(kcalRaw) : Math.round(stepsVal*(profile.startWeight||80)*0.00055);
+  try{
+    const existing = steps.find(s=>s.date===currentDate);
+    if(existing){ await atUpdate('Steps', existing.id, { Steps: stepsVal, Kcal: kcal }); existing.steps=stepsVal; existing.kcal=kcal; }
+    else{ const rec = await atCreate('Steps', { Date: currentDate, Steps: stepsVal, Kcal: kcal }); steps.push({ id:rec.id, date:currentDate, steps:stepsVal, kcal }); }
+    document.getElementById('stepsInput').value=''; document.getElementById('stepsKcalInput').value='';
+    setStatus('Gespeichert');
+  }catch(e){ setStatus('Fehler beim Speichern'); }
+});
+
+/* ================= WOCHE ================= */
+function renderWeek(){
+  const wrap = document.getElementById('weekDays');
+  wrap.innerHTML = '';
+  WEEKDAYS.forEach(wd=>{
+    const block = document.createElement('div');
+    block.className = 'day-block';
+    const slots = weekPlan[wd] || [];
+    const dayTotal = slots.reduce((sum,slot)=>{ const d=dishByName(slot.dishName); return sum + (d?d.kcal:0); }, 0);
+    const target = targets[activeTarget];
+    const over = dayTotal > target;
+    block.innerHTML = `<div class="day-block-head"><span>${WEEKDAY_NAMES[wd]}</span><span class="day-total ${over?'over':''}">${dayTotal} / ${target} kcal</span></div><div class="slots"></div>
+      <button class="add-slot" data-wd="${wd}">+ Mahlzeit hinzufügen</button>`;
+    const slotsWrap = block.querySelector('.slots');
+    slots.forEach(slot=>{
+      const dish = dishByName(slot.dishName);
+      const row = document.createElement('div');
+      row.className = 'slot-row';
+      row.innerHTML = `<input type="time" value="${slot.time}">
+        <span class="slot-dishname">${dish?escapeAttr(dish.name):'—'}</span>
+        <span class="slot-kcal">${dish?dish.kcal:0} kcal</span>
+        <button class="slot-swap">Tauschen</button>
+        <button class="slot-del">×</button>`;
+      row.querySelector('input[type=time]').addEventListener('change', async e=>{
+        slot.time = e.target.value;
+        try{ await atUpdate('WeekPlan', slot.id, { Time: slot.time }); }catch(err){ setStatus('Fehler beim Speichern'); }
+        renderWeek();
+      });
+      row.querySelector('.slot-swap').addEventListener('click', ()=> openSwapModal(wd, slot));
+      row.querySelector('.slot-del').addEventListener('click', async ()=>{
+        try{ await atDelete('WeekPlan', slot.id); weekPlan[wd] = weekPlan[wd].filter(s=>s.id!==slot.id); }
+        catch(err){ setStatus('Fehler beim Löschen'); }
+        renderWeek();
+      });
+      slotsWrap.appendChild(row);
+    });
+    block.querySelector('.add-slot').addEventListener('click', async ()=>{
+      const firstDish = dishes[0];
+      if(!firstDish) return;
+      try{
+        const rec = await atCreate('WeekPlan', { Weekday: wd, Time:'12:00', DishName: firstDish.name });
+        weekPlan[wd].push({ id: rec.id, time:'12:00', dishName: firstDish.name });
+        renderWeek();
+      }catch(err){ setStatus('Fehler beim Speichern'); }
+    });
+    wrap.appendChild(block);
+  });
+}
+
+function openSwapModal(wd, slot){
+  swapWeekday = wd; swapTargetSlot = slot; swapSelectedDishName = slot.dishName;
+  renderSwapList();
+  document.getElementById('swapModalBg').classList.add('open');
+}
+function renderSwapList(){
+  const ul = document.getElementById('swapPickList');
+  ul.innerHTML = dishes.map(d=>`<li class="pick-row ${d.name===swapSelectedDishName?'selected':''}" data-name="${escapeAttr(d.name)}"><span class="pn">${escapeAttr(d.name)}</span><span class="pk">${d.kcal} kcal</span></li>`).join('');
+  ul.querySelectorAll('.pick-row').forEach(row=> row.addEventListener('click', ()=>{ swapSelectedDishName=row.dataset.name; renderSwapList(); }));
+  const d = dishByName(swapSelectedDishName);
+  document.getElementById('swapPreview').innerHTML = d ? `<b>${escapeAttr(d.name)}</b> · ${d.kcal} kcal<br>${d.ingredients.map(i=>`${escapeAttr(i.name)} — ${i.amount}${i.unit}`).join(', ')}` : '';
+}
+document.getElementById('swapCancel').addEventListener('click', ()=> document.getElementById('swapModalBg').classList.remove('open'));
+document.getElementById('swapConfirm').addEventListener('click', async ()=>{
+  if(swapTargetSlot && swapSelectedDishName){
+    try{
+      await atUpdate('WeekPlan', swapTargetSlot.id, { DishName: swapSelectedDishName });
+      swapTargetSlot.dishName = swapSelectedDishName;
+      renderWeek(); renderToday();
+    }catch(e){ setStatus('Fehler beim Speichern'); }
+  }
+  document.getElementById('swapModalBg').classList.remove('open');
+});
+
+/* dish library */
+function renderDishLibrary(){
+  const wrap = document.getElementById('dishLib');
+  wrap.innerHTML = dishes.map(d=>`<div class="dish-lib-item"><div><span class="dl-name">${escapeAttr(d.name)}</span><span class="dl-kcal">${d.kcal} kcal</span></div>
+    <div class="dl-actions"><button data-act="edit" data-id="${d.id}">Bearbeiten</button><button data-act="del" data-id="${d.id}">Löschen</button></div></div>`).join('');
+  wrap.querySelectorAll('button[data-act="edit"]').forEach(b=> b.addEventListener('click', ()=> openDishEditor(dishes.find(d=>d.id===b.dataset.id))));
+  wrap.querySelectorAll('button[data-act="del"]').forEach(b=> b.addEventListener('click', async ()=>{
+    try{ await atDelete('Dishes', b.dataset.id); dishes = dishes.filter(d=>d.id!==b.dataset.id); render(); }
+    catch(e){ setStatus('Fehler beim Löschen'); }
+  }));
+}
+document.getElementById('copyPromptBtn').addEventListener('click', async ()=>{
+  const name = document.getElementById('dishName').value.trim() || 'dieses Gericht';
+  const list = editorIngredients.filter(i=>i.name.trim()).map(i=> `- ${i.amount} ${i.unit} ${i.name}`).join('\n');
+  const prompt = `Schätze die Gesamtkalorien (kcal) für folgendes Gericht basierend auf den Zutaten. Gib nur eine ganze Zahl zurück (die Gesamtkalorien in kcal), ohne Text drumherum.\n\nGericht: ${name}\nZutaten:\n${list}`;
+  const status = document.getElementById('promptCopyStatus');
+  const ta = document.getElementById('promptOutput');
+  ta.style.display = 'block';
+  ta.value = prompt;
+  ta.focus(); ta.select();
+  try{
+    await navigator.clipboard.writeText(prompt);
+    status.textContent = 'In Zwischenablage kopiert – oder markiere den Text unten manuell.';
+  }catch(e){
+    status.textContent = 'Text unten markieren und kopieren (Automatisches Kopieren war nicht möglich).';
+  }
+});
+
+document.getElementById('newDishBtn').addEventListener('click', ()=> openDishEditor(null));
+function openDishEditor(dish){
+  editingDish = dish;
+  const d = dish || { name:'', kcal:0, ingredients:[] };
+  document.getElementById('dishModalTitle').textContent = dish ? 'Gericht bearbeiten' : 'Neues Gericht';
+  document.getElementById('dishName').value = d.name;
+  document.getElementById('dishKcal').value = d.kcal;
+  document.getElementById('promptOutput').style.display = 'none';
+  document.getElementById('promptCopyStatus').textContent = '';
+  editorIngredients = structuredClone(d.ingredients);
+  renderEditorIngredients();
+  document.getElementById('dishModalBg').classList.add('open');
+}
+function renderEditorIngredients(){
+  const wrap = document.getElementById('dishIngredients');
+  wrap.innerHTML = '';
+  editorIngredients.forEach((ing, idx)=>{
+    const row = document.createElement('div');
+    row.className = 'editor-row';
+    const unitOptions = UNITS.map(u=>`<option value="${u}" ${u===ing.unit?'selected':''}>${u}</option>`).join('');
+    row.innerHTML = `<input type="text" class="iname" placeholder="Zutat" value="${escapeAttr(ing.name)}">
+      <input type="number" class="iamt" value="${ing.amount}"><select class="iunit">${unitOptions}</select><button title="Entfernen">×</button>`;
+    row.querySelector('.iname').addEventListener('input', e=>{ ing.name=e.target.value; });
+    row.querySelector('.iamt').addEventListener('input', e=>{ ing.amount=Number(e.target.value)||0; });
+    row.querySelector('.iunit').addEventListener('change', e=>{ ing.unit=e.target.value; });
+    row.querySelector('button').addEventListener('click', ()=>{ editorIngredients.splice(idx,1); renderEditorIngredients(); });
+    wrap.appendChild(row);
+  });
+}
+document.getElementById('dishAddIng').addEventListener('click', ()=>{ editorIngredients.push({name:'',amount:1,unit:'g'}); renderEditorIngredients(); });
+document.getElementById('dishCancel').addEventListener('click', ()=> document.getElementById('dishModalBg').classList.remove('open'));
+document.getElementById('dishSave').addEventListener('click', async ()=>{
+  const name = document.getElementById('dishName').value.trim() || 'Unbenanntes Gericht';
+  const kcal = Number(document.getElementById('dishKcal').value)||0;
+  const ingredients = editorIngredients.filter(i=>i.name.trim());
+  const fields = { Name:name, Kcal:kcal, Ingredients: JSON.stringify(ingredients) };
+  try{
+    if(editingDish){
+      const oldName = editingDish.name;
+      await atUpdate('Dishes', editingDish.id, fields);
+      editingDish.name=name; editingDish.kcal=kcal; editingDish.ingredients=ingredients;
+      if(oldName !== name){
+        setStatus('Aktualisiere Wochenplan…');
+        for(const wd of WEEKDAYS){
+          for(const slot of weekPlan[wd]){
+            if(slot.dishName === oldName){
+              await atUpdate('WeekPlan', slot.id, { DishName: name });
+              slot.dishName = name;
+            }
+          }
+        }
+      }
+    }else{
+      const rec = await atCreate('Dishes', fields);
+      dishes.push({ id:rec.id, name, kcal, ingredients });
+    }
+    document.getElementById('dishModalBg').classList.remove('open');
+    resyncPantryFromDishes();
+    render();
+    setStatus('Gespeichert');
+  }catch(e){ setStatus('Fehler beim Speichern'); }
+});
+
+/* shopping list for whole week */
+/* Kaufmenge = max(0, Wochenbedarf - (Bestand - Mindestbestand)) */
+function buildShoppingList(){
+  const map = new Map();
+  WEEKDAYS.forEach(wd=>{
+    (weekPlan[wd]||[]).forEach(slot=>{
+      const dish = dishByName(slot.dishName);
+      if(!dish) return;
+      dish.ingredients.forEach(ing=>{
+        const key = ing.name.trim().toLowerCase()+'|'+ing.unit;
+        if(map.has(key)) map.get(key).benoetigt += Number(ing.amount)||0;
+        else map.set(key, { name: ing.name.trim(), unit: ing.unit, benoetigt: Number(ing.amount)||0 });
+      });
+    });
+  });
+  const items = [];
+  map.forEach(entry=>{
+    const p = pantryItem(entry.name);
+    const bestand = p ? p.bestand : 0;
+    const minimum = p ? p.mindestbestand : 0;
+    const nutzbar = Math.max(0, bestand - minimum);
+    const kaufen = Math.max(0, Math.round((entry.benoetigt - nutzbar)*100)/100);
+    if(kaufen > 0) items.push({ name:entry.name, unit:entry.unit, amount:kaufen, benoetigt:entry.benoetigt, bestand });
+  });
+  return items.sort((a,b)=> a.name.localeCompare(b.name,'de'));
+}
+
+const SHOP_CATEGORIES = [
+  {name:'Obst & Gemüse', keys:['paprika','brokkoli','tomate','zitrone','zwiebel','knoblauch','apfel','banane','gurke','salat','spinat','karotte','kartoffel','avocado','pilz']},
+  {name:'Milchprodukte & Eier', keys:['joghurt','käse','feta','quark','butter','sahne','ei','mozzarella','milch']},
+  {name:'Fleisch & Fisch', keys:['hähnchen','huhn','rind','schwein','hack','lachs','thunfisch','fisch','wurst','speck']},
+  {name:'Brot & Backwaren', keys:['brot','brötchen','toast','wrap','tortilla']},
+  {name:'Tiefkühl', keys:['tiefkühl','(tk)','tk-']},
+  {name:'Trockenware & Sonstiges', keys:['reis','nudel','pasta','linsen','bohnen','kichererbsen','haferflocken','mehl','zucker','honig','sojasauce','essig','öl','salz','pfeffer']},
+];
+function categoryFor(name){
+  const n = name.toLowerCase();
+  for(const c of SHOP_CATEGORIES){ if(c.keys.some(k=>n.includes(k))) return c.name; }
+  return 'Sonstiges';
+}
+function shoppingListText(items){
+  if(!items.length) return 'Nichts zu kaufen – Bestand reicht für die Wochenplanung.';
+  const byCat = {};
+  items.forEach(i=>{ const c = categoryFor(i.name); (byCat[c]=byCat[c]||[]).push(i); });
+  const order = SHOP_CATEGORIES.map(c=>c.name).concat('Sonstiges');
+  let text = '';
+  order.filter(c=>byCat[c]).forEach(cat=>{
+    text += cat + '\n';
+    byCat[cat].forEach(i=> text += `- ${i.name}: ${i.amount} ${i.unit}\n`);
+    text += '\n';
+  });
+  return text.trim();
+}
+function renderShopPreview(items){
+  const wrap = document.getElementById('shopPreview');
+  document.getElementById('previewMeta').textContent = items.length ? items.length+' Artikel unter Mindestbestand' : '';
+  if(!items.length){ wrap.innerHTML = '<div class="empty">Bestand reicht für die geplante Woche – nichts zu kaufen.</div>'; return; }
+  wrap.innerHTML = `<div class="kcal-box">${items.map(i=>
+    `<div class="preview-item"><span>${escapeAttr(i.name)} <span class="pantry-hint">(Bestand ${i.bestand}, Bedarf ${i.benoetigt})</span></span><span class="pi-amt">${i.amount} ${i.unit}</span></div>`
+  ).join('')}</div>`;
+}
+document.getElementById('exportBtn').addEventListener('click', ()=>{
+  const items = buildShoppingList();
+  renderShopPreview(items);
+  document.getElementById('shopListText').value = shoppingListText(items);
+  document.getElementById('copyStatus').textContent = '';
+  document.getElementById('modalBg').classList.add('open');
+});
+document.getElementById('closeModal').addEventListener('click', ()=> document.getElementById('modalBg').classList.remove('open'));
+document.getElementById('copyListBtn').addEventListener('click', async ()=>{
+  const ta = document.getElementById('shopListText');
+  try{
+    await navigator.clipboard.writeText(ta.value);
+    document.getElementById('copyStatus').textContent = 'Kopiert – bereit für Kurzbefehle.';
+  }catch(e){
+    ta.select(); document.execCommand('copy');
+    document.getElementById('copyStatus').textContent = 'Kopiert.';
+  }
+});
+document.getElementById('resetBtn').addEventListener('click', ()=>{ loadAll(); });
+
+loadAll();
+</script>
+
+</body>
+</html>

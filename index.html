@@ -177,6 +177,7 @@ h2.section{font-family:'Fraunces',serif;font-weight:600;font-size:18px;margin:1.
 .need-status{font-size:11px;color:var(--ink-soft);}
 .dismiss-btn{margin-top:6px;background:none;border:none;font-size:11px;color:var(--ink-soft);cursor:pointer;padding:0;text-decoration:underline;}
 .dismiss-btn:hover{color:var(--coral);}
+.need-row.upcoming{border-color:var(--line);background:var(--card);}
 .urgency-badge{display:inline-block;font-size:10px;font-weight:500;color:var(--ink-soft);background:var(--bg);border-radius:20px;padding:1px 7px;margin-left:6px;vertical-align:middle;}
 .urgency-badge.urgent{color:#fff;background:var(--coral);}
 .shoplist-text{width:100%;font-family:'IBM Plex Mono',monospace;font-size:12.5px;line-height:1.6;border:1px solid var(--line);border-radius:10px;padding:.8rem .9rem;background:#fff;color:var(--ink);resize:vertical;}
@@ -287,6 +288,9 @@ h2.section{font-family:'Fraunces',serif;font-weight:600;font-size:18px;margin:1.
     <div id="shopPreview"></div>
     <button class="btn" id="exportBtn" style="margin-top:.6rem;">Bestätigte als Text kopieren</button>
 
+    <h2 class="section">Bald fällig <span class="section-note">Tag 3–7, zählt nicht im Badge</span></h2>
+    <div id="upcomingList"></div>
+
     <p class="chart-label">Gewichtsverlauf</p>
     <div class="chart-wrap"><canvas id="weightChart" role="img" aria-label="Gewichtsverlauf über Zeit"></canvas></div>
 
@@ -377,10 +381,11 @@ const WEEKDAYS = ['Mo','Di','Mi','Do','Fr','Sa','So'];
 const WEEKDAY_NAMES = {Mo:'Montag',Di:'Dienstag',Mi:'Mittwoch',Do:'Donnerstag',Fr:'Freitag',Sa:'Samstag',So:'Sonntag'};
 const MONTH_NAMES = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
 
-function todayStr(){ return new Date().toISOString().slice(0,10); }
+function fmtLocalDateStr(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function todayStr(){ return fmtLocalDateStr(new Date()); }
 function weekdayOf(dateStr){ const d = new Date(dateStr+'T00:00:00'); return WEEKDAYS[(d.getDay()+6)%7]; }
 function fmtDate(dateStr){ const d = new Date(dateStr+'T00:00:00'); return `${d.getDate()}. ${MONTH_NAMES[d.getMonth()]}`; }
-function addDays(dateStr, n){ const d = new Date(dateStr+'T00:00:00'); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); }
+function addDays(dateStr, n){ const d = new Date(dateStr+'T00:00:00'); d.setDate(d.getDate()+n); return fmtLocalDateStr(d); }
 function escapeAttr(s){ return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
 
 /* in-memory state, mirrors Airtable */
@@ -642,7 +647,7 @@ async function loadAll(){
   render();
 }
 
-function render(){ renderToday(); renderWeek(); renderDishLibrary(); renderShopPreview(); renderDashboardBadge(); }
+function render(){ renderToday(); renderWeek(); renderDishLibrary(); renderShopPreview(); renderUpcoming(); renderDashboardBadge(); }
 
 /* ================= TODAY ================= */
 function renderToday(){
@@ -981,26 +986,29 @@ document.getElementById('dishSave').addEventListener('click', async ()=>{
 /* shopping list for whole week (= nächste 7 Tage, da wiederkehrendes Template) */
 /* Kaufmenge = max(0, Wochenbedarf - (Bestand - Mindestbestand)) */
 /* Tage bis zum nächsten Termin, an dem diese Zutat laut Wochenplan gebraucht wird (ab morgen gezählt) */
-function daysUntilNeeded(ingName){
+const NEED_HORIZON_DAYS = 2;     // "Einkaufsliste": nächste 2 Tage ab morgen, zählt im Badge
+const UPCOMING_HORIZON_DAYS = 7; // "Bald fällig": Tag 3 bis 7, informativ, zählt nicht im Badge
+
+/* Tag (relativ, ab morgen=1) des nächsten Vorkommens innerhalb [fromDay,toDay], oder null */
+function daysUntilNeededInRange(ingName, fromDay, toDay){
   const key = ingName.trim().toLowerCase();
-  const todayIdx = WEEKDAYS.indexOf(weekdayOf(todayStr()));
-  let minDays = Infinity;
-  WEEKDAYS.forEach((wd,idx)=>{
+  for(let d=fromDay; d<=toDay; d++){
+    const wd = weekdayOf(addDays(todayStr(), d));
     const hasIng = (weekPlan[wd]||[]).some(slot=>{
       const dish = dishByName(slot.dishName);
       return dish && dish.ingredients.some(i=> i.name.trim().toLowerCase()===key);
     });
-    if(hasIng){
-      let diff = idx - todayIdx;
-      if(diff <= 0) diff += 7; // heute zählt nicht mehr -> nächstes Vorkommen ab morgen
-      minDays = Math.min(minDays, diff);
-    }
-  });
-  return minDays===Infinity ? null : minDays;
+    if(hasIng) return d;
+  }
+  return null;
 }
-function buildShoppingList(){
+function daysUntilNeeded(ingName){ return daysUntilNeededInRange(ingName, 1, NEED_HORIZON_DAYS); }
+
+/* Bedarf über [fromDay,toDay] gegen Bestand/Minimum geprüft -> Liste der zu kaufenden Artikel */
+function computeNeedForRange(fromDay, toDay){
   const map = new Map();
-  WEEKDAYS.forEach(wd=>{
+  for(let d=fromDay; d<=toDay; d++){
+    const wd = weekdayOf(addDays(todayStr(), d));
     (weekPlan[wd]||[]).forEach(slot=>{
       const dish = dishByName(slot.dishName);
       if(!dish) return;
@@ -1010,7 +1018,7 @@ function buildShoppingList(){
         else map.set(key, { name: ing.name.trim(), unit: ing.unit, benoetigt: Number(ing.amount)||0 });
       });
     });
-  });
+  }
   const items = [];
   map.forEach(entry=>{
     const p = pantryItem(entry.name);
@@ -1019,9 +1027,20 @@ function buildShoppingList(){
     const minimum = p ? p.mindestbestand : 0;
     const nutzbar = Math.max(0, bestand - minimum);
     const kaufen = Math.max(0, Math.round((entry.benoetigt - nutzbar)*100)/100);
-    if(kaufen > 0) items.push({ name:entry.name, unit:entry.unit, amount:kaufen, benoetigt:entry.benoetigt, bestand, daysUntil:daysUntilNeeded(entry.name) });
+    if(kaufen > 0) items.push({ name:entry.name, unit:entry.unit, amount:kaufen, benoetigt:entry.benoetigt, bestand });
   });
   return items.sort((a,b)=> a.name.localeCompare(b.name,'de'));
+}
+function buildShoppingList(){
+  return computeNeedForRange(1, NEED_HORIZON_DAYS)
+    .map(i=> ({...i, daysUntil: daysUntilNeeded(i.name)}));
+}
+/* "Bald fällig": Bedarf über die ganze Woche, abzüglich dem, was schon in der dringenden Liste steckt */
+function buildUpcomingList(){
+  const urgentNames = new Set(computeNeedForRange(1, NEED_HORIZON_DAYS).map(i=>i.name.trim().toLowerCase()));
+  return computeNeedForRange(1, UPCOMING_HORIZON_DAYS)
+    .filter(i=> !urgentNames.has(i.name.trim().toLowerCase()))
+    .map(i=> ({...i, daysUntil: daysUntilNeededInRange(i.name, NEED_HORIZON_DAYS+1, UPCOMING_HORIZON_DAYS)}));
 }
 
 const SHOP_CATEGORIES = [
@@ -1077,6 +1096,7 @@ async function computeShoppingNeeds(){
     }
   }
   renderShopPreview();
+  renderUpcoming();
   renderDashboardBadge();
 }
 document.getElementById('refreshNeedsBtn').addEventListener('click', ()=> computeShoppingNeeds());
@@ -1122,14 +1142,14 @@ function renderShopPreview(){
     const item = shoppingNeeds.find(s=>s.id===id); if(!item) return;
     try{ if(item.id) await atDelete('ShoppingNeeds', item.id); }catch(err){ console.error(err); }
     shoppingNeeds = shoppingNeeds.filter(s=>s.id!==id);
-    renderShopPreview(); renderDashboardBadge();
+    renderShopPreview(); renderUpcoming(); renderDashboardBadge();
   }));
   wrap.querySelectorAll('.add-list-btn').forEach(btn=> btn.addEventListener('click', async e=>{
     const id = e.target.closest('.need-row').dataset.id;
     const item = shoppingNeeds.find(s=>s.id===id); if(!item) return;
     item.status = 'liste';
     try{ await atUpdate('ShoppingNeeds', item.id, { Status:'liste' }); }catch(err){ console.error(err); }
-    renderShopPreview(); renderDashboardBadge();
+    renderShopPreview(); renderUpcoming(); renderDashboardBadge();
   }));
   wrap.querySelectorAll('.bought-btn').forEach(btn=> btn.addEventListener('click', async e=>{
     const row = e.target.closest('.need-row');
@@ -1140,7 +1160,37 @@ function renderShopPreview(){
     try{ await atUpdate('ShoppingNeeds', item.id, { Status:'gekauft', BoughtAmount:amount }); }catch(err){ console.error(err); }
     const p = pantryItem(item.name);
     if(p){ p.bestand = Math.round((p.bestand+amount)*100)/100; await savePantryItem(p); }
-    renderShopPreview(); renderDashboardBadge();
+    renderShopPreview(); renderUpcoming(); renderDashboardBadge();
+  }));
+}
+
+/* "Bald fällig" – rein informativ, kein Status-Tracking, kein Badge */
+function renderUpcoming(){
+  const wrap = document.getElementById('upcomingList');
+  const list = buildUpcomingList();
+  if(!list.length){ wrap.innerHTML = '<div class="empty">Nichts Weiteres in den nächsten 7 Tagen absehbar.</div>'; return; }
+  wrap.innerHTML = list.map((item,i)=>{
+    const label = item.daysUntil===null ? '' : `in ${item.daysUntil} Tagen benötigt`;
+    return `<div class="need-row upcoming" data-i="${i}">
+      <div class="need-top"><p class="need-name">${escapeAttr(item.name)} ${label?`<span class="urgency-badge">${label}</span>`:''}</p><span class="need-amt">${item.amount} ${item.unit}</span></div>
+      <div class="need-actions"><button class="mini-btn secondary add-upcoming-btn">Zur Einkaufsliste hinzufügen</button></div>
+    </div>`;
+  }).join('');
+  wrap.querySelectorAll('.add-upcoming-btn').forEach(btn=> btn.addEventListener('click', async e=>{
+    const i = Number(e.target.closest('.need-row').dataset.i);
+    const item = list[i];
+    const key = item.name.trim().toLowerCase();
+    let existing = shoppingNeeds.find(s=> s.name.trim().toLowerCase()===key && s.status!=='gekauft');
+    try{
+      if(existing){
+        existing.status = 'liste'; existing.amount = item.amount;
+        await atUpdate('ShoppingNeeds', existing.id, { Status:'liste', Amount:item.amount });
+      }else{
+        const rec = await atCreate('ShoppingNeeds', { Name:item.name, Amount:item.amount, Unit:item.unit, Status:'liste' });
+        shoppingNeeds.push({ id:rec.id, name:item.name, unit:item.unit, amount:item.amount, status:'liste', boughtAmount:0 });
+      }
+    }catch(err){ console.error(err); setStatus('ShoppingNeeds-Tabelle fehlt (Felder: Name, Amount, Unit, Status, BoughtAmount)'); }
+    renderShopPreview(); renderUpcoming(); renderDashboardBadge();
   }));
 }
 

@@ -34,6 +34,12 @@ h2.section{font-family:'Fraunces',serif;font-weight:600;font-size:18px;margin:1.
 .chips{display:flex;gap:6px;justify-content:center;margin-bottom:1.1rem;}
 .chip{font-size:11px;padding:5px 11px;border-radius:20px;border:1px solid var(--line);color:var(--ink-soft);background:#fff;cursor:pointer;}
 .chip.active{background:var(--mustard-bg);border-color:var(--olive);color:var(--olive-dark);font-weight:500;}
+.snack-chips{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:1rem;}
+.snack-chip{font-size:12px;padding:6px 12px;border-radius:20px;border:1px solid transparent;cursor:pointer;font-weight:500;}
+.snack-chip.green{background:#E4EDDD;border-color:var(--olive);color:var(--olive-dark);}
+.snack-chip.orange{background:var(--mustard-bg);border-color:var(--mustard);color:#8A5A17;}
+.snack-manage-row{display:flex;align-items:center;justify-content:space-between;padding:8px 11px;background:var(--card);border:1px solid var(--line);border-radius:10px;margin-bottom:6px;}
+.snack-manage-row button{border:none;background:none;color:var(--coral);cursor:pointer;font-size:13px;}
 
 .kcal-box{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:1.1rem 1.25rem;margin-bottom:1.2rem;}
 .kcal-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;}
@@ -140,6 +146,11 @@ h2.section{font-family:'Fraunces',serif;font-weight:600;font-size:18px;margin:1.
 /* pantry */
 .pantry-row{display:flex;align-items:center;justify-content:space-between;padding:9px 11px;background:var(--card);border:1px solid var(--line);border-radius:10px;margin-bottom:6px;gap:10px;}
 .pantry-row.low{border-color:var(--coral);background:var(--coral-bg);}
+.pantry-row.ignored{opacity:.55;}
+.toggle{width:36px;height:20px;border-radius:20px;background:var(--line);position:relative;cursor:pointer;flex-shrink:0;transition:background .15s;}
+.toggle.on{background:var(--olive);}
+.toggle .knob{position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:left .15s;}
+.toggle.on .knob{left:18px;}
 .pantry-name{margin:0;font-size:14px;}
 .pantry-hint{margin:0;font-size:11px;color:var(--ink-soft);}
 .pantry-fields{display:flex;gap:8px;flex-shrink:0;}
@@ -151,6 +162,23 @@ h2.section{font-family:'Fraunces',serif;font-weight:600;font-size:18px;margin:1.
 .preview-item .pi-amt{font-family:'IBM Plex Mono',monospace;color:var(--olive-dark);font-weight:500;}
 .section-note{font-size:12px;color:var(--ink-soft);font-weight:400;}
 .empty{text-align:center;padding:2rem 1rem;color:var(--ink-soft);font-size:13px;background:var(--card);border:1px dashed var(--line);border-radius:12px;}
+.badge{display:inline-block;background:var(--coral);color:#fff;font-size:10.5px;font-weight:600;border-radius:20px;padding:1px 7px;margin-left:5px;vertical-align:middle;}
+.need-row{padding:10px 12px;border-radius:10px;margin-bottom:7px;border:1px solid var(--line);background:var(--card);}
+.need-row.offen{border-color:var(--coral);background:var(--coral-bg);}
+.need-row.liste{border-color:var(--mustard);background:var(--mustard-bg);}
+.need-row.gekauft{opacity:.55;}
+.need-top{display:flex;justify-content:space-between;align-items:center;}
+.need-name{font-size:14px;font-weight:500;margin:0;}
+.need-amt{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--ink-soft);}
+.need-actions{margin-top:8px;display:flex;gap:6px;align-items:center;}
+.need-actions input{width:64px;font-family:'IBM Plex Mono',monospace;font-size:13px;text-align:center;border:1px solid var(--line);border-radius:7px;padding:5px 3px;}
+.need-actions .mini-btn{border:none;border-radius:7px;font-size:12px;padding:6px 10px;cursor:pointer;font-weight:500;background:var(--olive);color:#fff;}
+.need-actions .mini-btn.secondary{background:#fff;color:var(--ink-soft);border:1px solid var(--line);}
+.need-status{font-size:11px;color:var(--ink-soft);}
+.dismiss-btn{margin-top:6px;background:none;border:none;font-size:11px;color:var(--ink-soft);cursor:pointer;padding:0;text-decoration:underline;}
+.dismiss-btn:hover{color:var(--coral);}
+.urgency-badge{display:inline-block;font-size:10px;font-weight:500;color:var(--ink-soft);background:var(--bg);border-radius:20px;padding:1px 7px;margin-left:6px;vertical-align:middle;}
+.urgency-badge.urgent{color:#fff;background:var(--coral);}
 .shoplist-text{width:100%;font-family:'IBM Plex Mono',monospace;font-size:12.5px;line-height:1.6;border:1px solid var(--line);border-radius:10px;padding:.8rem .9rem;background:#fff;color:var(--ink);resize:vertical;}
 .copy-status{font-size:12px;color:var(--olive-dark);margin:.4rem 0 0;min-height:14px;}
 </style>
@@ -162,7 +190,7 @@ h2.section{font-family:'Fraunces',serif;font-weight:600;font-size:18px;margin:1.
     <div class="tab active" data-tab="today">Heute</div>
     <div class="tab" data-tab="woche">Woche</div>
     <div class="tab" data-tab="vorrat">Vorrat</div>
-    <div class="tab" data-tab="dashboard">Dashboard</div>
+    <div class="tab" data-tab="dashboard">Dashboard<span class="badge" id="dashBadge" style="display:none;"></span></div>
   </div>
 
   <!-- TODAY -->
@@ -186,7 +214,10 @@ h2.section{font-family:'Fraunces',serif;font-weight:600;font-size:18px;margin:1.
     <p class="section-label">Dein Plan – antippen zum Abhaken</p>
     <div id="planList"></div>
 
-    <p class="section-label" style="margin-top:1rem;">Zusätzlich gegessen</p>
+    <p class="section-label" style="margin-top:1rem;">Snacks – passend zu deinem Rest-Budget</p>
+    <div class="snack-chips" id="snackChips"></div>
+
+    <p class="section-label">Zusätzlich gegessen</p>
     <div id="extraList"></div>
     <div class="quick-add">
       <input type="text" id="extraName" placeholder="Neues Gericht">
@@ -233,6 +264,15 @@ h2.section{font-family:'Fraunces',serif;font-weight:600;font-size:18px;margin:1.
   <div class="panel" id="panelVorrat">
     <p class="section-label">Bestand &amp; Mindestbestand pro Zutat – wird beim Abhaken in "Heute" automatisch verbraucht</p>
     <div id="pantryList"></div>
+
+    <h2 class="section">Snacks</h2>
+    <p class="section-label">Erscheinen in "Heute" als Chips, passend zu deinem verbleibenden kcal-Budget</p>
+    <div id="snackList"></div>
+    <div class="quick-add">
+      <input type="text" id="snackName" placeholder="Snack-Name">
+      <input type="number" id="snackKcal" class="qkcal" placeholder="kcal">
+      <button id="snackAddBtn">+</button>
+    </div>
   </div>
 
   <!-- DASHBOARD -->
@@ -243,9 +283,9 @@ h2.section{font-family:'Fraunces',serif;font-weight:600;font-size:18px;margin:1.
       <div class="dash-stat"><p class="ds-label">Tage im Ziel</p><p class="ds-val" id="dsOnTarget">–</p><p class="ds-sub">letzte 7 Tage</p></div>
     </div>
 
-    <h2 class="section">Einkaufsliste <span class="section-note" id="previewMeta"></span></h2>
-    <button class="btn primary" id="exportBtn" style="margin-bottom:.8rem;">Einkaufsliste generieren</button>
+    <h2 class="section">Einkaufsliste <span class="section-note" id="previewMeta"></span> <button class="btn" id="refreshNeedsBtn" style="width:auto;padding:.3rem .7rem;font-size:12px;">↻ Aktualisieren</button></h2>
     <div id="shopPreview"></div>
+    <button class="btn" id="exportBtn" style="margin-top:.6rem;">Bestätigte als Text kopieren</button>
 
     <p class="chart-label">Gewichtsverlauf</p>
     <div class="chart-wrap"><canvas id="weightChart" role="img" aria-label="Gewichtsverlauf über Zeit"></canvas></div>
@@ -332,7 +372,7 @@ async function atDelete(table, id){
   if(!res.ok) throw new Error('Airtable-Fehler beim Löschen in '+table);
 }
 
-const UNITS = ['g','kg','ml','l','TL','EL','Stück','Portion'];
+const UNITS = ['g','ml','TL','EL','Stück','Dose'];
 const WEEKDAYS = ['Mo','Di','Mi','Do','Fr','Sa','So'];
 const WEEKDAY_NAMES = {Mo:'Montag',Di:'Dienstag',Mi:'Mittwoch',Do:'Donnerstag',Fr:'Freitag',Sa:'Samstag',So:'Sonntag'};
 const MONTH_NAMES = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
@@ -350,6 +390,8 @@ let logEntries = [];  // {id, date, type, name, kcal, time}
 let weights = [];     // {id, date, kg}
 let steps = [];       // {id, date, steps, kcal}
 let pantry = [];      // {id|null, name, staple}  id null = noch nicht in Airtable angelegt
+let shoppingNeeds = []; // {id, name, unit, amount, status:'offen'|'liste'|'gekauft', boughtAmount}
+let snacks = []; // {id, name, kcal}
 let targets = { base:1800, deficit:1400 };
 let activeTarget = 'deficit';
 let profile = { startWeight:110, goalWeight:100 };
@@ -368,8 +410,8 @@ document.querySelectorAll('.tab').forEach(t=>{
     document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
     t.classList.add('active');
     document.getElementById('panel'+t.dataset.tab.charAt(0).toUpperCase()+t.dataset.tab.slice(1)).classList.add('active');
-    if(t.dataset.tab === 'dashboard') renderDashboard();
-    if(t.dataset.tab === 'vorrat'){ resyncPantryFromDishes(); renderPantry(); }
+    if(t.dataset.tab === 'dashboard'){ renderDashboard(); computeShoppingNeeds(); }
+    if(t.dataset.tab === 'vorrat'){ resyncPantryFromDishes(); renderPantry(); renderSnackManage(); }
   });
 });
 
@@ -462,7 +504,7 @@ async function adjustPantryForDish(dish, sign){
 function syncPantry(pRecs){
   const byName = new Map();
   pRecs.forEach(r=> byName.set((r.fields.Name||'').trim().toLowerCase(),
-    { id:r.id, name:r.fields.Name||'', unit:r.fields.Unit||'', bestand:Number(r.fields.Bestand)||0, mindestbestand:Number(r.fields.Mindestbestand)||0 }));
+    { id:r.id, name:r.fields.Name||'', unit:r.fields.Unit||'', bestand:Number(r.fields.Bestand)||0, mindestbestand:Number(r.fields.Mindestbestand)||0, ignore: !!r.fields.Ignore }));
   const seen = new Set();
   const merged = [];
   dishes.forEach(d=> d.ingredients.forEach(ing=>{
@@ -470,7 +512,7 @@ function syncPantry(pRecs){
     if(!key || seen.has(key)) return;
     seen.add(key);
     const existing = byName.get(key);
-    merged.push(existing || { id:null, name: ing.name.trim(), unit: ing.unit||'', bestand:0, mindestbestand:0 });
+    merged.push(existing || { id:null, name: ing.name.trim(), unit: ing.unit||'', bestand:0, mindestbestand:0, ignore:false });
   }));
   merged.sort((a,b)=> a.name.localeCompare(b.name,'de'));
   pantry = merged;
@@ -487,7 +529,13 @@ function resyncPantryFromDishes(){
     if(!key || seen.has(key)) return;
     seen.add(key);
     const existing = byName.get(key);
-    merged.push(existing || { id:null, name: ing.name.trim(), unit: ing.unit||'', bestand:0, mindestbestand:0 });
+    if(existing){
+      // Einheit im Gericht geändert? -> auch im Vorrat-Datensatz nachziehen
+      if(ing.unit && existing.unit !== ing.unit){ existing.unit = ing.unit; savePantryItem(existing); }
+      merged.push(existing);
+    }else{
+      merged.push({ id:null, name: ing.name.trim(), unit: ing.unit||'', bestand:0, mindestbestand:0, ignore:false });
+    }
   }));
   merged.sort((a,b)=> a.name.localeCompare(b.name,'de'));
   pantry = merged;
@@ -501,31 +549,61 @@ async function savePantryItem(p){
     if(!p.id){
       // Sperre: falls schon eine Anlage für diese Zutat läuft, darauf warten statt eine zweite zu starten
       if(!p._creating){
-        p._creating = atCreate('Pantry', { Name:p.name, Bestand:p.bestand, Mindestbestand:p.mindestbestand, Unit:p.unit })
+        p._creating = atCreate('Pantry', { Name:p.name, Bestand:p.bestand, Mindestbestand:p.mindestbestand, Unit:p.unit, Ignore:p.ignore })
           .then(rec=>{ p.id = rec.id; p._creating = null; });
       }
       await p._creating;
     }
-    if(p.id) await atUpdate('Pantry', p.id, { Bestand:p.bestand, Mindestbestand:p.mindestbestand, Unit:p.unit });
-  }catch(e){ console.error(e); setStatus('Pantry-Tabelle fehlt/unvollständig (Felder: Name, Bestand, Mindestbestand, Unit)'); }
+    if(p.id) await atUpdate('Pantry', p.id, { Bestand:p.bestand, Mindestbestand:p.mindestbestand, Unit:p.unit, Ignore:p.ignore });
+  }catch(e){ console.error(e); setStatus('Pantry-Tabelle fehlt/unvollständig (Felder: Name, Bestand, Mindestbestand, Unit, Ignore)'); }
 }
 function renderPantry(){
   const wrap = document.getElementById('pantryList');
   if(!pantry.length){ wrap.innerHTML = '<p class="section-note">Noch keine Zutaten – lege zuerst ein paar Gerichte an.</p>'; return; }
   wrap.innerHTML = pantry.map((p,i)=>`
-    <div class="pantry-row ${p.bestand<p.mindestbestand?'low':''}" data-i="${i}">
-      <div><p class="pantry-name">${escapeAttr(p.name)}</p><p class="pantry-hint">${p.unit||'Einheit wie im Rezept'}</p></div>
+    <div class="pantry-row ${!p.ignore && p.bestand<p.mindestbestand?'low':''} ${p.ignore?'ignored':''}" data-i="${i}">
+      <div><p class="pantry-name">${escapeAttr(p.name)}</p><p class="pantry-hint">${p.ignore?'wird nicht geprüft':(p.unit||'Einheit wie im Rezept')}</p></div>
       <div class="pantry-fields">
-        <div class="pantry-field"><label>Bestand</label><input type="number" step="any" class="pf-bestand" value="${p.bestand}"></div>
-        <div class="pantry-field"><label>Minimum</label><input type="number" step="any" class="pf-min" value="${p.mindestbestand}"></div>
+        <div class="pantry-field"><label>Bestand</label><input type="number" step="any" class="pf-bestand" value="${p.bestand}" ${p.ignore?'disabled':''}></div>
+        <div class="pantry-field"><label>Minimum</label><input type="number" step="any" class="pf-min" value="${p.mindestbestand}" ${p.ignore?'disabled':''}></div>
+        <div class="pantry-field"><label>Prüfen</label><div class="toggle ${p.ignore?'':'on'}"><div class="knob"></div></div></div>
       </div>
     </div>`).join('');
   wrap.querySelectorAll('.pantry-row').forEach(row=>{
     const i = Number(row.dataset.i); const p = pantry[i];
-    row.querySelector('.pf-bestand').addEventListener('change', e=>{ p.bestand = Number(e.target.value)||0; row.classList.toggle('low', p.bestand<p.mindestbestand); savePantryItem(p); });
-    row.querySelector('.pf-min').addEventListener('change', e=>{ p.mindestbestand = Number(e.target.value)||0; row.classList.toggle('low', p.bestand<p.mindestbestand); savePantryItem(p); });
+    row.querySelector('.pf-bestand').addEventListener('change', e=>{ p.bestand = Number(e.target.value)||0; row.classList.toggle('low', !p.ignore && p.bestand<p.mindestbestand); savePantryItem(p); });
+    row.querySelector('.pf-min').addEventListener('change', e=>{ p.mindestbestand = Number(e.target.value)||0; row.classList.toggle('low', !p.ignore && p.bestand<p.mindestbestand); savePantryItem(p); });
+    row.querySelector('.toggle').addEventListener('click', ()=>{ p.ignore = !p.ignore; savePantryItem(p); renderPantry(); });
   });
 }
+
+/* ================= SNACKS ================= */
+function renderSnackManage(){
+  const wrap = document.getElementById('snackList');
+  if(!snacks.length){ wrap.innerHTML = '<p class="section-note">Noch keine Snacks angelegt.</p>'; return; }
+  wrap.innerHTML = [...snacks].sort((a,b)=>a.kcal-b.kcal).map(s=>`
+    <div class="snack-manage-row" data-id="${s.id}">
+      <span class="pantry-name">${escapeAttr(s.name)} <span class="pantry-hint">${s.kcal} kcal</span></span>
+      <button class="snack-del-btn">Entfernen</button>
+    </div>`).join('');
+  wrap.querySelectorAll('.snack-del-btn').forEach(btn=> btn.addEventListener('click', async e=>{
+    const id = e.target.closest('.snack-manage-row').dataset.id;
+    try{ await atDelete('Snacks', id); }catch(err){ console.error(err); }
+    snacks = snacks.filter(s=>s.id!==id);
+    renderSnackManage();
+  }));
+}
+document.getElementById('snackAddBtn').addEventListener('click', async ()=>{
+  const name = document.getElementById('snackName').value.trim();
+  const kcal = Number(document.getElementById('snackKcal').value)||0;
+  if(!name || kcal<=0) return;
+  try{
+    const rec = await atCreate('Snacks', { Name:name, Kcal:kcal });
+    snacks.push({ id:rec.id, name, kcal });
+    document.getElementById('snackName').value=''; document.getElementById('snackKcal').value='';
+    renderSnackManage();
+  }catch(e){ console.error(e); setStatus('Snacks-Tabelle fehlt (Felder: Name, Kcal)'); }
+});
 
 async function loadAll(){
   setStatus('Lädt…');
@@ -537,8 +615,16 @@ async function loadAll(){
       ingredients: (()=>{ try{ return JSON.parse(r.fields.Ingredients||'[]'); }catch(e){ return []; } })() }));
     let pRecs = [];
     try{ pRecs = await atList('Pantry'); }
-    catch(e){ console.warn('Pantry-Tabelle noch nicht vorhanden – lege sie in Airtable an (Felder: Name, Staple).'); }
+    catch(e){ console.warn('Pantry-Tabelle noch nicht vorhanden – lege sie in Airtable an (Felder: Name, Bestand, Mindestbestand, Unit).'); }
     syncPantry(pRecs);
+    try{
+      const nRecs = await atList('ShoppingNeeds');
+      shoppingNeeds = nRecs.map(r=>({ id:r.id, name:r.fields.Name||'', unit:r.fields.Unit||'', amount:Number(r.fields.Amount)||0, status:r.fields.Status||'offen', boughtAmount:Number(r.fields.BoughtAmount)||0 }));
+    }catch(e){ console.warn('ShoppingNeeds-Tabelle noch nicht vorhanden – lege sie in Airtable an (Felder: Name, Amount, Unit, Status, BoughtAmount).'); shoppingNeeds = []; }
+    try{
+      const snRecs = await atList('Snacks');
+      snacks = snRecs.map(r=>({ id:r.id, name:r.fields.Name||'', kcal:Number(r.fields.Kcal)||0 }));
+    }catch(e){ console.warn('Snacks-Tabelle noch nicht vorhanden – lege sie in Airtable an (Felder: Name, Kcal).'); snacks = []; }
     weekPlan = {}; WEEKDAYS.forEach(wd=> weekPlan[wd]=[]);
     wpRecs.forEach(r=>{
       const wd = r.fields.Weekday;
@@ -556,7 +642,7 @@ async function loadAll(){
   render();
 }
 
-function render(){ renderToday(); renderWeek(); renderDishLibrary(); }
+function render(){ renderToday(); renderWeek(); renderDishLibrary(); renderShopPreview(); renderDashboardBadge(); }
 
 /* ================= TODAY ================= */
 function renderToday(){
@@ -602,6 +688,7 @@ function renderToday(){
           if(dish) await adjustPantryForDish(dish, -1); // gegessen -> Bestand verbrauchen
         }
       }catch(e){ console.error(e); setStatus('Fehler beim Speichern'); }
+      if(dish) await computeShoppingNeeds(); // Bedarf für die nächsten 7 Tage neu prüfen
       renderToday();
     });
   });
@@ -631,8 +718,30 @@ function renderToday(){
   fill.style.background = total>target ? 'var(--coral)' : 'var(--olive)';
   const remaining = target-total;
   document.getElementById('summaryNote').textContent = remaining>=0 ? `Noch ${remaining} kcal übrig` : `${Math.abs(remaining)} kcal über dem Ziel`;
+  renderSnackChips(remaining);
 
   renderWeightBlock();
+}
+
+/* Snack-Chips: grün passt ins Budget, orange bis 100 kcal drüber, mehr wird ausgeblendet */
+function renderSnackChips(remaining){
+  const wrap = document.getElementById('snackChips');
+  const visible = snacks.filter(s=> s.kcal <= remaining + 100);
+  if(!visible.length){ wrap.innerHTML = '<p class="section-note">Keine Snacks passend zum Rest-Budget – im Vorrat-Tab welche anlegen.</p>'; return; }
+  wrap.innerHTML = [...visible].sort((a,b)=>a.kcal-b.kcal).map(s=>{
+    const color = s.kcal <= remaining ? 'green' : 'orange';
+    return `<button class="snack-chip ${color}" data-id="${s.id}" data-name="${escapeAttr(s.name)}" data-kcal="${s.kcal}">${escapeAttr(s.name)} · ${s.kcal} kcal</button>`;
+  }).join('');
+  wrap.querySelectorAll('.snack-chip').forEach(btn=> btn.addEventListener('click', async ()=>{
+    const name = btn.dataset.name, kcal = Number(btn.dataset.kcal);
+    const now = new Date();
+    const time = String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+    try{
+      const rec = await atCreate('LogEntries', { Date: currentDate, Type:'extra', Name:name, Kcal:kcal, Time:time });
+      logEntries.push({ id:rec.id, date:currentDate, type:'extra', name, kcal, time });
+      renderToday();
+    }catch(e){ setStatus('Fehler beim Speichern'); }
+  }));
 }
 
 document.getElementById('dayPrev').addEventListener('click', ()=>{ currentDate = addDays(currentDate,-1); renderToday(); });
@@ -869,8 +978,26 @@ document.getElementById('dishSave').addEventListener('click', async ()=>{
   }catch(e){ setStatus('Fehler beim Speichern'); }
 });
 
-/* shopping list for whole week */
+/* shopping list for whole week (= nächste 7 Tage, da wiederkehrendes Template) */
 /* Kaufmenge = max(0, Wochenbedarf - (Bestand - Mindestbestand)) */
+/* Tage bis zum nächsten Termin, an dem diese Zutat laut Wochenplan gebraucht wird (ab morgen gezählt) */
+function daysUntilNeeded(ingName){
+  const key = ingName.trim().toLowerCase();
+  const todayIdx = WEEKDAYS.indexOf(weekdayOf(todayStr()));
+  let minDays = Infinity;
+  WEEKDAYS.forEach((wd,idx)=>{
+    const hasIng = (weekPlan[wd]||[]).some(slot=>{
+      const dish = dishByName(slot.dishName);
+      return dish && dish.ingredients.some(i=> i.name.trim().toLowerCase()===key);
+    });
+    if(hasIng){
+      let diff = idx - todayIdx;
+      if(diff <= 0) diff += 7; // heute zählt nicht mehr -> nächstes Vorkommen ab morgen
+      minDays = Math.min(minDays, diff);
+    }
+  });
+  return minDays===Infinity ? null : minDays;
+}
 function buildShoppingList(){
   const map = new Map();
   WEEKDAYS.forEach(wd=>{
@@ -887,11 +1014,12 @@ function buildShoppingList(){
   const items = [];
   map.forEach(entry=>{
     const p = pantryItem(entry.name);
+    if(p && p.ignore) return; // "nicht prüfen" -> nie auf die Einkaufsliste
     const bestand = p ? p.bestand : 0;
     const minimum = p ? p.mindestbestand : 0;
     const nutzbar = Math.max(0, bestand - minimum);
     const kaufen = Math.max(0, Math.round((entry.benoetigt - nutzbar)*100)/100);
-    if(kaufen > 0) items.push({ name:entry.name, unit:entry.unit, amount:kaufen, benoetigt:entry.benoetigt, bestand });
+    if(kaufen > 0) items.push({ name:entry.name, unit:entry.unit, amount:kaufen, benoetigt:entry.benoetigt, bestand, daysUntil:daysUntilNeeded(entry.name) });
   });
   return items.sort((a,b)=> a.name.localeCompare(b.name,'de'));
 }
@@ -910,29 +1038,114 @@ function categoryFor(name){
   return 'Sonstiges';
 }
 function shoppingListText(items){
-  if(!items.length) return 'Nichts zu kaufen – Bestand reicht für die Wochenplanung.';
+  if(!items.length) return 'Nichts Bestätigtes offen.';
   const byCat = {};
   items.forEach(i=>{ const c = categoryFor(i.name); (byCat[c]=byCat[c]||[]).push(i); });
   const order = SHOP_CATEGORIES.map(c=>c.name).concat('Sonstiges');
   let text = '';
   order.filter(c=>byCat[c]).forEach(cat=>{
     text += cat + '\n';
-    byCat[cat].forEach(i=> text += `- ${i.name}: ${i.amount} ${i.unit}\n`);
+    byCat[cat].forEach(i=>{
+      const days = daysUntilNeeded(i.name);
+      const dueLabel = days===null ? '' : (days===1 ? ' (morgen)' : ` (in ${days} Tagen)`);
+      text += `- ${i.name}: ${i.amount} ${i.unit}${dueLabel}\n`;
+    });
     text += '\n';
   });
   return text.trim();
 }
-function renderShopPreview(items){
-  const wrap = document.getElementById('shopPreview');
-  document.getElementById('previewMeta').textContent = items.length ? items.length+' Artikel unter Mindestbestand' : '';
-  if(!items.length){ wrap.innerHTML = '<div class="empty">Bestand reicht für die geplante Woche – nichts zu kaufen.</div>'; return; }
-  wrap.innerHTML = `<div class="kcal-box">${items.map(i=>
-    `<div class="preview-item"><span>${escapeAttr(i.name)} <span class="pantry-hint">(Bestand ${i.bestand}, Bedarf ${i.benoetigt})</span></span><span class="pi-amt">${i.amount} ${i.unit}</span></div>`
-  ).join('')}</div>`;
+
+/* ============ ShoppingNeeds: persistenter Status pro fehlender Zutat ============ */
+const _needsCreating = new Set();
+async function computeShoppingNeeds(){
+  const needed = buildShoppingList();
+  for(const item of needed){
+    const key = item.name.trim().toLowerCase();
+    const existing = shoppingNeeds.find(s=> s.name.trim().toLowerCase()===key && s.status!=='gekauft');
+    if(existing){
+      if(Math.abs(existing.amount - item.amount) > 0.001){
+        existing.amount = item.amount;
+        try{ await atUpdate('ShoppingNeeds', existing.id, { Amount:item.amount }); }catch(e){ console.error(e); }
+      }
+    }else if(!_needsCreating.has(key)){
+      _needsCreating.add(key);
+      try{
+        const rec = await atCreate('ShoppingNeeds', { Name:item.name, Amount:item.amount, Unit:item.unit, Status:'offen' });
+        shoppingNeeds.push({ id:rec.id, name:item.name, unit:item.unit, amount:item.amount, status:'offen', boughtAmount:0 });
+      }catch(e){ console.error(e); setStatus('ShoppingNeeds-Tabelle fehlt (Felder: Name, Amount, Unit, Status, BoughtAmount)'); }
+      _needsCreating.delete(key);
+    }
+  }
+  renderShopPreview();
+  renderDashboardBadge();
 }
+document.getElementById('refreshNeedsBtn').addEventListener('click', ()=> computeShoppingNeeds());
+function renderDashboardBadge(){
+  const n = shoppingNeeds.filter(s=> s.status==='offen').length;
+  const badge = document.getElementById('dashBadge');
+  badge.textContent = n; badge.style.display = n>0 ? 'inline-block' : 'none';
+}
+function renderShopPreview(){
+  const wrap = document.getElementById('shopPreview');
+  const order = { offen:0, liste:1, gekauft:2 };
+  const list = [...shoppingNeeds].sort((a,b)=>{
+    if(order[a.status]!==order[b.status]) return order[a.status]-order[b.status];
+    if(a.status!=='gekauft'){
+      const da = daysUntilNeeded(a.name), db = daysUntilNeeded(b.name);
+      const va = da===null?999:da, vb = db===null?999:db;
+      if(va!==vb) return va-vb;
+    }
+    return a.name.localeCompare(b.name,'de');
+  });
+  document.getElementById('previewMeta').textContent = list.length ? list.filter(s=>s.status==='offen').length+' offen' : '';
+  if(!list.length){ wrap.innerHTML = '<div class="empty">Aktuell nichts zu besorgen.</div>'; return; }
+  wrap.innerHTML = list.map(item=>{
+    const days = item.status==='gekauft' ? null : daysUntilNeeded(item.name);
+    const urgencyLabel = days===null ? '' : (days===1 ? 'morgen benötigt' : `in ${days} Tagen benötigt`);
+    const urgencyBadge = urgencyLabel ? `<span class="urgency-badge${days<=2?' urgent':''}">${urgencyLabel}</span>` : '';
+    let actions = '';
+    if(item.status==='offen'){
+      actions = `<div class="need-actions"><span class="need-status">offen</span><button class="mini-btn add-list-btn">Zur Einkaufsliste hinzufügen</button></div>`;
+    }else if(item.status==='liste'){
+      actions = `<div class="need-actions"><span class="need-status">auf Einkaufsliste</span><input type="number" step="any" class="bought-input" value="${item.amount}"><button class="mini-btn bought-btn">Eingekauft</button></div>`;
+    }else{
+      actions = `<div class="need-actions"><span class="need-status">✓ eingekauft: ${item.boughtAmount} ${item.unit}</span></div>`;
+    }
+    return `<div class="need-row ${item.status}" data-id="${item.id}">
+      <div class="need-top"><p class="need-name">${escapeAttr(item.name)} ${urgencyBadge}</p><span class="need-amt">${item.amount} ${item.unit}</span></div>
+      ${actions}
+      <button class="dismiss-btn" title="Eintrag entfernen">✕ entfernen</button>
+    </div>`;
+  }).join('');
+  wrap.querySelectorAll('.dismiss-btn').forEach(btn=> btn.addEventListener('click', async e=>{
+    const id = e.target.closest('.need-row').dataset.id;
+    const item = shoppingNeeds.find(s=>s.id===id); if(!item) return;
+    try{ if(item.id) await atDelete('ShoppingNeeds', item.id); }catch(err){ console.error(err); }
+    shoppingNeeds = shoppingNeeds.filter(s=>s.id!==id);
+    renderShopPreview(); renderDashboardBadge();
+  }));
+  wrap.querySelectorAll('.add-list-btn').forEach(btn=> btn.addEventListener('click', async e=>{
+    const id = e.target.closest('.need-row').dataset.id;
+    const item = shoppingNeeds.find(s=>s.id===id); if(!item) return;
+    item.status = 'liste';
+    try{ await atUpdate('ShoppingNeeds', item.id, { Status:'liste' }); }catch(err){ console.error(err); }
+    renderShopPreview(); renderDashboardBadge();
+  }));
+  wrap.querySelectorAll('.bought-btn').forEach(btn=> btn.addEventListener('click', async e=>{
+    const row = e.target.closest('.need-row');
+    const id = row.dataset.id;
+    const item = shoppingNeeds.find(s=>s.id===id); if(!item) return;
+    const amount = Number(row.querySelector('.bought-input').value)||0;
+    item.status = 'gekauft'; item.boughtAmount = amount;
+    try{ await atUpdate('ShoppingNeeds', item.id, { Status:'gekauft', BoughtAmount:amount }); }catch(err){ console.error(err); }
+    const p = pantryItem(item.name);
+    if(p){ p.bestand = Math.round((p.bestand+amount)*100)/100; await savePantryItem(p); }
+    renderShopPreview(); renderDashboardBadge();
+  }));
+}
+
 document.getElementById('exportBtn').addEventListener('click', ()=>{
-  const items = buildShoppingList();
-  renderShopPreview(items);
+  const items = shoppingNeeds.filter(s=> s.status==='liste');
   document.getElementById('shopListText').value = shoppingListText(items);
   document.getElementById('copyStatus').textContent = '';
   document.getElementById('modalBg').classList.add('open');
@@ -949,6 +1162,7 @@ document.getElementById('copyListBtn').addEventListener('click', async ()=>{
   }
 });
 document.getElementById('resetBtn').addEventListener('click', ()=>{ loadAll(); });
+
 
 loadAll();
 </script>

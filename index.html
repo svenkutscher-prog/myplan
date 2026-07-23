@@ -28,6 +28,7 @@ h2.section{font-family:'Fraunces',serif;font-weight:600;font-size:18px;margin:1.
 .water-dd-btns .qbtn{flex:1;padding:.55rem;border-radius:9px;border:1px solid var(--line);background:#fff;color:var(--ink);font-size:12px;font-weight:500;cursor:pointer;}
 .water-dd-btns .qbtn:hover{background:var(--water-bg,#DCEAF0);}
 .tab{flex:1;text-align:center;padding:.7rem 0;font-size:14px;font-weight:500;color:var(--ink-soft);cursor:pointer;border-bottom:2px solid transparent;}
+.tab-icon{width:18px;height:18px;vertical-align:-4px;}
 .tab.active{color:var(--olive-dark);border-bottom-color:var(--olive);}
 .tab.disabled{color:var(--line);cursor:default;}
 .panel{display:none;}
@@ -187,6 +188,12 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
 .add-ing-editor{font-family:'Inter',sans-serif;font-size:12.5px;color:var(--olive);background:transparent;border:1px dashed var(--olive);border-radius:7px;padding:4px 10px;cursor:pointer;margin:.3rem 0 .8rem;}
 .placeholder{text-align:center;padding:3rem 1rem;color:var(--ink-soft);font-size:14px;}
 .dash-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:1.6rem;}
+.guthaben-card{border-radius:16px;padding:1.3rem 1.4rem;margin-bottom:1.6rem;color:#fff;background:linear-gradient(135deg, #6FA33F 0%, #C9862F 100%);box-shadow:0 6px 18px rgba(79,107,68,.25);position:relative;overflow:hidden;}
+.guthaben-card.negative{background:linear-gradient(135deg, #C9862F 0%, #B3543A 100%);box-shadow:0 6px 18px rgba(179,84,58,.25);}
+.guthaben-card .gh-label{font-size:12.5px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;opacity:.9;margin:0 0 .3rem;}
+.guthaben-card .gh-val{font-family:'Fraunces',serif;font-weight:600;font-size:34px;margin:0;}
+.guthaben-card .gh-sub{font-size:12.5px;opacity:.9;margin:.4rem 0 0;}
+.guthaben-card .gh-emoji{position:absolute;right:14px;top:14px;font-size:30px;opacity:.35;}
 .dash-stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:.9rem 1rem;}
 .ds-label{margin:0 0 4px;font-size:12px;color:var(--ink-soft);}
 .ds-val{margin:0;font-family:'IBM Plex Mono',monospace;font-size:21px;font-weight:500;}
@@ -243,9 +250,10 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
       <div class="tab-fill" id="waterFill"><svg class="tab-wave" viewBox="0 0 100 10" preserveAspectRatio="none"><path d="M0 5 Q25 0 50 5 T100 5 V10 H0 Z" fill="var(--water-light)"/></svg></div>
       <span id="todayTabLabel">–</span>
     </div>
-    <div class="tab" data-tab="woche">Woche</div>
-    <div class="tab" data-tab="vorrat">Vorrat</div>
-    <div class="tab" data-tab="dashboard">Dashboard<span class="badge" id="dashBadge" style="display:none;"></span></div>
+    <div class="tab" data-tab="woche" title="Woche"><svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div>
+    <div class="tab" data-tab="vorrat" title="Vorrat"><svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/></svg></div>
+    <div class="tab" data-tab="einkaufen" title="Einkaufen"><svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.5 3h2l2.6 12.9a2 2 0 0 0 2 1.6h8.8a2 2 0 0 0 2-1.6L22 7H6"/></svg><span class="badge" id="dashBadge" style="display:none;"></span></div>
+    <div class="tab" data-tab="dashboard" title="Dashboard"><svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="20" x2="6" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="18" y1="20" x2="18" y2="14"/></svg></div>
   </div>
   <div class="water-dropdown" id="waterDropdown">
     <p class="water-dd-label" id="waterDdLabel">0 / 0 L heute</p>
@@ -366,20 +374,29 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
     </div>
   </div>
 
-  <!-- DASHBOARD -->
-  <div class="panel" id="panelDashboard">
-    <div class="dash-stats">
-      <div class="dash-stat"><p class="ds-label">Aktuelles Gewicht</p><p class="ds-val" id="dsWeight">–</p><p class="ds-sub" id="dsWeightSub">–</p></div>
-      <div class="dash-stat"><p class="ds-label">Schritte Ø/Tag (7 Tage)</p><p class="ds-val" id="dsSteps">–</p><p class="ds-sub">letzte 7 Tage</p></div>
-      <div class="dash-stat"><p class="ds-label">Ø kcal (7 Tage)</p><p class="ds-val" id="dsAvgKcal">–</p><p class="ds-sub" id="dsAvgKcalSub">letzte 7 Tage</p></div>
-    </div>
-
+  <!-- EINKAUFEN -->
+  <div class="panel" id="panelEinkaufen">
     <h2 class="section">Einkaufsliste <span class="section-note" id="previewMeta"></span> <button class="btn" id="refreshNeedsBtn" style="width:auto;padding:.3rem .7rem;font-size:12px;">↻ Aktualisieren</button></h2>
     <div id="shopPreview"></div>
     <button class="btn" id="exportBtn" style="margin-top:.6rem;">Bestätigte als Text kopieren</button>
 
     <h2 class="section">Bald fällig <span class="section-note">Tag 3–7, zählt nicht im Badge</span></h2>
     <div id="upcomingList"></div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div class="panel" id="panelDashboard">
+    <div class="guthaben-card" id="guthabenCard">
+      <span class="gh-emoji">🎉</span>
+      <p class="gh-label">Kcal-Guthaben</p>
+      <p class="gh-val" id="guthabenVal">–</p>
+      <p class="gh-sub" id="guthabenSub">–</p>
+    </div>
+    <div class="dash-stats">
+      <div class="dash-stat"><p class="ds-label">Aktuelles Gewicht</p><p class="ds-val" id="dsWeight">–</p><p class="ds-sub" id="dsWeightSub">–</p></div>
+      <div class="dash-stat"><p class="ds-label">Schritte Ø/Tag (7 Tage)</p><p class="ds-val" id="dsSteps">–</p><p class="ds-sub">letzte 7 Tage</p></div>
+      <div class="dash-stat"><p class="ds-label">Ø kcal (7 Tage)</p><p class="ds-val" id="dsAvgKcal">–</p><p class="ds-sub" id="dsAvgKcalSub">letzte 7 Tage</p></div>
+    </div>
 
     <p class="chart-label">Gewichtsverlauf</p>
     <div class="chart-wrap"><canvas id="weightChart" role="img" aria-label="Gewichtsverlauf über Zeit"></canvas></div>
@@ -526,7 +543,8 @@ document.querySelectorAll('.tab').forEach(t=>{
     document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
     t.classList.add('active');
     document.getElementById('panel'+t.dataset.tab.charAt(0).toUpperCase()+t.dataset.tab.slice(1)).classList.add('active');
-    if(t.dataset.tab === 'dashboard'){ renderDashboard(); computeShoppingNeeds(); }
+    if(t.dataset.tab === 'dashboard') renderDashboard();
+    if(t.dataset.tab === 'einkaufen') computeShoppingNeeds();
     if(t.dataset.tab === 'vorrat'){ resyncPantryFromDishes(); renderPantry(); renderSnackManage(); }
   });
 });
@@ -606,6 +624,23 @@ function renderDashboard(){
   const muted = '#5C6B52', grid = '#D8E0CC';
   Chart.defaults.color = muted;
   Chart.defaults.font.family = "'Inter', sans-serif";
+
+  /* Kcal-Guthaben: dauerhaft aufsummiert, nur Tage mit echten Einträgen, heute zählt noch nicht */
+  const ghTarget = targets[activeTarget];
+  const trackedDates = new Set(logEntries.map(l=>l.date));
+  trackedDates.delete(todayStr());
+  let guthaben = 0, guthabenDays = 0;
+  trackedDates.forEach(date=>{
+    const total = dayTotalKcal(date);
+    if(total>0){ guthaben += (ghTarget-total); guthabenDays++; }
+  });
+  const ghCard = document.getElementById('guthabenCard');
+  ghCard.classList.toggle('negative', guthaben<0);
+  document.getElementById('guthabenVal').textContent = (guthaben>=0?'+':'')+guthaben+' kcal';
+  document.getElementById('guthabenSub').textContent = guthabenDays>0
+    ? `gesammelt seit Trackingbeginn, aus ${guthabenDays} erfassten Tagen`
+    : 'noch keine erfassten Tage';
+  ghCard.querySelector('.gh-emoji').textContent = guthaben>=0 ? '🎉' : '⚠️';
 
   const sortedWeights = [...weights].sort((a,b)=> a.date.localeCompare(b.date));
   const lastW = sortedWeights[sortedWeights.length-1];

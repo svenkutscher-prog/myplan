@@ -42,6 +42,17 @@ h2.section{font-family:'Fraunces',serif;font-weight:600;font-size:18px;margin:1.
 .snack-manage-row button{border:none;background:none;color:var(--coral);cursor:pointer;font-size:13px;}
 
 .kcal-box{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:1.1rem 1.25rem;margin-bottom:1.2rem;}
+.stat-card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:1.1rem 1.2rem;margin-bottom:.8rem;display:flex;gap:14px;align-items:flex-start;}
+.stat-icon{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.stat-icon.kcal-icon{background:var(--coral-bg);}
+.stat-icon.fiber-icon{background:#E4EDDD;}
+.stat-icon svg{width:20px;height:20px;}
+.stat-body{flex:1;min-width:0;}
+.stat-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:.55rem;}
+.stat-label{font-size:12.5px;color:var(--ink-soft);font-weight:500;}
+.stat-val{font-family:'IBM Plex Mono',monospace;font-size:14px;color:var(--ink);}
+.bar-track{width:100%;height:9px;background:var(--line);border-radius:20px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:20px;transition:width .2s;}
 .kcal-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;}
 .kcal-num{font-family:'IBM Plex Mono',monospace;font-size:27px;font-weight:500;}
 .kcal-of{font-size:13px;color:var(--ink-soft);}
@@ -57,7 +68,8 @@ h2.section{font-family:'Fraunces',serif;font-weight:600;font-size:18px;margin:1.
 .food-row.checked .check-ico{background:var(--olive);border-color:var(--olive);}
 .food-name{margin:0;font-size:14px;}
 .food-time{margin:0;font-size:11px;color:var(--ink-soft);}
-.food-kcal{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--ink-soft);flex-shrink:0;}
+.food-kcal{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--ink-soft);flex-shrink:0;text-align:right;}
+.food-fiber{font-size:10px;color:var(--ink-soft);opacity:.8;}
 .extra-row{cursor:default;}
 .extra-del{border:none;background:transparent;color:var(--coral);font-size:16px;cursor:pointer;padding:2px 6px;border-radius:6px;margin-left:8px;}
 .extra-del:hover{background:var(--coral-bg);}
@@ -69,6 +81,16 @@ h2.section{font-family:'Fraunces',serif;font-weight:600;font-size:18px;margin:1.
 .quick-add button:hover{background:var(--olive-dark);}
 
 .weight-block, .steps-block{border-top:1px dashed var(--line);padding-top:1.1rem;margin-top:.4rem;}
+.pill-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:.8rem 0 1.4rem;}
+.open-btn{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;padding:14px 6px;background:var(--card);border:1px solid var(--line);border-radius:10px;font-size:12.5px;color:var(--ink);cursor:pointer;font-family:'Inter',sans-serif;}
+.open-btn:hover{background:#fff;}
+.open-btn .ic{width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:15px;}
+.open-btn .ic.a{background:var(--coral-bg);}
+.open-btn .ic.b{background:var(--mustard-bg);}
+.open-btn .ic.c{background:#E4EDDD;}
+.open-btn .sub{font-size:10.5px;color:var(--ink-soft);min-height:13px;}
+.open-btn.done{opacity:.6;background:#EDEFE7;}
+.open-btn.done .sub{color:var(--olive-dark);font-weight:500;}
 .block-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
 .block-head span{font-size:11px;color:var(--ink-soft);}
 .stat-row{display:flex;justify-content:space-between;align-items:center;padding:10px 11px;background:var(--card);border:1px solid var(--line);border-radius:10px;margin-bottom:10px;}
@@ -131,6 +153,10 @@ h2.section{font-family:'Fraunces',serif;font-weight:600;font-size:18px;margin:1.
 .editor-row button{border:none;background:transparent;color:var(--ink-soft);cursor:pointer;font-size:15px;padding:2px 5px;border-radius:6px;}
 .editor-row button:hover{background:var(--coral-bg);color:var(--coral);}
 .field{margin-bottom:.7rem;}
+.field-row{display:flex;gap:8px;margin-bottom:.7rem;}
+.field-row .fcol{flex:1;}
+.field-row label{display:block;font-size:12.5px;color:var(--ink-soft);margin-bottom:4px;}
+.field-row input{width:100%;font-size:14px;padding:8px 9px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);box-sizing:border-box;}
 .field label{display:block;font-size:12.5px;color:var(--ink-soft);margin-bottom:3px;}
 .field input{width:100%;font-size:14px;border:1px solid var(--line);border-radius:8px;padding:7px 9px;background:#fff;color:var(--ink);}
 .add-ing-editor{font-family:'Inter',sans-serif;font-size:12.5px;color:var(--olive);background:transparent;border:1px dashed var(--olive);border-radius:7px;padding:4px 10px;cursor:pointer;margin:.3rem 0 .8rem;}
@@ -201,15 +227,24 @@ h2.section{font-family:'Fraunces',serif;font-weight:600;font-size:18px;margin:1.
       <div class="daylabel"><p id="dayWeekday">Montag</p><h1 id="dayDate">20. Juli</h1></div>
       <button class="nav-arrow" id="dayNext">▶</button>
     </div>
-    <div class="chips">
-      <div class="chip" data-target="base" id="chipBase">1800</div>
-      <div class="chip" data-target="deficit" id="chipDeficit">1400</div>
+    <div class="stat-card">
+      <div class="stat-icon kcal-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="var(--coral)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c4 0 7-2.7 7-6.8 0-3.5-2.2-5.6-3.4-8-.6 1.3-1.5 2-2.4 1.3.7-2.4-.4-5-3-6.5.4 2.4-.6 3.8-2.3 5.6C6.1 9.5 5 11.6 5 14.2 5 18.7 8 22 12 22Z"/></svg>
+      </div>
+      <div class="stat-body">
+        <div class="stat-top"><span class="stat-label" id="kcalLabel">Kalorien</span><span class="stat-val"><span id="totalKcal">0</span> / <span id="targetVal">1400</span></span></div>
+        <div class="bar-track"><div class="bar-fill" id="barFill" style="width:0%;background:var(--coral);"></div></div>
+      </div>
     </div>
-
-    <div class="kcal-box">
-      <div class="kcal-top"><span class="kcal-num" id="totalKcal">0</span><span class="kcal-of">von <span id="targetVal">1400</span> kcal</span></div>
-      <div class="bar"><div class="bar-fill" id="barFill" style="width:0%"></div></div>
-      <p class="kcal-note" id="summaryNote"></p>
+    <div class="stat-card">
+      <div class="stat-icon fiber-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="var(--olive-dark)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20c8 0 14-6 16-16-10 2-16 8-16 16Z"/><path d="M4 20c4-6 8-9 13-12"/></svg>
+      </div>
+      <div class="stat-body">
+        <div class="stat-top"><span class="stat-label" id="fiberLabel">Ballaststoffe</span><span class="stat-val"><span id="totalFiber">0</span> / <span id="fiberTargetVal">30</span> g</span></div>
+        <div class="bar-track"><div class="bar-fill" id="fiberBarFill" style="width:0%;background:var(--olive);"></div></div>
+        <p class="stat-note" id="fiberPlannedNote" style="font-size:11px;color:var(--ink-soft);margin:.4rem 0 0;"></p>
+      </div>
     </div>
 
     <p class="section-label">Dein Plan – antippen zum Abhaken</p>
@@ -220,30 +255,48 @@ h2.section{font-family:'Fraunces',serif;font-weight:600;font-size:18px;margin:1.
 
     <p class="section-label">Zusätzlich gegessen</p>
     <div id="extraList"></div>
-    <div class="quick-add">
-      <input type="text" id="extraName" placeholder="Neues Gericht">
-      <input type="number" id="extraKcal" class="qkcal" placeholder="kcal">
-      <button id="extraAddBtn">+</button>
+    <div class="pill-row">
+      <button class="open-btn" id="openExtraBtn"><span class="ic a">🍽️</span> Extra Gericht</button>
+      <button class="open-btn" id="openWeightBtn"><span class="ic b">⚖️</span> Gewicht <span class="sub" id="weightBtnSub"></span></button>
+      <button class="open-btn" id="openStepsBtn"><span class="ic c">👟</span> Schritte <span class="sub" id="stepsBtnSub"></span></button>
     </div>
+  </div>
 
-    <div class="weight-block">
-      <div class="block-head"><p class="section-label" style="margin:0;">Gewicht</p><span>wöchentlich</span></div>
+  <div class="modal-bg" id="extraModalBg">
+    <div class="modal">
+      <h2>Extra Gericht hinzufügen</h2>
+      <div class="field"><label>Name</label><input type="text" id="extraName" placeholder="z. B. Schokoriegel"></div>
+      <div class="field-row">
+        <div class="fcol"><label>Kcal</label><input type="number" id="extraKcal" placeholder="kcal"></div>
+        <div class="fcol"><label>Ballaststoffe (g, optional)</label><input type="number" step="any" id="extraFiber" placeholder="g"></div>
+      </div>
+      <div class="modal-actions"><button class="btn" id="extraCancel">Abbrechen</button><button class="btn primary" id="extraAddBtn">Hinzufügen</button></div>
+    </div>
+  </div>
+
+  <div class="modal-bg" id="weightModalBg">
+    <div class="modal">
+      <h2>Gewicht eintragen</h2>
       <div class="stat-row"><div><p class="food-name" id="lastWeightDate">–</p><p class="food-time">letzte Messung</p></div><span class="stat-val" id="lastWeightVal">–</span></div>
       <div class="wg-labels"><span id="wgStart">–</span><span id="wgGoal">Ziel: –</span></div>
       <div class="bar"><div class="bar-fill" id="weightBarFill" style="width:0%;background:var(--mustard);"></div></div>
-      <button class="add-inline" id="showWeightForm">+ Gewicht eintragen</button>
-      <div class="inline-form" id="weightForm" style="display:none;">
-        <input type="date" id="weightDate"><input type="number" id="weightKg" placeholder="kg" step="0.1"><button id="weightSaveBtn">Speichern</button>
+      <div class="field-row" style="margin-top:1rem;">
+        <div class="fcol"><label>Datum</label><input type="date" id="weightDate"></div>
+        <div class="fcol"><label>Gewicht (kg)</label><input type="number" id="weightKg" step="0.1" placeholder="kg"></div>
       </div>
+      <div class="modal-actions"><button class="btn" id="weightCancel">Abbrechen</button><button class="btn primary" id="weightSaveBtn">Speichern</button></div>
     </div>
+  </div>
 
-    <div class="steps-block">
-      <div class="block-head"><p class="section-label" style="margin:0;">Schritte</p><span>ca. kcal wird geschätzt</span></div>
-      <div class="inline-form" style="margin-top:0;">
-        <input type="number" id="stepsInput" placeholder="Schritte heute">
-        <input type="number" id="stepsKcalInput" placeholder="kcal (optional)" style="max-width:130px;">
-        <button id="stepsSaveBtn">Speichern</button>
+  <div class="modal-bg" id="stepsModalBg">
+    <div class="modal">
+      <h2>Schritte eintragen</h2>
+      <p class="section-note">ca. kcal wird geschätzt, falls leer gelassen</p>
+      <div class="field-row">
+        <div class="fcol"><label>Schritte heute</label><input type="number" id="stepsInput" placeholder="Schritte"></div>
+        <div class="fcol"><label>Kcal (optional)</label><input type="number" id="stepsKcalInput" placeholder="kcal"></div>
       </div>
+      <div class="modal-actions"><button class="btn" id="stepsCancel">Abbrechen</button><button class="btn primary" id="stepsSaveBtn">Speichern</button></div>
     </div>
   </div>
 
@@ -281,7 +334,7 @@ h2.section{font-family:'Fraunces',serif;font-weight:600;font-size:18px;margin:1.
     <div class="dash-stats">
       <div class="dash-stat"><p class="ds-label">Aktuelles Gewicht</p><p class="ds-val" id="dsWeight">–</p><p class="ds-sub" id="dsWeightSub">–</p></div>
       <div class="dash-stat"><p class="ds-label">Schritte Ø/Tag (7 Tage)</p><p class="ds-val" id="dsSteps">–</p><p class="ds-sub">letzte 7 Tage</p></div>
-      <div class="dash-stat"><p class="ds-label">Tage im Ziel</p><p class="ds-val" id="dsOnTarget">–</p><p class="ds-sub">letzte 7 Tage</p></div>
+      <div class="dash-stat"><p class="ds-label">Ø kcal (7 Tage)</p><p class="ds-val" id="dsAvgKcal">–</p><p class="ds-sub" id="dsAvgKcalSub">letzte 7 Tage</p></div>
     </div>
 
     <h2 class="section">Einkaufsliste <span class="section-note" id="previewMeta"></span> <button class="btn" id="refreshNeedsBtn" style="width:auto;padding:.3rem .7rem;font-size:12px;">↻ Aktualisieren</button></h2>
@@ -315,11 +368,12 @@ h2.section{font-family:'Fraunces',serif;font-weight:600;font-size:18px;margin:1.
   <div class="modal">
     <h2 id="dishModalTitle">Neues Gericht</h2>
     <div class="field"><label>Name</label><input type="text" id="dishName"></div>
-    <div class="field"><label>Kalorien (kcal)</label>
-      <div style="display:flex;gap:6px;">
-        <input type="number" id="dishKcal" style="flex:1;">
-        <button type="button" id="copyPromptBtn" class="btn" style="white-space:nowrap;">📋 kcal-Prompt erstellen</button>
-      </div>
+    <div class="field-row">
+      <div class="fcol"><label>Kalorien (kcal)</label><input type="number" id="dishKcal"></div>
+      <div class="fcol"><label>Ballaststoffe (g)</label><input type="number" step="any" id="dishFiber"></div>
+    </div>
+    <div class="field">
+      <button type="button" id="copyPromptBtn" class="btn" style="white-space:nowrap;">📋 kcal + Ballaststoffe-Prompt erstellen</button>
       <p id="promptCopyStatus" style="font-size:11.5px;color:var(--olive-dark);margin:6px 0 0;min-height:14px;"></p>
       <textarea id="promptOutput" style="display:none;width:100%;margin-top:6px;font-size:12.5px;font-family:'IBM Plex Mono',monospace;border:1px solid var(--line);border-radius:8px;padding:8px;background:#fff;color:var(--ink);" rows="7" readonly></textarea>
     </div>
@@ -465,7 +519,8 @@ function renderDashboard(){
   const last7 = []; for(let i=6;i>=0;i--) last7.push(addDays(currentDate,-i));
   const stepsByDate = {}; steps.forEach(s=> stepsByDate[s.date]=s.steps);
   const stepsData = last7.map(d=> stepsByDate[d]||0);
-  const avgSteps = Math.round(stepsData.reduce((a,b)=>a+b,0)/7);
+  const stepsDaysWithData = last7.filter(d=> stepsByDate[d]!==undefined);
+  const avgSteps = stepsDaysWithData.length ? Math.round(stepsDaysWithData.reduce((sum,d)=> sum+stepsByDate[d],0)/stepsDaysWithData.length) : 0;
   document.getElementById('dsSteps').textContent = avgSteps.toLocaleString('de-DE');
 
   upsertChart('stepsChart', {
@@ -478,8 +533,11 @@ function renderDashboard(){
 
   const target = targets[activeTarget];
   const kcalData = last7.map(d=> dayTotalKcal(d));
-  const onTargetCount = kcalData.filter(v=> v>0 && v<=target).length;
-  document.getElementById('dsOnTarget').textContent = onTargetCount + ' / 7';
+  const kcalDaysWithData = kcalData.filter(v=> v>0);
+  const avgKcal = kcalDaysWithData.length ? Math.round(kcalDaysWithData.reduce((a,b)=>a+b,0)/kcalDaysWithData.length) : 0;
+  document.getElementById('dsAvgKcal').textContent = avgKcal.toLocaleString('de-DE');
+  document.getElementById('dsAvgKcal').style.color = avgKcal>target ? 'var(--coral)' : 'var(--olive-dark)';
+  document.getElementById('dsAvgKcalSub').textContent = avgKcal>target ? `über ${target} kcal Ziel` : `im Rahmen (Ziel ${target})`;
 
   upsertChart('kcalChart', {
     type:'bar',
@@ -616,7 +674,7 @@ async function loadAll(){
     const [dishRecs, wpRecs, logRecs, wRecs, sRecs] = await Promise.all([
       atList('Dishes'), atList('WeekPlan'), atList('LogEntries'), atList('Weights'), atList('Steps')
     ]);
-    dishes = dishRecs.map(r=>({ id:r.id, name:r.fields.Name||'', kcal:Number(r.fields.Kcal)||0,
+    dishes = dishRecs.map(r=>({ id:r.id, name:r.fields.Name||'', kcal:Number(r.fields.Kcal)||0, fiber:Number(r.fields.Fiber)||0,
       ingredients: (()=>{ try{ return JSON.parse(r.fields.Ingredients||'[]'); }catch(e){ return []; } })() }));
     let pRecs = [];
     try{ pRecs = await atList('Pantry'); }
@@ -636,7 +694,7 @@ async function loadAll(){
       if(weekPlan[wd]) weekPlan[wd].push({ id:r.id, time:r.fields.Time||'12:00', dishName:r.fields.DishName||'' });
     });
     WEEKDAYS.forEach(wd=> weekPlan[wd].sort((a,b)=> a.time.localeCompare(b.time)));
-    logEntries = logRecs.map(r=>({ id:r.id, date:r.fields.Date, type:r.fields.Type, name:r.fields.Name, kcal:Number(r.fields.Kcal)||0, time:r.fields.Time||'' }));
+    logEntries = logRecs.map(r=>({ id:r.id, date:r.fields.Date, type:r.fields.Type, name:r.fields.Name, kcal:Number(r.fields.Kcal)||0, fiber:Number(r.fields.Fiber)||0, time:r.fields.Time||'' }));
     weights = wRecs.map(r=>({ id:r.id, date:r.fields.Date, kg:Number(r.fields.Kg)||0 }));
     steps = sRecs.map(r=>({ id:r.id, date:r.fields.Date, steps:Number(r.fields.Steps)||0, kcal:Number(r.fields.Kcal)||0 }));
     setStatus('Verbunden');
@@ -656,11 +714,6 @@ function renderToday(){
   document.getElementById('dayDate').textContent = fmtDate(currentDate);
   document.getElementById('dayNext').disabled = (currentDate >= todayStr());
 
-  document.getElementById('chipBase').classList.toggle('active', activeTarget==='base');
-  document.getElementById('chipDeficit').classList.toggle('active', activeTarget==='deficit');
-  document.getElementById('chipBase').textContent = targets.base;
-  document.getElementById('chipDeficit').textContent = targets.deficit;
-
   const slots = weekPlan[wd] || [];
   const dayLogPlan = logEntries.filter(l=> l.date===currentDate && l.type==='plan');
   const dayLogExtra = logEntries.filter(l=> l.date===currentDate && l.type==='extra');
@@ -671,10 +724,10 @@ function renderToday(){
     if(!dish) return '';
     const logHit = dayLogPlan.find(l=> l.name===dish.name && l.time===slot.time);
     const checked = !!logHit;
-    return `<div class="food-row ${checked?'checked':''}" data-slotid="${slot.id}" data-dishname="${escapeAttr(dish.name)}" data-time="${slot.time}" data-kcal="${dish.kcal}" data-loghit="${logHit?logHit.id:''}">
+    return `<div class="food-row ${checked?'checked':''}" data-slotid="${slot.id}" data-dishname="${escapeAttr(dish.name)}" data-time="${slot.time}" data-kcal="${dish.kcal}" data-fiber="${dish.fiber||0}" data-loghit="${logHit?logHit.id:''}">
       <div class="left"><div class="check-ico">${checked?'✓':''}</div>
       <div><p class="food-name">${escapeAttr(dish.name)}</p><p class="food-time">geplant ${slot.time}</p></div></div>
-      <span class="food-kcal">${dish.kcal} kcal</span>
+      <span class="food-kcal">${dish.kcal} kcal<br><span class="food-fiber">${dish.fiber||0} g Ballaststoffe</span></span>
     </div>`;
   }).join('');
   planList.querySelectorAll('.food-row').forEach(row=>{
@@ -688,8 +741,8 @@ function renderToday(){
           logEntries = logEntries.filter(l=>l.id!==logHitId);
           if(dish) await adjustPantryForDish(dish, +1); // Abhaken rückgängig -> Bestand zurückbuchen
         }else{
-          const rec = await atCreate('LogEntries', { Date: currentDate, Type:'plan', Name: row.dataset.dishname, Kcal: Number(row.dataset.kcal), Time: row.dataset.time });
-          logEntries.push({ id:rec.id, date:currentDate, type:'plan', name:row.dataset.dishname, kcal:Number(row.dataset.kcal), time:row.dataset.time });
+          const rec = await atCreate('LogEntries', { Date: currentDate, Type:'plan', Name: row.dataset.dishname, Kcal: Number(row.dataset.kcal), Fiber: Number(row.dataset.fiber), Time: row.dataset.time });
+          logEntries.push({ id:rec.id, date:currentDate, type:'plan', name:row.dataset.dishname, kcal:Number(row.dataset.kcal), fiber:Number(row.dataset.fiber), time:row.dataset.time });
           if(dish) await adjustPantryForDish(dish, -1); // gegessen -> Bestand verbrauchen
         }
       }catch(e){ console.error(e); setStatus('Fehler beim Speichern'); }
@@ -702,7 +755,7 @@ function renderToday(){
   extraList.innerHTML = dayLogExtra.map(e=>`
     <div class="food-row extra-row" style="cursor:default;">
       <div class="left"><div><p class="food-name">${escapeAttr(e.name)}</p><p class="food-time">${e.time||''}</p></div></div>
-      <span class="food-kcal">${e.kcal} kcal<button class="extra-del" data-id="${e.id}">×</button></span>
+      <span class="food-kcal">${e.kcal} kcal<button class="extra-del" data-id="${e.id}">×</button><br><span class="food-fiber">${e.fiber||0} g Ballaststoffe</span></span>
     </div>`).join('');
   extraList.querySelectorAll('.extra-del').forEach(b=> b.addEventListener('click', async (ev)=>{
     ev.stopPropagation();
@@ -711,21 +764,34 @@ function renderToday(){
     renderToday();
   }));
 
-  let total = 0;
-  slots.forEach(slot=>{ const hit = dayLogPlan.find(l=> l.name===slot.dishName && l.time===slot.time); if(hit) total += hit.kcal; });
-  dayLogExtra.forEach(e=> total += e.kcal);
+  let total = 0, totalFiber = 0;
+  slots.forEach(slot=>{ const hit = dayLogPlan.find(l=> l.name===slot.dishName && l.time===slot.time); if(hit){ total += hit.kcal; totalFiber += hit.fiber||0; } });
+  dayLogExtra.forEach(e=>{ total += e.kcal; totalFiber += e.fiber||0; });
   const target = targets[activeTarget];
+  const remaining = target-total;
   document.getElementById('totalKcal').textContent = total;
   document.getElementById('targetVal').textContent = target;
+  document.getElementById('kcalLabel').textContent = remaining>=0 ? `Kalorien · ${remaining} übrig` : `Kalorien · ${Math.abs(remaining)} über Ziel`;
   const pct = Math.min(100, Math.round((total/target)*100));
   const fill = document.getElementById('barFill');
   fill.style.width = pct+'%';
-  fill.style.background = total>target ? 'var(--coral)' : 'var(--olive)';
-  const remaining = target-total;
-  document.getElementById('summaryNote').textContent = remaining>=0 ? `Noch ${remaining} kcal übrig` : `${Math.abs(remaining)} kcal über dem Ziel`;
+  fill.style.background = total>target ? 'var(--coral)' : 'var(--coral)';
+
+  const fiberTarget = 30;
+  const fiberRemaining = fiberTarget - totalFiber;
+  document.getElementById('totalFiber').textContent = totalFiber;
+  document.getElementById('fiberTargetVal').textContent = fiberTarget;
+  document.getElementById('fiberLabel').textContent = fiberRemaining>=0 ? `Ballaststoffe · ${Math.round(fiberRemaining*10)/10} übrig` : `Ballaststoffe · Ziel erreicht`;
+  const fiberPct = Math.min(100, Math.round((totalFiber/fiberTarget)*100));
+  document.getElementById('fiberBarFill').style.width = fiberPct+'%';
+
+  const plannedFiberTotal = Math.round(slots.reduce((sum,slot)=>{ const dish=dishByName(slot.dishName); return sum + (dish?dish.fiber||0:0); },0)*10)/10;
+  document.getElementById('fiberPlannedNote').textContent = `Geplant für heute gesamt: ${plannedFiberTotal} g`;
+
   renderSnackChips(remaining);
 
   renderWeightBlock();
+  renderStepsButton();
 }
 
 /* Snack-Chips: grün passt ins Budget, orange bis 100 kcal drüber, mehr wird ausgeblendet */
@@ -754,19 +820,23 @@ document.getElementById('dayNext').addEventListener('click', ()=>{
   if(currentDate >= todayStr()) return;
   currentDate = addDays(currentDate,1); renderToday();
 });
-document.getElementById('chipBase').addEventListener('click', ()=>{ activeTarget='base'; renderToday(); });
-document.getElementById('chipDeficit').addEventListener('click', ()=>{ activeTarget='deficit'; renderToday(); });
 
+document.getElementById('openExtraBtn').addEventListener('click', ()=>{
+  document.getElementById('extraName').value=''; document.getElementById('extraKcal').value=''; document.getElementById('extraFiber').value='';
+  document.getElementById('extraModalBg').classList.add('open');
+});
+document.getElementById('extraCancel').addEventListener('click', ()=> document.getElementById('extraModalBg').classList.remove('open'));
 document.getElementById('extraAddBtn').addEventListener('click', async ()=>{
   const name = document.getElementById('extraName').value.trim();
   const kcal = Number(document.getElementById('extraKcal').value)||0;
+  const fiber = Number(document.getElementById('extraFiber').value)||0;
   if(!name || kcal<=0) return;
   const now = new Date();
   const time = String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
   try{
-    const rec = await atCreate('LogEntries', { Date: currentDate, Type:'extra', Name:name, Kcal:kcal, Time:time });
-    logEntries.push({ id:rec.id, date:currentDate, type:'extra', name, kcal, time });
-    document.getElementById('extraName').value=''; document.getElementById('extraKcal').value='';
+    const rec = await atCreate('LogEntries', { Date: currentDate, Type:'extra', Name:name, Kcal:kcal, Fiber:fiber, Time:time });
+    logEntries.push({ id:rec.id, date:currentDate, type:'extra', name, kcal, fiber, time });
+    document.getElementById('extraModalBg').classList.remove('open');
     renderToday();
   }catch(e){ setStatus('Fehler beim Speichern'); }
 });
@@ -785,11 +855,15 @@ function renderWeightBlock(){
   const done = Math.max(0, Math.min(100, totalSpan>0 ? Math.round(((start-current)/totalSpan)*100) : 0));
   document.getElementById('weightBarFill').style.width = done+'%';
   document.getElementById('weightDate').value = todayStr();
+
+  // Button-Vorschau: heute schon erfasst? -> ausgegraut mit Wert, bleibt aber antippbar zum Ändern
+  const todayEntry = weights.find(w=>w.date===todayStr());
+  const wBtn = document.getElementById('openWeightBtn');
+  wBtn.classList.toggle('done', !!todayEntry);
+  document.getElementById('weightBtnSub').textContent = todayEntry ? '✓ '+todayEntry.kg.toLocaleString('de-DE',{minimumFractionDigits:1})+' kg' : '';
 }
-document.getElementById('showWeightForm').addEventListener('click', ()=>{
-  const f = document.getElementById('weightForm');
-  f.style.display = f.style.display==='none' ? 'flex' : 'none';
-});
+document.getElementById('openWeightBtn').addEventListener('click', ()=>{ renderWeightBlock(); document.getElementById('weightModalBg').classList.add('open'); });
+document.getElementById('weightCancel').addEventListener('click', ()=> document.getElementById('weightModalBg').classList.remove('open'));
 document.getElementById('weightSaveBtn').addEventListener('click', async ()=>{
   const date = document.getElementById('weightDate').value || todayStr();
   const kg = Number(document.getElementById('weightKg').value);
@@ -799,12 +873,22 @@ document.getElementById('weightSaveBtn').addEventListener('click', async ()=>{
     if(existing){ await atUpdate('Weights', existing.id, { Kg: kg }); existing.kg = kg; }
     else{ const rec = await atCreate('Weights', { Date: date, Kg: kg }); weights.push({ id:rec.id, date, kg }); }
     document.getElementById('weightKg').value='';
-    document.getElementById('weightForm').style.display='none';
+    document.getElementById('weightModalBg').classList.remove('open');
     renderWeightBlock();
   }catch(e){ setStatus('Fehler beim Speichern'); }
 });
 
 /* steps */
+function renderStepsButton(){
+  const todayEntry = steps.find(s=>s.date===currentDate);
+  const sBtn = document.getElementById('openStepsBtn');
+  sBtn.classList.toggle('done', !!todayEntry);
+  document.getElementById('stepsBtnSub').textContent = todayEntry ? '✓ '+todayEntry.steps.toLocaleString('de-DE')+' Schritte' : '';
+  document.getElementById('stepsInput').value = todayEntry ? todayEntry.steps : '';
+  document.getElementById('stepsKcalInput').value = todayEntry ? todayEntry.kcal : '';
+}
+document.getElementById('openStepsBtn').addEventListener('click', ()=>{ renderStepsButton(); document.getElementById('stepsModalBg').classList.add('open'); });
+document.getElementById('stepsCancel').addEventListener('click', ()=> document.getElementById('stepsModalBg').classList.remove('open'));
 document.getElementById('stepsSaveBtn').addEventListener('click', async ()=>{
   const stepsVal = Number(document.getElementById('stepsInput').value)||0;
   const kcalRaw = document.getElementById('stepsKcalInput').value;
@@ -814,7 +898,8 @@ document.getElementById('stepsSaveBtn').addEventListener('click', async ()=>{
     const existing = steps.find(s=>s.date===currentDate);
     if(existing){ await atUpdate('Steps', existing.id, { Steps: stepsVal, Kcal: kcal }); existing.steps=stepsVal; existing.kcal=kcal; }
     else{ const rec = await atCreate('Steps', { Date: currentDate, Steps: stepsVal, Kcal: kcal }); steps.push({ id:rec.id, date:currentDate, steps:stepsVal, kcal }); }
-    document.getElementById('stepsInput').value=''; document.getElementById('stepsKcalInput').value='';
+    document.getElementById('stepsModalBg').classList.remove('open');
+    renderStepsButton();
     setStatus('Gespeichert');
   }catch(e){ setStatus('Fehler beim Speichern'); }
 });
@@ -906,7 +991,7 @@ function renderDishLibrary(){
 document.getElementById('copyPromptBtn').addEventListener('click', async ()=>{
   const name = document.getElementById('dishName').value.trim() || 'dieses Gericht';
   const list = editorIngredients.filter(i=>i.name.trim()).map(i=> `- ${i.amount} ${i.unit} ${i.name}`).join('\n');
-  const prompt = `Schätze die Gesamtkalorien (kcal) für folgendes Gericht basierend auf den Zutaten. Gib nur eine ganze Zahl zurück (die Gesamtkalorien in kcal), ohne Text drumherum.\n\nGericht: ${name}\nZutaten:\n${list}`;
+  const prompt = `Schätze die Gesamtkalorien (kcal) und die Ballaststoffe (g) für folgendes Gericht basierend auf den Zutaten. Gib die Antwort in genau diesem Format zurück, ohne weiteren Text: kcal: <Zahl>, Ballaststoffe: <Zahl in g>\n\nGericht: ${name}\nZutaten:\n${list}`;
   const status = document.getElementById('promptCopyStatus');
   const ta = document.getElementById('promptOutput');
   ta.style.display = 'block';
@@ -923,10 +1008,11 @@ document.getElementById('copyPromptBtn').addEventListener('click', async ()=>{
 document.getElementById('newDishBtn').addEventListener('click', ()=> openDishEditor(null));
 function openDishEditor(dish){
   editingDish = dish;
-  const d = dish || { name:'', kcal:0, ingredients:[] };
+  const d = dish || { name:'', kcal:0, fiber:0, ingredients:[] };
   document.getElementById('dishModalTitle').textContent = dish ? 'Gericht bearbeiten' : 'Neues Gericht';
   document.getElementById('dishName').value = d.name;
   document.getElementById('dishKcal').value = d.kcal;
+  document.getElementById('dishFiber').value = d.fiber;
   document.getElementById('promptOutput').style.display = 'none';
   document.getElementById('promptCopyStatus').textContent = '';
   editorIngredients = structuredClone(d.ingredients);
@@ -954,13 +1040,14 @@ document.getElementById('dishCancel').addEventListener('click', ()=> document.ge
 document.getElementById('dishSave').addEventListener('click', async ()=>{
   const name = document.getElementById('dishName').value.trim() || 'Unbenanntes Gericht';
   const kcal = Number(document.getElementById('dishKcal').value)||0;
+  const fiber = Number(document.getElementById('dishFiber').value)||0;
   const ingredients = editorIngredients.filter(i=>i.name.trim());
-  const fields = { Name:name, Kcal:kcal, Ingredients: JSON.stringify(ingredients) };
+  const fields = { Name:name, Kcal:kcal, Fiber:fiber, Ingredients: JSON.stringify(ingredients) };
   try{
     if(editingDish){
       const oldName = editingDish.name;
       await atUpdate('Dishes', editingDish.id, fields);
-      editingDish.name=name; editingDish.kcal=kcal; editingDish.ingredients=ingredients;
+      editingDish.name=name; editingDish.kcal=kcal; editingDish.fiber=fiber; editingDish.ingredients=ingredients;
       if(oldName !== name){
         setStatus('Aktualisiere Wochenplan…');
         for(const wd of WEEKDAYS){
@@ -974,7 +1061,7 @@ document.getElementById('dishSave').addEventListener('click', async ()=>{
       }
     }else{
       const rec = await atCreate('Dishes', fields);
-      dishes.push({ id:rec.id, name, kcal, ingredients });
+      dishes.push({ id:rec.id, name, kcal, fiber, ingredients });
     }
     document.getElementById('dishModalBg').classList.remove('open');
     resyncPantryFromDishes();

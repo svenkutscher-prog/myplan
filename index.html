@@ -72,17 +72,24 @@ h2.section{font-family:'Fraunces',serif;font-weight:600;font-size:18px;margin:1.
 .kcal-note{font-size:12.5px;color:var(--ink-soft);margin:8px 0 0;}
 
 .section-label{font-size:13px;font-weight:500;color:var(--ink-soft);margin:0 0 .6rem;}
-.food-row{display:flex;align-items:center;justify-content:space-between;padding:9px 11px;background:var(--card);border:1px solid var(--line);border-radius:10px;margin-bottom:6px;cursor:pointer;}
+.food-row{display:flex;flex-wrap:wrap;align-items:stretch;background:var(--card);border:1px solid var(--line);border-radius:10px;margin-bottom:6px;overflow:hidden;}
 .food-row.checked{background:var(--mustard-bg);border-color:var(--olive);}
 .food-row.early{border-color:var(--coral);border-width:1.5px;}
 .early-note{margin:2px 0 0;font-size:10.5px;color:var(--coral);font-weight:500;}
-.food-row .left{display:flex;align-items:center;}
+.food-main{flex:1;min-width:0;display:flex;align-items:center;padding:9px 11px;cursor:pointer;}
 .check-ico{width:20px;height:20px;border-radius:6px;border:1.5px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff;margin-right:10px;flex-shrink:0;background:#fff;}
 .food-row.checked .check-ico{background:var(--olive);border-color:var(--olive);}
 .food-name{margin:0;font-size:14px;}
 .food-time{margin:0;font-size:11px;color:var(--ink-soft);}
-.food-kcal{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--ink-soft);flex-shrink:0;text-align:right;}
-.food-fiber{font-size:10px;color:var(--ink-soft);opacity:.8;}
+.food-kcal{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--ink-soft);flex-shrink:0;text-align:right;margin-left:auto;}
+.food-fiber{font-size:10px;color:var(--ink-soft);opacity:.8;display:block;}
+.info-btn{width:36px;flex-shrink:0;border:none;border-left:1px solid var(--line);background:transparent;color:var(--ink-soft);cursor:pointer;font-size:14px;}
+.food-row.checked .info-btn{border-left-color:var(--olive);color:var(--olive-dark);}
+.info-btn:hover{background:rgba(0,0,0,.04);}
+.info-btn.open{background:rgba(0,0,0,.06);}
+.ing-panel{width:100%;background:#fff;border-top:1px dashed var(--line);padding:8px 12px 10px 41px;font-size:12.5px;color:var(--ink-soft);}
+.ing-row{display:flex;justify-content:space-between;padding:3px 0;}
+.ing-row span:last-child{font-family:'IBM Plex Mono',monospace;color:var(--ink);}
 .extra-row{cursor:default;}
 .extra-del{border:none;background:transparent;color:var(--coral);font-size:16px;cursor:pointer;padding:2px 6px;border-radius:6px;margin-left:8px;}
 .extra-del:hover{background:var(--coral-bg);}
@@ -998,17 +1005,28 @@ function renderToday(){
         earlyLabel = (h>0?`${h} Std. `:'')+`${m} Min. zu früh`;
       }
     }
-    return `<div class="food-row ${checked?'checked':''} ${early?'early':''}" data-slotid="${slot.id}" data-dishname="${escapeAttr(dish.name)}" data-time="${slot.time}" data-kcal="${dish.kcal}" data-fiber="${dish.fiber||0}" data-loghit="${logHit?logHit.id:''}">
-      <div class="left"><div class="check-ico">${checked?'✓':''}</div>
-      <div><p class="food-name">${escapeAttr(dish.name)}</p><p class="food-time">geplant ${slot.time}${checked&&logHit.checkedAt?' · abgehakt '+logHit.checkedAt:''}</p>${early?`<p class="early-note">${earlyLabel}</p>`:''}</div></div>
-      <span class="food-kcal">${dish.kcal} kcal<br><span class="food-fiber">${dish.fiber||0} g Ballaststoffe</span></span>
+    return `<div class="food-row ${checked?'checked':''} ${early?'early':''}" data-slotid="${slot.id}" data-dishname="${escapeAttr(dish.name)}">
+      <div class="food-main" data-time="${slot.time}" data-kcal="${dish.kcal}" data-fiber="${dish.fiber||0}" data-loghit="${logHit?logHit.id:''}">
+        <div class="check-ico">${checked?'✓':''}</div>
+        <div><p class="food-name">${escapeAttr(dish.name)}</p><p class="food-time">geplant ${slot.time}${checked&&logHit.checkedAt?' · abgehakt '+logHit.checkedAt:''}</p>${early?`<p class="early-note">${earlyLabel}</p>`:''}</div>
+        <span class="food-kcal">${dish.kcal} kcal<br><span class="food-fiber">${dish.fiber||0} g Ballaststoffe</span></span>
+      </div>
+      <button class="info-btn" title="Zutaten anzeigen">ⓘ</button>
+      <div class="ing-panel" style="display:none;">${dish.ingredients.length ? dish.ingredients.map(i=>`<div class="ing-row"><span>${escapeAttr(i.name)}</span><span>${i.amount} ${i.unit}</span></div>`).join('') : '<span>Keine Zutaten hinterlegt.</span>'}</div>
     </div>`;
   }).join('');
-  planList.querySelectorAll('.food-row').forEach(row=>{
+  planList.querySelectorAll('.info-btn').forEach(btn=> btn.addEventListener('click', e=>{
+    e.stopPropagation();
+    const panel = btn.nextElementSibling;
+    const open = panel.style.display !== 'none';
+    panel.style.display = open ? 'none' : 'block';
+    btn.classList.toggle('open', !open);
+  }));
+  planList.querySelectorAll('.food-main').forEach(row=>{
     row.addEventListener('click', async ()=>{
       row.style.opacity = '0.5';
       const logHitId = row.dataset.loghit;
-      const dish = dishByName(row.dataset.dishname);
+      const dish = dishByName(row.closest('.food-row').dataset.dishname);
       try{
         if(logHitId){
           await atDelete('LogEntries', logHitId);
@@ -1019,14 +1037,14 @@ function renderToday(){
           const checkedAt = String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
           let rec, savedCheckedAt = checkedAt;
           try{
-            rec = await atCreate('LogEntries', { Date: currentDate, Type:'plan', Name: row.dataset.dishname, Kcal: Number(row.dataset.kcal), Fiber: Number(row.dataset.fiber), Time: row.dataset.time, CheckedAt: checkedAt });
+            rec = await atCreate('LogEntries', { Date: currentDate, Type:'plan', Name: row.closest('.food-row').dataset.dishname, Kcal: Number(row.dataset.kcal), Fiber: Number(row.dataset.fiber), Time: row.dataset.time, CheckedAt: checkedAt });
           }catch(fieldErr){
             // Feld "CheckedAt" existiert in Airtable evtl. noch nicht -> ohne erneut versuchen, sonst geht das Abhaken komplett nicht
-            rec = await atCreate('LogEntries', { Date: currentDate, Type:'plan', Name: row.dataset.dishname, Kcal: Number(row.dataset.kcal), Fiber: Number(row.dataset.fiber), Time: row.dataset.time });
+            rec = await atCreate('LogEntries', { Date: currentDate, Type:'plan', Name: row.closest('.food-row').dataset.dishname, Kcal: Number(row.dataset.kcal), Fiber: Number(row.dataset.fiber), Time: row.dataset.time });
             savedCheckedAt = '';
             setStatus('Gespeichert (ohne Uhrzeit-Check – Feld "CheckedAt" fehlt noch in Airtable)');
           }
-          logEntries.push({ id:rec.id, date:currentDate, type:'plan', name:row.dataset.dishname, kcal:Number(row.dataset.kcal), fiber:Number(row.dataset.fiber), time:row.dataset.time, checkedAt:savedCheckedAt });
+          logEntries.push({ id:rec.id, date:currentDate, type:'plan', name:row.closest('.food-row').dataset.dishname, kcal:Number(row.dataset.kcal), fiber:Number(row.dataset.fiber), time:row.dataset.time, checkedAt:savedCheckedAt });
           if(dish) await adjustPantryForDish(dish, -1); // gegessen -> Bestand verbrauchen
         }
       }catch(e){ console.error(e); setStatus('Fehler beim Speichern'); }

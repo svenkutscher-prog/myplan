@@ -63,6 +63,8 @@ h2.section{font-family:'Fraunces',serif;font-weight:600;font-size:18px;margin:1.
 .section-label{font-size:13px;font-weight:500;color:var(--ink-soft);margin:0 0 .6rem;}
 .food-row{display:flex;align-items:center;justify-content:space-between;padding:9px 11px;background:var(--card);border:1px solid var(--line);border-radius:10px;margin-bottom:6px;cursor:pointer;}
 .food-row.checked{background:var(--mustard-bg);border-color:var(--olive);}
+.food-row.early{border-color:var(--coral);border-width:1.5px;}
+.early-note{margin:2px 0 0;font-size:10.5px;color:var(--coral);font-weight:500;}
 .food-row .left{display:flex;align-items:center;}
 .check-ico{width:20px;height:20px;border-radius:6px;border:1.5px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff;margin-right:10px;flex-shrink:0;background:#fff;}
 .food-row.checked .check-ico{background:var(--olive);border-color:var(--olive);}
@@ -104,18 +106,31 @@ h2.section{font-family:'Fraunces',serif;font-weight:600;font-size:18px;margin:1.
 
 /* week tab */
 .day-block{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:1rem 1.1rem;margin-bottom:1rem;}
-.day-block-head{font-family:'Fraunces',serif;font-weight:600;font-size:16px;margin-bottom:.6rem;display:flex;justify-content:space-between;align-items:baseline;}
+.day-block-head{display:flex;align-items:baseline;gap:8px;margin-bottom:.6rem;}
+.day-block-head .day-title{font-family:'Fraunces',serif;font-weight:600;font-size:16px;}
+.day-block-head .head-spacer{flex:1;}
+.day-block-head .head-icons{display:flex;gap:2px;align-items:center;}
 .day-total{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:500;color:var(--olive-dark);}
 .day-total.over{color:var(--coral);}
-.slot-row{display:flex;align-items:center;gap:.5rem;padding:8px 0;border-bottom:1px solid var(--line);}
+.slot-row{display:flex;align-items:center;gap:.45rem;padding:8px 0;border-bottom:1px solid var(--line);}
 .slot-row:last-of-type{border-bottom:none;}
-.slot-row input[type=time]{font-family:'IBM Plex Mono',monospace;font-size:12px;border:1px solid var(--line);border-radius:7px;padding:4px 6px;background:#fff;width:78px;color:var(--ink-soft);}
-.slot-dishname{flex:1;font-size:13.5px;}
-.slot-kcal{font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--ink-soft);}
-.slot-swap{border:none;background:transparent;color:var(--olive);font-size:12px;cursor:pointer;padding:3px 7px;border-radius:6px;}
-.slot-swap:hover{background:var(--mustard-bg);}
-.slot-del{border:none;background:transparent;color:var(--coral);font-size:16px;cursor:pointer;padding:2px 6px;border-radius:6px;}
-.slot-del:hover{background:var(--coral-bg);}
+.slot-row input[type=time]{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1px solid var(--line);border-radius:6px;padding:3px 4px;background:#fff;width:58px;color:var(--ink-soft);}
+.slot-dishname{flex:1;font-size:13.5px;min-width:0;}
+.slot-kcal{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-soft);white-space:nowrap;}
+.icon-btn{border:none;background:transparent;color:var(--olive);cursor:pointer;padding:4px 5px;display:flex;align-items:center;justify-content:center;border-radius:6px;}
+.icon-btn:hover{background:var(--mustard-bg);}
+.icon-btn svg{width:15px;height:15px;}
+.icon-btn.danger{color:var(--coral);}
+.icon-btn.danger:hover{background:var(--coral-bg);}
+.icon-btn.active{color:var(--olive-dark);background:#E4EDDD;}
+.add-slot-global{width:100%;margin:0 0 1.4rem;padding:.85rem;border-radius:10px;border:1px dashed var(--olive);background:transparent;color:var(--olive-dark);font-size:13.5px;font-weight:500;cursor:pointer;}
+span.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-soft);width:auto;display:inline-block;}
+select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1px solid var(--line);border-radius:6px;padding:3px 2px;background:#fff;width:52px;color:var(--ink-soft);}
+.move-btns{display:flex;flex-direction:column;gap:0;}
+.move-btns .icon-btn{padding:1px 4px;}
+.move-btns .icon-btn svg{width:12px;height:12px;}
+.move-btns .icon-btn:disabled{opacity:.25;cursor:default;}
+.move-btns .icon-btn:disabled:hover{background:transparent;}
 .add-slot{width:100%;margin-top:.4rem;padding:7px;border-radius:8px;border:1px dashed var(--olive);background:transparent;color:var(--olive-dark);font-size:12.5px;cursor:pointer;}
 
 .dish-lib-item{display:flex;align-items:center;justify-content:space-between;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:.6rem .9rem;margin-bottom:.5rem;}
@@ -303,6 +318,7 @@ h2.section{font-family:'Fraunces',serif;font-weight:600;font-size:18px;margin:1.
   <!-- WOCHE -->
   <div class="panel" id="panelWoche">
     <div id="weekDays"></div>
+    <button class="add-slot-global" id="addSlotGlobalBtn">+ Mahlzeit hinzufügen</button>
 
     <h2 class="section">Gerichte-Bibliothek</h2>
     <div id="dishLib"></div>
@@ -361,6 +377,23 @@ h2.section{font-family:'Fraunces',serif;font-weight:600;font-size:18px;margin:1.
     <ul id="swapPickList"></ul>
     <div class="preview-box" id="swapPreview"></div>
     <div class="modal-actions"><button class="btn" id="swapCancel">Abbrechen</button><button class="btn primary" id="swapConfirm">Übernehmen</button></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="dayMoveModalBg">
+  <div class="modal">
+    <h2>Ganzen Tag tauschen mit …</h2>
+    <p class="section-note" id="dayMoveNote"></p>
+    <ul id="dayMovePickList"></ul>
+    <div class="modal-actions"><button class="btn" id="dayMoveCancel">Abbrechen</button></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="daySlotModalBg">
+  <div class="modal">
+    <h2>Wochentag wählen</h2>
+    <ul id="daySlotPickList"></ul>
+    <div class="modal-actions"><button class="btn" id="daySlotCancel">Abbrechen</button></div>
   </div>
 </div>
 
@@ -694,7 +727,8 @@ async function loadAll(){
       if(weekPlan[wd]) weekPlan[wd].push({ id:r.id, time:r.fields.Time||'12:00', dishName:r.fields.DishName||'' });
     });
     WEEKDAYS.forEach(wd=> weekPlan[wd].sort((a,b)=> a.time.localeCompare(b.time)));
-    logEntries = logRecs.map(r=>({ id:r.id, date:r.fields.Date, type:r.fields.Type, name:r.fields.Name, kcal:Number(r.fields.Kcal)||0, fiber:Number(r.fields.Fiber)||0, time:r.fields.Time||'' }));
+    await migrateSlotTimesToHours();
+    logEntries = logRecs.map(r=>({ id:r.id, date:r.fields.Date, type:r.fields.Type, name:r.fields.Name, kcal:Number(r.fields.Kcal)||0, fiber:Number(r.fields.Fiber)||0, time:r.fields.Time||'', checkedAt:r.fields.CheckedAt||'' }));
     weights = wRecs.map(r=>({ id:r.id, date:r.fields.Date, kg:Number(r.fields.Kg)||0 }));
     steps = sRecs.map(r=>({ id:r.id, date:r.fields.Date, steps:Number(r.fields.Steps)||0, kcal:Number(r.fields.Kcal)||0 }));
     setStatus('Verbunden');
@@ -724,9 +758,20 @@ function renderToday(){
     if(!dish) return '';
     const logHit = dayLogPlan.find(l=> l.name===dish.name && l.time===slot.time);
     const checked = !!logHit;
-    return `<div class="food-row ${checked?'checked':''}" data-slotid="${slot.id}" data-dishname="${escapeAttr(dish.name)}" data-time="${slot.time}" data-kcal="${dish.kcal}" data-fiber="${dish.fiber||0}" data-loghit="${logHit?logHit.id:''}">
+    let early = false, earlyLabel = '';
+    if(checked && logHit.checkedAt){
+      const [ph,pm] = slot.time.split(':').map(Number);
+      const [ch,cm] = logHit.checkedAt.split(':').map(Number);
+      const diffMin = (ph*60+pm) - (ch*60+cm);
+      if(diffMin > 15){
+        early = true;
+        const h = Math.floor(diffMin/60), m = diffMin%60;
+        earlyLabel = (h>0?`${h} Std. `:'')+`${m} Min. zu früh`;
+      }
+    }
+    return `<div class="food-row ${checked?'checked':''} ${early?'early':''}" data-slotid="${slot.id}" data-dishname="${escapeAttr(dish.name)}" data-time="${slot.time}" data-kcal="${dish.kcal}" data-fiber="${dish.fiber||0}" data-loghit="${logHit?logHit.id:''}">
       <div class="left"><div class="check-ico">${checked?'✓':''}</div>
-      <div><p class="food-name">${escapeAttr(dish.name)}</p><p class="food-time">geplant ${slot.time}</p></div></div>
+      <div><p class="food-name">${escapeAttr(dish.name)}</p><p class="food-time">geplant ${slot.time}${checked&&logHit.checkedAt?' · abgehakt '+logHit.checkedAt:''}</p>${early?`<p class="early-note">${earlyLabel}</p>`:''}</div></div>
       <span class="food-kcal">${dish.kcal} kcal<br><span class="food-fiber">${dish.fiber||0} g Ballaststoffe</span></span>
     </div>`;
   }).join('');
@@ -741,8 +786,18 @@ function renderToday(){
           logEntries = logEntries.filter(l=>l.id!==logHitId);
           if(dish) await adjustPantryForDish(dish, +1); // Abhaken rückgängig -> Bestand zurückbuchen
         }else{
-          const rec = await atCreate('LogEntries', { Date: currentDate, Type:'plan', Name: row.dataset.dishname, Kcal: Number(row.dataset.kcal), Fiber: Number(row.dataset.fiber), Time: row.dataset.time });
-          logEntries.push({ id:rec.id, date:currentDate, type:'plan', name:row.dataset.dishname, kcal:Number(row.dataset.kcal), fiber:Number(row.dataset.fiber), time:row.dataset.time });
+          const now = new Date();
+          const checkedAt = String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+          let rec, savedCheckedAt = checkedAt;
+          try{
+            rec = await atCreate('LogEntries', { Date: currentDate, Type:'plan', Name: row.dataset.dishname, Kcal: Number(row.dataset.kcal), Fiber: Number(row.dataset.fiber), Time: row.dataset.time, CheckedAt: checkedAt });
+          }catch(fieldErr){
+            // Feld "CheckedAt" existiert in Airtable evtl. noch nicht -> ohne erneut versuchen, sonst geht das Abhaken komplett nicht
+            rec = await atCreate('LogEntries', { Date: currentDate, Type:'plan', Name: row.dataset.dishname, Kcal: Number(row.dataset.kcal), Fiber: Number(row.dataset.fiber), Time: row.dataset.time });
+            savedCheckedAt = '';
+            setStatus('Gespeichert (ohne Uhrzeit-Check – Feld "CheckedAt" fehlt noch in Airtable)');
+          }
+          logEntries.push({ id:rec.id, date:currentDate, type:'plan', name:row.dataset.dishname, kcal:Number(row.dataset.kcal), fiber:Number(row.dataset.fiber), time:row.dataset.time, checkedAt:savedCheckedAt });
           if(dish) await adjustPantryForDish(dish, -1); // gegessen -> Bestand verbrauchen
         }
       }catch(e){ console.error(e); setStatus('Fehler beim Speichern'); }
@@ -905,53 +960,156 @@ document.getElementById('stepsSaveBtn').addEventListener('click', async ()=>{
 });
 
 /* ================= WOCHE ================= */
+let weekEditMode = {}; // { Mo:true/false, ... } rein lokal, nicht persistiert
+
+/* rundet "HH:MM" auf die volle Stunde (>=30 aufgerundet), gibt "HH:00" zurück */
+function roundToHour(timeStr){
+  const [h,m] = timeStr.split(':').map(Number);
+  let hour = h + (m>=30 ? 1 : 0);
+  hour = hour % 24;
+  return String(hour).padStart(2,'0')+':00';
+}
+/* einmalige Migration: alle Slots mit Minuten != 00 auf volle Stunde runden und speichern */
+async function migrateSlotTimesToHours(){
+  const updates = [];
+  WEEKDAYS.forEach(wd=>{
+    (weekPlan[wd]||[]).forEach(slot=>{
+      if(!slot.time.endsWith(':00')){
+        const newTime = roundToHour(slot.time);
+        slot.time = newTime;
+        updates.push(atUpdate('WeekPlan', slot.id, { Time: newTime }).catch(()=>{}));
+      }
+    });
+  });
+  if(updates.length){ await Promise.all(updates); WEEKDAYS.forEach(wd=> weekPlan[wd].sort((a,b)=> a.time.localeCompare(b.time))); }
+}
+
 function renderWeek(){
   const wrap = document.getElementById('weekDays');
   wrap.innerHTML = '';
   WEEKDAYS.forEach(wd=>{
+    const editOn = !!weekEditMode[wd];
     const block = document.createElement('div');
     block.className = 'day-block';
     const slots = weekPlan[wd] || [];
     const dayTotal = slots.reduce((sum,slot)=>{ const d=dishByName(slot.dishName); return sum + (d?d.kcal:0); }, 0);
+    const dayFiber = Math.round(slots.reduce((sum,slot)=>{ const d=dishByName(slot.dishName); return sum + (d?d.fiber||0:0); }, 0)*10)/10;
     const target = targets[activeTarget];
     const over = dayTotal > target;
-    block.innerHTML = `<div class="day-block-head"><span>${WEEKDAY_NAMES[wd]}</span><span class="day-total ${over?'over':''}">${dayTotal} / ${target} kcal</span></div><div class="slots"></div>
-      <button class="add-slot" data-wd="${wd}">+ Mahlzeit hinzufügen</button>`;
+    block.innerHTML = `<div class="day-block-head">
+        <span class="day-title">${WEEKDAY_NAMES[wd]}</span>
+        <span class="day-total ${over?'over':''}">${dayTotal} / ${target} kcal &nbsp;·&nbsp; ${dayFiber} g Bal.</span>
+        <span class="head-spacer"></span>
+        <div class="head-icons">
+          ${editOn?`<button class="icon-btn day-move-btn" title="Ganzen Tag tauschen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 21l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></button>`:''}
+          <button class="icon-btn day-edit-btn ${editOn?'active':''}" title="Bearbeiten"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg></button>
+        </div>
+      </div><div class="slots"></div>`;
+    if(editOn) block.querySelector('.day-move-btn').addEventListener('click', ()=> openDayMoveModal(wd));
+    block.querySelector('.day-edit-btn').addEventListener('click', ()=>{ weekEditMode[wd] = !weekEditMode[wd]; renderWeek(); });
     const slotsWrap = block.querySelector('.slots');
-    slots.forEach(slot=>{
+    slots.forEach((slot, idx)=>{
       const dish = dishByName(slot.dishName);
+      const hour = slot.time.split(':')[0];
       const row = document.createElement('div');
-      row.className = 'slot-row';
-      row.innerHTML = `<input type="time" value="${slot.time}">
+      row.className = 'slot-row' + (editOn?' edit-on':'');
+      const hourOptions = Array.from({length:24},(_,h)=> `<option value="${h}" ${String(h).padStart(2,'0')===hour?'selected':''}>${String(h).padStart(2,'0')} h</option>`).join('');
+      row.innerHTML = `${editOn?`<div class="move-btns">
+          <button class="icon-btn move-btn" title="Nach oben" ${idx===0?'disabled':''}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
+          <button class="icon-btn move-btn" title="Nach unten" ${idx===slots.length-1?'disabled':''}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg></button>
+        </div>
+        <select class="hour-select">${hourOptions}</select>`:`<span class="hour-select">${hour} h</span>`}
         <span class="slot-dishname">${dish?escapeAttr(dish.name):'—'}</span>
-        <span class="slot-kcal">${dish?dish.kcal:0} kcal</span>
-        <button class="slot-swap">Tauschen</button>
-        <button class="slot-del">×</button>`;
-      row.querySelector('input[type=time]').addEventListener('change', async e=>{
-        slot.time = e.target.value;
-        try{ await atUpdate('WeekPlan', slot.id, { Time: slot.time }); }catch(err){ setStatus('Fehler beim Speichern'); }
-        renderWeek();
-      });
-      row.querySelector('.slot-swap').addEventListener('click', ()=> openSwapModal(wd, slot));
-      row.querySelector('.slot-del').addEventListener('click', async ()=>{
-        try{ await atDelete('WeekPlan', slot.id); weekPlan[wd] = weekPlan[wd].filter(s=>s.id!==slot.id); }
-        catch(err){ setStatus('Fehler beim Löschen'); }
-        renderWeek();
-      });
+        <span class="slot-kcal">${dish?dish.kcal:0} kcal / ${dish?dish.fiber||0:0}g Bal.</span>
+        ${editOn?`<div class="slot-actions">
+          <button class="icon-btn" title="Tauschen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 21l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></button>
+          <button class="icon-btn danger" title="Entfernen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+        </div>`:''}`;
+      if(editOn){
+        row.querySelector('.hour-select').addEventListener('change', async e=>{
+          slot.time = String(e.target.value).padStart(2,'0')+':00';
+          try{ await atUpdate('WeekPlan', slot.id, { Time: slot.time }); }catch(err){ setStatus('Fehler beim Speichern'); }
+          weekPlan[wd].sort((a,b)=> a.time.localeCompare(b.time));
+          renderWeek();
+        });
+        row.querySelector('.icon-btn[title="Tauschen"]').addEventListener('click', ()=> openSwapModal(wd, slot));
+        row.querySelector('.icon-btn[title="Entfernen"]').addEventListener('click', async ()=>{
+          try{ await atDelete('WeekPlan', slot.id); weekPlan[wd] = weekPlan[wd].filter(s=>s.id!==slot.id); }
+          catch(err){ setStatus('Fehler beim Löschen'); }
+          renderWeek();
+        });
+        row.querySelector('.icon-btn[title="Nach oben"]').addEventListener('click', async ()=>{
+          if(idx===0) return;
+          const neighbor = slots[idx-1];
+          const t1=slot.time, t2=neighbor.time;
+          slot.time=t2; neighbor.time=t1;
+          try{ await Promise.all([atUpdate('WeekPlan', slot.id, {Time:slot.time}), atUpdate('WeekPlan', neighbor.id, {Time:neighbor.time})]); }
+          catch(err){ setStatus('Fehler beim Verschieben'); }
+          weekPlan[wd].sort((a,b)=> a.time.localeCompare(b.time));
+          renderWeek();
+        });
+        row.querySelector('.icon-btn[title="Nach unten"]').addEventListener('click', async ()=>{
+          if(idx===slots.length-1) return;
+          const neighbor = slots[idx+1];
+          const t1=slot.time, t2=neighbor.time;
+          slot.time=t2; neighbor.time=t1;
+          try{ await Promise.all([atUpdate('WeekPlan', slot.id, {Time:slot.time}), atUpdate('WeekPlan', neighbor.id, {Time:neighbor.time})]); }
+          catch(err){ setStatus('Fehler beim Verschieben'); }
+          weekPlan[wd].sort((a,b)=> a.time.localeCompare(b.time));
+          renderWeek();
+        });
+      }
       slotsWrap.appendChild(row);
-    });
-    block.querySelector('.add-slot').addEventListener('click', async ()=>{
-      const firstDish = dishes[0];
-      if(!firstDish) return;
-      try{
-        const rec = await atCreate('WeekPlan', { Weekday: wd, Time:'12:00', DishName: firstDish.name });
-        weekPlan[wd].push({ id: rec.id, time:'12:00', dishName: firstDish.name });
-        renderWeek();
-      }catch(err){ setStatus('Fehler beim Speichern'); }
     });
     wrap.appendChild(block);
   });
 }
+document.getElementById('addSlotGlobalBtn').addEventListener('click', ()=>{
+  const ul = document.getElementById('daySlotPickList');
+  ul.innerHTML = WEEKDAYS.map(wd=> `<li data-wd="${wd}" style="cursor:pointer;"><span>${WEEKDAY_NAMES[wd]}</span><span class="amt">${(weekPlan[wd]||[]).length} Gerichte</span></li>`).join('');
+  ul.querySelectorAll('li').forEach(li=> li.addEventListener('click', async ()=>{
+    const wd = li.dataset.wd;
+    const firstDish = dishes[0];
+    if(!firstDish) return;
+    try{
+      const rec = await atCreate('WeekPlan', { Weekday: wd, Time:'12:00', DishName: firstDish.name });
+      weekPlan[wd].push({ id: rec.id, time:'12:00', dishName: firstDish.name });
+      weekPlan[wd].sort((a,b)=> a.time.localeCompare(b.time));
+      weekEditMode[wd] = true;
+    }catch(err){ setStatus('Fehler beim Speichern'); }
+    document.getElementById('daySlotModalBg').classList.remove('open');
+    renderWeek();
+  }));
+  document.getElementById('daySlotModalBg').classList.add('open');
+});
+document.getElementById('daySlotCancel').addEventListener('click', ()=> document.getElementById('daySlotModalBg').classList.remove('open'));
+
+
+/* Ganzen Tag mit einem anderen Wochentag tauschen (alle Slots beider Tage) */
+function openDayMoveModal(wd){
+  document.getElementById('dayMoveNote').textContent = `Aktueller Tag: ${WEEKDAY_NAMES[wd]}. Wähle den Tag, mit dem komplett getauscht werden soll.`;
+  const ul = document.getElementById('dayMovePickList');
+  ul.innerHTML = WEEKDAYS.filter(other=>other!==wd).map(other=>{
+    const count = (weekPlan[other]||[]).length;
+    return `<li data-wd="${other}" style="cursor:pointer;"><span>${WEEKDAY_NAMES[other]}</span><span class="amt">${count} Gerichte</span></li>`;
+  }).join('');
+  ul.querySelectorAll('li').forEach(li=> li.addEventListener('click', async ()=>{
+    const other = li.dataset.wd;
+    try{
+      const aSlots = weekPlan[wd]||[], bSlots = weekPlan[other]||[];
+      await Promise.all([
+        ...aSlots.map(s=> atUpdate('WeekPlan', s.id, { Weekday: other })),
+        ...bSlots.map(s=> atUpdate('WeekPlan', s.id, { Weekday: wd }))
+      ]);
+      weekPlan[wd] = bSlots; weekPlan[other] = aSlots;
+      setStatus('Tage getauscht');
+    }catch(err){ setStatus('Fehler beim Tauschen'); }
+    document.getElementById('dayMoveModalBg').classList.remove('open');
+    renderWeek();
+  }));
+  document.getElementById('dayMoveModalBg').classList.add('open');
+}
+document.getElementById('dayMoveCancel').addEventListener('click', ()=> document.getElementById('dayMoveModalBg').classList.remove('open'));
 
 function openSwapModal(wd, slot){
   swapWeekday = wd; swapTargetSlot = slot; swapSelectedDishName = slot.dishName;

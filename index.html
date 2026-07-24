@@ -97,7 +97,10 @@ h2.section{font-family:'Fraunces',serif;font-weight:600;font-size:18px;margin:1.
 .ing-panel{width:100%;background:#fff;border-top:1px dashed var(--line);padding:8px 12px 10px 41px;font-size:12.5px;color:var(--ink-soft);}
 .ing-row{display:flex;justify-content:space-between;padding:3px 0;}
 .ing-row span:last-child{font-family:'IBM Plex Mono',monospace;color:var(--ink);}
-.extra-row{cursor:default;}
+.extra-row{cursor:default;padding:2px 0;}
+.extra-right{display:flex;align-items:center;gap:2px;margin-left:auto;padding:8px 10px;}
+.extra-vals{display:flex;flex-direction:column;align-items:flex-end;gap:1px;}
+.extra-vals .food-kcal{margin-left:0;}
 .extra-del{border:none;background:transparent;color:var(--coral);font-size:16px;cursor:pointer;padding:2px 6px;border-radius:6px;margin-left:8px;}
 .extra-del:hover{background:var(--coral-bg);}
 
@@ -191,7 +194,16 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
 .editor-row{display:flex;gap:.5rem;margin-bottom:.4rem;align-items:center;}
 .editor-row input.iname{flex:1;font-size:13.5px;border:1px solid var(--line);border-radius:7px;padding:5px 8px;background:#fff;color:var(--ink);}
 .editor-row input.iamt{width:60px;font-family:'IBM Plex Mono',monospace;font-size:13px;text-align:right;border:1px solid var(--line);border-radius:7px;padding:5px 6px;background:#fff;color:var(--ink);}
+.editor-row select.iname{flex:1;font-size:13.5px;border:1px solid var(--line);border-radius:7px;padding:5px 8px;background:#fff;color:var(--ink);}
 .editor-row select.iunit{font-size:12.5px;border:1px solid var(--line);border-radius:7px;padding:5px 4px;background:#fff;color:var(--ink-soft);width:64px;}
+.new-ing-box{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:1rem;margin-bottom:1.3rem;}
+.new-ing-box>input{width:100%;font-size:13.5px;border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:#fff;color:var(--ink);margin-bottom:.5rem;}
+.new-ing-addpart{border:none;background:transparent;color:var(--olive-dark);font-size:12.5px;cursor:pointer;padding:4px 0;font-weight:500;}
+.new-ing-addpart:hover{text-decoration:underline;}
+#newIngSumNote{margin:.3rem 0 .2rem;font-family:'IBM Plex Mono',monospace;}
+.new-ing-box .quick-add{margin:.4rem 0 0;flex-wrap:wrap;}
+.new-ing-box .quick-add input.qkcal{width:64px;}
+.new-ing-box select#newIngUnit{flex-shrink:0;width:64px;font-size:12.5px;border:1px solid var(--line);border-radius:8px;padding:8px 4px;background:#fff;color:var(--ink-soft);}
 .editor-row button{border:none;background:transparent;color:var(--ink-soft);cursor:pointer;font-size:15px;padding:2px 5px;border-radius:6px;}
 .editor-row button:hover{background:var(--coral-bg);color:var(--coral);}
 .field{margin-bottom:.7rem;}
@@ -390,12 +402,27 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
     <p class="section-label">Bestand &amp; Mindestbestand pro Zutat – wird beim Abhaken in "Heute" automatisch verbraucht</p>
     <div id="pantryList"></div>
 
+    <h2 class="section">Neue Zutat anlegen</h2>
+    <p class="section-label">Name und Werte direkt eintragen.</p>
+    <div class="new-ing-box">
+      <input type="text" id="newIngName" placeholder="Name (z.B. Cappu)">
+      <div class="quick-add">
+        <select id="newIngUnit"></select>
+        <input type="number" id="newIngBestand" class="qkcal" placeholder="Bestand" value="0">
+        <input type="number" id="newIngMin" class="qkcal" placeholder="Minimum" value="0">
+        <input type="number" id="newIngKcal" class="qkcal" placeholder="kcal">
+        <input type="number" id="newIngFiber" class="qkcal" placeholder="Bal.">
+        <button id="newIngSaveBtn">+</button>
+      </div>
+    </div>
+    <p class="section-note" id="newIngStatus"></p>
+
     <h2 class="section">Snacks</h2>
     <p class="section-label">Erscheinen in "Heute" als Chips, passend zu deinem verbleibenden kcal-Budget</p>
     <div id="snackList"></div>
     <div class="quick-add">
-      <input type="text" id="snackName" placeholder="Snack-Name">
-      <input type="number" id="snackKcal" class="qkcal" placeholder="kcal">
+      <select id="snackPantrySelect"><option value="">Zutat wählen…</option></select>
+      <input type="number" id="snackAmount" class="qkcal" placeholder="Menge" value="1" step="0.1" min="0.1">
       <button id="snackAddBtn">+</button>
     </div>
 
@@ -795,6 +822,8 @@ function syncPantry(pRecs){
     const existing = byName.get(key);
     merged.push(existing || { id:null, name: ing.name.trim(), unit: ing.unit||'', bestand:0, mindestbestand:0, ignore:false, kcalPerUnit:0, fiberPerUnit:0 });
   }));
+  // Eigenständige Zutaten (z.B. manuell im Vorrat angelegt, in keinem Gericht als Zutat verwendet) nicht verwerfen
+  byName.forEach((item, key)=>{ if(!seen.has(key)){ seen.add(key); merged.push(item); } });
   merged.sort((a,b)=> a.name.localeCompare(b.name,'de'));
   pantry = merged;
 }
@@ -818,6 +847,8 @@ function resyncPantryFromDishes(){
       merged.push({ id:null, name: ing.name.trim(), unit: ing.unit||'', bestand:0, mindestbestand:0, ignore:false, kcalPerUnit:0, fiberPerUnit:0 });
     }
   }));
+  // Eigenständige Zutaten (nicht in einem Gericht verwendet, z.B. manuell im Vorrat angelegt) beibehalten
+  byName.forEach((item, key)=>{ if(!seen.has(key)){ seen.add(key); merged.push(item); } });
   merged.sort((a,b)=> a.name.localeCompare(b.name,'de'));
   pantry = merged;
 }
@@ -862,6 +893,7 @@ function calculatedFiber(dish){
 function effectiveKcal(dish){ return dish.kcal>0 ? dish.kcal : calculatedKcal(dish); }
 function effectiveFiber(dish){ return dish.fiber>0 ? dish.fiber : calculatedFiber(dish); }
 function renderPantry(){
+  document.getElementById('newIngUnit').innerHTML = UNITS.map(u=>`<option value="${u}">${u}</option>`).join('');
   const wrap = document.getElementById('pantryList');
   if(!pantry.length){ wrap.innerHTML = '<p class="section-note">Noch keine Zutaten – lege zuerst ein paar Gerichte an.</p>'; return; }
   wrap.innerHTML = pantry.map((p,i)=>`
@@ -884,6 +916,35 @@ function renderPantry(){
     row.querySelector('.toggle').addEventListener('click', ()=>{ p.ignore = !p.ignore; savePantryItem(p); renderPantry(); });
   });
 }
+
+/* Neue Zutat direkt anlegen: Name + Werte, ohne Umweg über andere Zutaten */
+document.getElementById('newIngSaveBtn').addEventListener('click', async ()=>{
+  const statusEl = document.getElementById('newIngStatus');
+  statusEl.textContent = '';
+  const name = document.getElementById('newIngName').value.trim();
+  if(!name){ statusEl.textContent = 'Bitte einen Namen eingeben.'; return; }
+  if(pantryItem(name)){ statusEl.textContent = 'Diese Zutat gibt es schon im Vorrat.'; return; }
+  const unit = document.getElementById('newIngUnit').value;
+  const bestand = Number(document.getElementById('newIngBestand').value)||0;
+  const mindestbestand = Number(document.getElementById('newIngMin').value)||0;
+  const kcalPerUnit = Number(document.getElementById('newIngKcal').value)||0;
+  const fiberPerUnit = Number(document.getElementById('newIngFiber').value)||0;
+  const p = { id:null, name, unit, bestand, mindestbestand, ignore:false, kcalPerUnit, fiberPerUnit };
+  try{
+    await savePantryItem(p);
+    if(!p.id) throw new Error('Kein id nach dem Anlegen erhalten');
+    pantry.push(p);
+    pantry.sort((a,b)=> a.name.localeCompare(b.name,'de'));
+    document.getElementById('newIngName').value = '';
+    document.getElementById('newIngBestand').value = '0';
+    document.getElementById('newIngMin').value = '0';
+    document.getElementById('newIngKcal').value = '';
+    document.getElementById('newIngFiber').value = '';
+    renderPantry();
+    renderSnackManage();
+    statusEl.textContent = `„${name}" wurde angelegt.`;
+  }catch(e){ console.error(e); statusEl.textContent = 'Fehler beim Anlegen – Pantry-Tabelle prüfen (Felder: Name, Bestand, Mindestbestand, Unit, Ignore, KcalPerUnit, FiberPerUnit).'; }
+});
 
 /* ================= BONUS (Guthaben einlösen) ================= */
 const BONUS_COST = 2000;
@@ -938,10 +999,27 @@ function renderBonusManage(){
 
 function renderSnackManage(){
   const wrap = document.getElementById('snackList');
+  const select = document.getElementById('snackPantrySelect');
+  const prevVal = select.value;
+  const pantryOptions = [...pantry].filter(p=>p.kcalPerUnit>0).sort((a,b)=>a.name.localeCompare(b.name,'de')).map(p=>
+    `<option value="p:${escapeAttr(p.name)}">${escapeAttr(p.name)} (${p.kcalPerUnit} kcal/${escapeAttr(p.unit||'Einheit')})</option>`).join('');
+  const dishOptions = [...dishes].sort((a,b)=>a.name.localeCompare(b.name,'de')).map(d=>
+    `<option value="d:${escapeAttr(d.name)}">${escapeAttr(d.name)} (${d.kcal} kcal)</option>`).join('');
+  select.innerHTML = '<option value="">Auswählen…</option>'
+    + (pantryOptions ? `<optgroup label="Zutaten">${pantryOptions}</optgroup>` : '')
+    + (dishOptions ? `<optgroup label="Gerichte">${dishOptions}</optgroup>` : '');
+  select.value = prevVal;
+
   if(!snacks.length){ wrap.innerHTML = '<p class="section-note">Noch keine Snacks angelegt.</p>'; return; }
-  wrap.innerHTML = [...snacks].sort((a,b)=>a.kcal-b.kcal).map(s=>`
+  const withKcal = snacks.map(s=>{
+    const amt = s.amount||1;
+    const src = s.source==='dish' ? dishByName(s.name) : pantryItem(s.name);
+    const kcal = src ? Math.round((s.source==='dish'?src.kcal:src.kcalPerUnit)*amt) : (s.kcal||0);
+    return { ...s, amt, kcal };
+  });
+  wrap.innerHTML = withKcal.sort((a,b)=>a.kcal-b.kcal).map(s=>`
     <div class="snack-manage-row" data-id="${s.id}">
-      <span class="pantry-name">${escapeAttr(s.name)} <span class="pantry-hint">${s.kcal} kcal</span></span>
+      <span class="pantry-name">${escapeAttr(s.name)}${s.amt!==1?` <span class="pantry-hint">×${s.amt}</span>`:''} <span class="pantry-hint">${s.kcal} kcal</span></span>
       <button class="snack-del-btn">Entfernen</button>
     </div>`).join('');
   wrap.querySelectorAll('.snack-del-btn').forEach(btn=> btn.addEventListener('click', async e=>{
@@ -952,15 +1030,19 @@ function renderSnackManage(){
   }));
 }
 document.getElementById('snackAddBtn').addEventListener('click', async ()=>{
-  const name = document.getElementById('snackName').value.trim();
-  const kcal = Number(document.getElementById('snackKcal').value)||0;
-  if(!name || kcal<=0) return;
+  const raw = document.getElementById('snackPantrySelect').value;
+  const amount = Number(document.getElementById('snackAmount').value)||1;
+  if(!raw || amount<=0) return;
+  const source = raw.startsWith('d:') ? 'dish' : 'pantry';
+  const name = raw.slice(2);
+  const src = source==='dish' ? dishByName(name) : pantryItem(name);
+  const kcal = src ? Math.round((source==='dish'?src.kcal:src.kcalPerUnit)*amount) : 0;
   try{
-    const rec = await atCreate('Snacks', { Name:name, Kcal:kcal });
-    snacks.push({ id:rec.id, name, kcal });
-    document.getElementById('snackName').value=''; document.getElementById('snackKcal').value='';
+    const rec = await atCreate('Snacks', { Name:name, Amount:amount, Kcal:kcal, Source:source });
+    snacks.push({ id:rec.id, name, amount, kcal, source });
+    document.getElementById('snackPantrySelect').value=''; document.getElementById('snackAmount').value='1';
     renderSnackManage();
-  }catch(e){ console.error(e); setStatus('Snacks-Tabelle fehlt (Felder: Name, Kcal)'); }
+  }catch(e){ console.error(e); setStatus('Snacks-Tabelle fehlt (Felder: Name, Amount, Kcal, Source)'); }
 });
 document.getElementById('bonusAddBtn').addEventListener('click', async ()=>{
   if(bonusItems.length>=5) return;
@@ -993,8 +1075,8 @@ async function loadAll(){
     }catch(e){ console.warn('ShoppingNeeds-Tabelle noch nicht vorhanden – lege sie in Airtable an (Felder: Name, Amount, Unit, Status, BoughtAmount).'); shoppingNeeds = []; }
     try{
       const snRecs = await atList('Snacks');
-      snacks = snRecs.map(r=>({ id:r.id, name:r.fields.Name||'', kcal:Number(r.fields.Kcal)||0 }));
-    }catch(e){ console.warn('Snacks-Tabelle noch nicht vorhanden – lege sie in Airtable an (Felder: Name, Kcal).'); snacks = []; }
+      snacks = snRecs.map(r=>({ id:r.id, name:r.fields.Name||'', kcal:Number(r.fields.Kcal)||0, amount:Number(r.fields.Amount)||1, source: r.fields.Source==='dish' ? 'dish' : 'pantry' }));
+    }catch(e){ console.warn('Snacks-Tabelle noch nicht vorhanden – lege sie in Airtable an (Felder: Name, Amount, Kcal, Source).'); snacks = []; }
     try{
       const wtRecs = await atList('Water');
       water = wtRecs.map(r=>({ id:r.id, date:r.fields.Date, ml:Number(r.fields.Ml)||0 }));
@@ -1105,9 +1187,12 @@ function renderToday(){
 
   const extraList = document.getElementById('extraList');
   extraList.innerHTML = dayLogExtra.map(e=>`
-    <div class="food-row extra-row" style="cursor:default;">
+    <div class="food-row extra-row">
       <div class="left"><div><p class="food-name">${escapeAttr(e.name)}</p><p class="food-time">${e.time||''}</p></div></div>
-      <span class="food-kcal">${e.kcal} kcal<button class="extra-del" data-id="${e.id}">×</button><br><span class="food-fiber">${e.fiber||0} g Ballaststoffe</span></span>
+      <div class="extra-right">
+        <div class="extra-vals"><span class="food-kcal">${e.kcal} kcal</span><span class="food-fiber">${Math.round((e.fiber||0)*10)/10} g Ballaststoffe</span></div>
+        <button class="extra-del" data-id="${e.id}" title="Eintrag löschen">×</button>
+      </div>
     </div>`).join('');
   extraList.querySelectorAll('.extra-del').forEach(b=> b.addEventListener('click', async (ev)=>{
     ev.stopPropagation();
@@ -1154,19 +1239,26 @@ function renderToday(){
 /* Snack-Chips: grün passt ins Budget, orange bis 100 kcal drüber, mehr wird ausgeblendet */
 function renderSnackChips(remaining){
   const wrap = document.getElementById('snackChips');
-  const visible = snacks.filter(s=> s.kcal <= remaining + 100);
+  const resolved = snacks.map(s=>{
+    const amt = s.amount||1;
+    const src = s.source==='dish' ? dishByName(s.name) : pantryItem(s.name);
+    const kcal = src ? Math.round((s.source==='dish'?src.kcal:src.kcalPerUnit)*amt) : (s.kcal||0);
+    const fiber = src ? Math.round((s.source==='dish'?src.fiber:src.fiberPerUnit)*amt*10)/10 : 0;
+    return { id:s.id, name: s.name+(amt!==1?` ×${amt}`:''), kcal, fiber };
+  });
+  const visible = resolved.filter(s=> s.kcal <= remaining + 100);
   if(!visible.length){ wrap.innerHTML = '<p class="section-note">Keine Snacks passend zum Rest-Budget – im Vorrat-Tab welche anlegen.</p>'; return; }
   wrap.innerHTML = [...visible].sort((a,b)=>a.kcal-b.kcal).map(s=>{
     const color = s.kcal <= remaining ? 'green' : 'orange';
-    return `<button class="snack-chip ${color}" data-id="${s.id}" data-name="${escapeAttr(s.name)}" data-kcal="${s.kcal}">${escapeAttr(s.name)} · ${s.kcal} kcal</button>`;
+    return `<button class="snack-chip ${color}" data-id="${s.id}" data-name="${escapeAttr(s.name)}" data-kcal="${s.kcal}" data-fiber="${s.fiber}">${escapeAttr(s.name)} · ${s.kcal} kcal</button>`;
   }).join('');
   wrap.querySelectorAll('.snack-chip').forEach(btn=> btn.addEventListener('click', async ()=>{
-    const name = btn.dataset.name, kcal = Number(btn.dataset.kcal);
+    const name = btn.dataset.name, kcal = Number(btn.dataset.kcal), fiber = Number(btn.dataset.fiber);
     const now = new Date();
     const time = String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
     try{
-      const rec = await atCreate('LogEntries', { Date: currentDate, Type:'extra', Name:name, Kcal:kcal, Time:time });
-      logEntries.push({ id:rec.id, date:currentDate, type:'extra', name, kcal, time });
+      const rec = await atCreate('LogEntries', { Date: currentDate, Type:'extra', Name:name, Kcal:kcal, Fiber:fiber, Time:time });
+      logEntries.push({ id:rec.id, date:currentDate, type:'extra', name, kcal, fiber, time });
       renderToday();
     }catch(e){ setStatus('Fehler beim Speichern'); }
   }));

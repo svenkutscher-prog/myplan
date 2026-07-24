@@ -160,6 +160,8 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
 
 .actions{display:flex;gap:.6rem;margin-top:1.6rem;flex-wrap:wrap;align-items:center;}
 .btn{font-family:'Inter',sans-serif;font-size:13.5px;font-weight:500;padding:.65rem 1.1rem;border-radius:9px;cursor:pointer;border:1px solid var(--line);background:var(--card);color:var(--ink);}
+.btn:disabled{opacity:.4;cursor:default;}
+.btn:disabled:hover{background:var(--card);}
 .btn.primary{background:var(--olive);border-color:var(--olive);color:#fff;}
 .btn.primary:hover{background:var(--olive-dark);}
 .btn:hover{background:#fff;}
@@ -214,7 +216,11 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
 .chart-wrap{position:relative;width:100%;height:200px;margin-bottom:1.6rem;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:.8rem;box-sizing:border-box;}
 
 /* pantry */
-.pantry-row{display:flex;align-items:center;justify-content:space-between;padding:9px 11px;background:var(--card);border:1px solid var(--line);border-radius:10px;margin-bottom:6px;gap:10px;}
+.pantry-row{display:flex;align-items:center;justify-content:space-between;padding:9px 11px;background:var(--card);border:1px solid var(--line);border-radius:10px;margin-bottom:6px;gap:10px;flex-wrap:wrap;}
+.pantry-fields{display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;}
+.pantry-field{display:flex;flex-direction:column;align-items:center;}
+.pantry-field label{font-size:9px;color:var(--ink-soft);margin-bottom:2px;white-space:nowrap;}
+.pantry-field input{width:42px;font-family:'IBM Plex Mono',monospace;font-size:12px;text-align:center;border:1px solid var(--line);border-radius:7px;padding:5px 2px;background:#fff;color:var(--ink);}
 .pantry-row.low{border-color:var(--coral);background:var(--coral-bg);}
 .pantry-row.ignored{opacity:.55;}
 .toggle{width:36px;height:20px;border-radius:20px;background:var(--line);position:relative;cursor:pointer;flex-shrink:0;transition:background .15s;}
@@ -225,8 +231,6 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
 .pantry-hint{margin:0;font-size:11px;color:var(--ink-soft);}
 .pantry-fields{display:flex;gap:8px;flex-shrink:0;}
 .pantry-field{display:flex;flex-direction:column;align-items:center;}
-.pantry-field label{font-size:10px;color:var(--ink-soft);margin-bottom:2px;}
-.pantry-field input{width:52px;font-family:'IBM Plex Mono',monospace;font-size:13px;text-align:center;border:1px solid var(--line);border-radius:7px;padding:5px 3px;background:#fff;color:var(--ink);}
 .preview-item{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--line);font-size:13px;}
 .preview-item:last-child{border-bottom:none;}
 .preview-item .pi-amt{font-family:'IBM Plex Mono',monospace;color:var(--olive-dark);font-weight:500;}
@@ -476,17 +480,21 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
     <h2 id="dishModalTitle">Neues Gericht</h2>
     <div class="field"><label>Name</label><input type="text" id="dishName"></div>
     <div class="field-row">
-      <div class="fcol"><label>Kalorien (kcal)</label><input type="number" id="dishKcal"></div>
-      <div class="fcol"><label>Ballaststoffe (g)</label><input type="number" step="any" id="dishFiber"></div>
+      <div class="fcol"><label>Kalorien (kcal)</label><input type="number" id="dishKcal"><p class="section-note" id="dishKcalCalc" style="margin:4px 0 0;"></p></div>
+      <div class="fcol"><label>Ballaststoffe (g)</label><input type="number" step="any" id="dishFiber"><p class="section-note" id="dishFiberCalc" style="margin:4px 0 0;"></p></div>
     </div>
     <div class="field">
       <button type="button" id="copyPromptBtn" class="btn" style="white-space:nowrap;">📋 kcal + Ballaststoffe-Prompt erstellen</button>
+      <button type="button" id="openChatGptBtn" class="btn" style="white-space:nowrap;margin-left:6px;">🔗 In ChatGPT öffnen</button>
       <p id="promptCopyStatus" style="font-size:11.5px;color:var(--olive-dark);margin:6px 0 0;min-height:14px;"></p>
       <textarea id="promptOutput" style="display:none;width:100%;margin-top:6px;font-size:12.5px;font-family:'IBM Plex Mono',monospace;border:1px solid var(--line);border-radius:8px;padding:8px;background:#fff;color:var(--ink);" rows="7" readonly></textarea>
     </div>
     <label style="display:block;font-size:12.5px;color:var(--ink-soft);margin-bottom:6px;">Zutaten</label>
     <div id="dishIngredients"></div>
+    <datalist id="pantryNames"></datalist>
     <button class="add-ing-editor" id="dishAddIng">+ Zutat</button>
+    <p class="section-note" id="gramSumNote" style="margin:2px 0 6px;"></p>
+    <button type="button" class="btn" id="autoGramBtn" style="width:100%;margin-bottom:.8rem;" disabled>⚖️ Auto Gramm-Anpassung (auf 600 kcal)</button>
     <div class="modal-actions"><button class="btn" id="dishCancel">Abbrechen</button><button class="btn primary" id="dishSave">Speichern</button></div>
   </div>
 </div>
@@ -762,7 +770,7 @@ async function adjustPantryForDish(dish, sign){
 function syncPantry(pRecs){
   const byName = new Map();
   pRecs.forEach(r=> byName.set((r.fields.Name||'').trim().toLowerCase(),
-    { id:r.id, name:r.fields.Name||'', unit:r.fields.Unit||'', bestand:Number(r.fields.Bestand)||0, mindestbestand:Number(r.fields.Mindestbestand)||0, ignore: !!r.fields.Ignore }));
+    { id:r.id, name:r.fields.Name||'', unit:r.fields.Unit||'', bestand:Number(r.fields.Bestand)||0, mindestbestand:Number(r.fields.Mindestbestand)||0, ignore: !!r.fields.Ignore, kcalPerUnit:Number(r.fields.KcalPerUnit)||0, fiberPerUnit:Number(r.fields.FiberPerUnit)||0 }));
   const seen = new Set();
   const merged = [];
   dishes.forEach(d=> d.ingredients.forEach(ing=>{
@@ -770,7 +778,7 @@ function syncPantry(pRecs){
     if(!key || seen.has(key)) return;
     seen.add(key);
     const existing = byName.get(key);
-    merged.push(existing || { id:null, name: ing.name.trim(), unit: ing.unit||'', bestand:0, mindestbestand:0, ignore:false });
+    merged.push(existing || { id:null, name: ing.name.trim(), unit: ing.unit||'', bestand:0, mindestbestand:0, ignore:false, kcalPerUnit:0, fiberPerUnit:0 });
   }));
   merged.sort((a,b)=> a.name.localeCompare(b.name,'de'));
   pantry = merged;
@@ -792,7 +800,7 @@ function resyncPantryFromDishes(){
       if(ing.unit && existing.unit !== ing.unit){ existing.unit = ing.unit; savePantryItem(existing); }
       merged.push(existing);
     }else{
-      merged.push({ id:null, name: ing.name.trim(), unit: ing.unit||'', bestand:0, mindestbestand:0, ignore:false });
+      merged.push({ id:null, name: ing.name.trim(), unit: ing.unit||'', bestand:0, mindestbestand:0, ignore:false, kcalPerUnit:0, fiberPerUnit:0 });
     }
   }));
   merged.sort((a,b)=> a.name.localeCompare(b.name,'de'));
@@ -807,14 +815,37 @@ async function savePantryItem(p){
     if(!p.id){
       // Sperre: falls schon eine Anlage für diese Zutat läuft, darauf warten statt eine zweite zu starten
       if(!p._creating){
-        p._creating = atCreate('Pantry', { Name:p.name, Bestand:p.bestand, Mindestbestand:p.mindestbestand, Unit:p.unit, Ignore:p.ignore })
+        p._creating = atCreate('Pantry', { Name:p.name, Bestand:p.bestand, Mindestbestand:p.mindestbestand, Unit:p.unit, Ignore:p.ignore, KcalPerUnit:p.kcalPerUnit, FiberPerUnit:p.fiberPerUnit })
           .then(rec=>{ p.id = rec.id; p._creating = null; });
       }
       await p._creating;
     }
-    if(p.id) await atUpdate('Pantry', p.id, { Bestand:p.bestand, Mindestbestand:p.mindestbestand, Unit:p.unit, Ignore:p.ignore });
-  }catch(e){ console.error(e); setStatus('Pantry-Tabelle fehlt/unvollständig (Felder: Name, Bestand, Mindestbestand, Unit, Ignore)'); }
+    if(p.id) await atUpdate('Pantry', p.id, { Bestand:p.bestand, Mindestbestand:p.mindestbestand, Unit:p.unit, Ignore:p.ignore, KcalPerUnit:p.kcalPerUnit, FiberPerUnit:p.fiberPerUnit });
+  }catch(e){ console.error(e); setStatus('Pantry-Tabelle fehlt/unvollständig (Felder: Name, Bestand, Mindestbestand, Unit, Ignore, KcalPerUnit, FiberPerUnit)'); }
 }
+/* kcal/Ballaststoffe pro Einheit -> tatsächlicher Beitrag für eine gegebene Zutatmenge.
+   g/ml: Wert gilt pro 100 Einheiten. Stück/Dose/TL/EL: Wert gilt pro 1 Stück/Dose/TL/EL. */
+function nutrientContribution(ing, perUnitValue){
+  if(!perUnitValue) return 0;
+  const amount = Number(ing.amount)||0;
+  if(ing.unit==='g' || ing.unit==='ml') return (amount/100)*perUnitValue;
+  return amount*perUnitValue;
+}
+function calculatedKcal(dish){
+  return Math.round(dish.ingredients.reduce((sum,ing)=>{
+    const p = pantryItem(ing.name);
+    return sum + (p ? nutrientContribution(ing, p.kcalPerUnit) : 0);
+  },0));
+}
+function calculatedFiber(dish){
+  return Math.round(dish.ingredients.reduce((sum,ing)=>{
+    const p = pantryItem(ing.name);
+    return sum + (p ? nutrientContribution(ing, p.fiberPerUnit) : 0);
+  },0)*10)/10;
+}
+/* Manueller Wert hat Vorrang, berechneter Wert ist der Fallback */
+function effectiveKcal(dish){ return dish.kcal>0 ? dish.kcal : calculatedKcal(dish); }
+function effectiveFiber(dish){ return dish.fiber>0 ? dish.fiber : calculatedFiber(dish); }
 function renderPantry(){
   const wrap = document.getElementById('pantryList');
   if(!pantry.length){ wrap.innerHTML = '<p class="section-note">Noch keine Zutaten – lege zuerst ein paar Gerichte an.</p>'; return; }
@@ -824,6 +855,8 @@ function renderPantry(){
       <div class="pantry-fields">
         <div class="pantry-field"><label>Bestand</label><input type="number" step="any" class="pf-bestand" value="${p.bestand}" ${p.ignore?'disabled':''}></div>
         <div class="pantry-field"><label>Minimum</label><input type="number" step="any" class="pf-min" value="${p.mindestbestand}" ${p.ignore?'disabled':''}></div>
+        <div class="pantry-field"><label>kcal${p.unit==='g'||p.unit==='ml'?'/100':'/Stk'}</label><input type="number" step="any" class="pf-kcal" value="${p.kcalPerUnit}"></div>
+        <div class="pantry-field"><label>Bal.${p.unit==='g'||p.unit==='ml'?'/100':'/Stk'}</label><input type="number" step="any" class="pf-fiber" value="${p.fiberPerUnit}"></div>
         <div class="pantry-field"><label>Prüfen</label><div class="toggle ${p.ignore?'':'on'}"><div class="knob"></div></div></div>
       </div>
     </div>`).join('');
@@ -831,6 +864,8 @@ function renderPantry(){
     const i = Number(row.dataset.i); const p = pantry[i];
     row.querySelector('.pf-bestand').addEventListener('change', e=>{ p.bestand = Number(e.target.value)||0; row.classList.toggle('low', !p.ignore && p.bestand<p.mindestbestand); savePantryItem(p); });
     row.querySelector('.pf-min').addEventListener('change', e=>{ p.mindestbestand = Number(e.target.value)||0; row.classList.toggle('low', !p.ignore && p.bestand<p.mindestbestand); savePantryItem(p); });
+    row.querySelector('.pf-kcal').addEventListener('change', e=>{ p.kcalPerUnit = Number(e.target.value)||0; savePantryItem(p); });
+    row.querySelector('.pf-fiber').addEventListener('change', e=>{ p.fiberPerUnit = Number(e.target.value)||0; savePantryItem(p); });
     row.querySelector('.toggle').addEventListener('click', ()=>{ p.ignore = !p.ignore; savePantryItem(p); renderPantry(); });
   });
 }
@@ -1006,10 +1041,10 @@ function renderToday(){
       }
     }
     return `<div class="food-row ${checked?'checked':''} ${early?'early':''}" data-slotid="${slot.id}" data-dishname="${escapeAttr(dish.name)}">
-      <div class="food-main" data-time="${slot.time}" data-kcal="${dish.kcal}" data-fiber="${dish.fiber||0}" data-loghit="${logHit?logHit.id:''}">
+      <div class="food-main" data-time="${slot.time}" data-kcal="${effectiveKcal(dish)}" data-fiber="${effectiveFiber(dish)}" data-loghit="${logHit?logHit.id:''}">
         <div class="check-ico">${checked?'✓':''}</div>
         <div><p class="food-name">${escapeAttr(dish.name)}</p><p class="food-time">geplant ${slot.time}</p>${early?`<p class="early-note">${earlyLabel}</p>`:''}</div>
-        <span class="food-kcal">${dish.kcal} kcal<br><span class="food-fiber">${dish.fiber||0} g Ballaststoffe</span></span>
+        <span class="food-kcal">${effectiveKcal(dish)} kcal<br><span class="food-fiber">${effectiveFiber(dish)} g Ballaststoffe</span></span>
       </div>
       <button class="info-btn" title="Zutaten anzeigen">ⓘ</button>
       <div class="ing-panel" style="display:none;">${dish.ingredients.length ? dish.ingredients.map(i=>`<div class="ing-row"><span>${escapeAttr(i.name)}</span><span>${i.amount} ${i.unit}</span></div>`).join('') : '<span>Keine Zutaten hinterlegt.</span>'}</div>
@@ -1087,7 +1122,7 @@ function renderToday(){
   const fiberPct = Math.min(100, Math.round((totalFiber/fiberTarget)*100));
   document.getElementById('fiberBarFill').style.width = fiberPct+'%';
 
-  const plannedFiberTotal = Math.round(slots.reduce((sum,slot)=>{ const dish=dishByName(slot.dishName); return sum + (dish?dish.fiber||0:0); },0)*10)/10;
+  const plannedFiberTotal = Math.round(slots.reduce((sum,slot)=>{ const dish=dishByName(slot.dishName); return sum + (dish?effectiveFiber(dish):0); },0)*10)/10;
   document.getElementById('fiberPlannedNote').textContent = `Geplant für heute gesamt: ${plannedFiberTotal} g`;
 
   renderSnackChips(remaining);
@@ -1239,8 +1274,8 @@ function renderWeek(){
     const block = document.createElement('div');
     block.className = 'day-block';
     const slots = weekPlan[wd] || [];
-    const dayTotal = slots.reduce((sum,slot)=>{ const d=dishByName(slot.dishName); return sum + (d?d.kcal:0); }, 0);
-    const dayFiber = Math.round(slots.reduce((sum,slot)=>{ const d=dishByName(slot.dishName); return sum + (d?d.fiber||0:0); }, 0)*10)/10;
+    const dayTotal = slots.reduce((sum,slot)=>{ const d=dishByName(slot.dishName); return sum + (d?effectiveKcal(d):0); }, 0);
+    const dayFiber = Math.round(slots.reduce((sum,slot)=>{ const d=dishByName(slot.dishName); return sum + (d?effectiveFiber(d):0); }, 0)*10)/10;
     const target = targets[activeTarget];
     const over = dayTotal > target;
     block.innerHTML = `<div class="day-block-head">
@@ -1267,7 +1302,7 @@ function renderWeek(){
         </div>
         <select class="hour-select">${hourOptions}</select>`:`<span class="hour-select">${hour} h</span>`}
         <span class="slot-dishname">${dish?escapeAttr(dish.name):'—'}</span>
-        <span class="slot-kcal">${dish?dish.kcal:0} kcal / ${dish?dish.fiber||0:0}g Bal.</span>
+        <span class="slot-kcal">${dish?effectiveKcal(dish):0} kcal / ${dish?effectiveFiber(dish):0}g Bal.</span>
         ${editOn?`<div class="slot-actions">
           <button class="icon-btn" title="Tauschen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 21l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></button>
           <button class="icon-btn danger" title="Entfernen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
@@ -1365,10 +1400,10 @@ function openSwapModal(wd, slot){
 }
 function renderSwapList(){
   const ul = document.getElementById('swapPickList');
-  ul.innerHTML = dishes.map(d=>`<li class="pick-row ${d.name===swapSelectedDishName?'selected':''}" data-name="${escapeAttr(d.name)}"><span class="pn">${escapeAttr(d.name)}</span><span class="pk">${d.kcal} kcal</span></li>`).join('');
+  ul.innerHTML = dishes.map(d=>`<li class="pick-row ${d.name===swapSelectedDishName?'selected':''}" data-name="${escapeAttr(d.name)}"><span class="pn">${escapeAttr(d.name)}</span><span class="pk">${effectiveKcal(d)} kcal</span></li>`).join('');
   ul.querySelectorAll('.pick-row').forEach(row=> row.addEventListener('click', ()=>{ swapSelectedDishName=row.dataset.name; renderSwapList(); }));
   const d = dishByName(swapSelectedDishName);
-  document.getElementById('swapPreview').innerHTML = d ? `<b>${escapeAttr(d.name)}</b> · ${d.kcal} kcal<br>${d.ingredients.map(i=>`${escapeAttr(i.name)} — ${i.amount}${i.unit}`).join(', ')}` : '';
+  document.getElementById('swapPreview').innerHTML = d ? `<b>${escapeAttr(d.name)}</b> · ${effectiveKcal(d)} kcal<br>${d.ingredients.map(i=>`${escapeAttr(i.name)} — ${i.amount}${i.unit}`).join(', ')}` : '';
 }
 document.getElementById('swapCancel').addEventListener('click', ()=> document.getElementById('swapModalBg').classList.remove('open'));
 document.getElementById('swapConfirm').addEventListener('click', async ()=>{
@@ -1385,7 +1420,7 @@ document.getElementById('swapConfirm').addEventListener('click', async ()=>{
 /* dish library */
 function renderDishLibrary(){
   const wrap = document.getElementById('dishLib');
-  wrap.innerHTML = dishes.map(d=>`<div class="dish-lib-item"><div><span class="dl-name">${escapeAttr(d.name)}</span><span class="dl-kcal">${d.kcal} kcal</span></div>
+  wrap.innerHTML = dishes.map(d=>`<div class="dish-lib-item"><div><span class="dl-name">${escapeAttr(d.name)}</span><span class="dl-kcal">${effectiveKcal(d)} kcal</span></div>
     <div class="dl-actions"><button data-act="edit" data-id="${d.id}">Bearbeiten</button><button data-act="del" data-id="${d.id}">Löschen</button></div></div>`).join('');
   wrap.querySelectorAll('button[data-act="edit"]').forEach(b=> b.addEventListener('click', ()=> openDishEditor(dishes.find(d=>d.id===b.dataset.id))));
   wrap.querySelectorAll('button[data-act="del"]').forEach(b=> b.addEventListener('click', async ()=>{
@@ -1393,10 +1428,13 @@ function renderDishLibrary(){
     catch(e){ setStatus('Fehler beim Löschen'); }
   }));
 }
-document.getElementById('copyPromptBtn').addEventListener('click', async ()=>{
+function buildDishPrompt(){
   const name = document.getElementById('dishName').value.trim() || 'dieses Gericht';
   const list = editorIngredients.filter(i=>i.name.trim()).map(i=> `- ${i.amount} ${i.unit} ${i.name}`).join('\n');
-  const prompt = `Schätze die Gesamtkalorien (kcal) und die Ballaststoffe (g) für folgendes Gericht basierend auf den Zutaten. Gib die Antwort in genau diesem Format zurück, ohne weiteren Text: kcal: <Zahl>, Ballaststoffe: <Zahl in g>\n\nGericht: ${name}\nZutaten:\n${list}`;
+  return `Schätze die Gesamtkalorien (kcal) und die Ballaststoffe (g) für folgendes Gericht basierend auf den Zutaten. Gib die Antwort in genau diesem Format zurück, ohne weiteren Text: kcal: <Zahl>, Ballaststoffe: <Zahl in g>\n\nGericht: ${name}\nZutaten:\n${list}`;
+}
+document.getElementById('copyPromptBtn').addEventListener('click', async ()=>{
+  const prompt = buildDishPrompt();
   const status = document.getElementById('promptCopyStatus');
   const ta = document.getElementById('promptOutput');
   ta.style.display = 'block';
@@ -1408,6 +1446,20 @@ document.getElementById('copyPromptBtn').addEventListener('click', async ()=>{
   }catch(e){
     status.textContent = 'Text unten markieren und kopieren (Automatisches Kopieren war nicht möglich).';
   }
+});
+document.getElementById('openChatGptBtn').addEventListener('click', async ()=>{
+  const prompt = buildDishPrompt();
+  const status = document.getElementById('promptCopyStatus');
+  const ta = document.getElementById('promptOutput');
+  ta.style.display = 'block';
+  ta.value = prompt;
+  try{
+    await navigator.clipboard.writeText(prompt);
+    status.textContent = 'Kopiert – jetzt in ChatGPT einfügen (Strg+V / Cmd+V).';
+  }catch(e){
+    status.textContent = 'Automatisches Kopieren nicht möglich – Text unten markieren und selbst kopieren.';
+  }
+  window.open('https://chatgpt.com/', '_blank');
 });
 
 document.getElementById('newDishBtn').addEventListener('click', ()=> openDishEditor(null));
@@ -1424,22 +1476,79 @@ function openDishEditor(dish){
   renderEditorIngredients();
   document.getElementById('dishModalBg').classList.add('open');
 }
+function renderPantryDatalist(){
+  const dl = document.getElementById('pantryNames');
+  if(!dl) return;
+  const names = new Set(pantry.map(p=>p.name));
+  dishes.forEach(d=> d.ingredients.forEach(i=> i.name && names.add(i.name.trim())));
+  dl.innerHTML = [...names].sort((a,b)=>a.localeCompare(b,'de')).map(n=>`<option value="${escapeAttr(n)}">`).join('');
+}
 function renderEditorIngredients(){
+  renderPantryDatalist();
   const wrap = document.getElementById('dishIngredients');
   wrap.innerHTML = '';
   editorIngredients.forEach((ing, idx)=>{
     const row = document.createElement('div');
     row.className = 'editor-row';
     const unitOptions = UNITS.map(u=>`<option value="${u}" ${u===ing.unit?'selected':''}>${u}</option>`).join('');
-    row.innerHTML = `<input type="text" class="iname" placeholder="Zutat" value="${escapeAttr(ing.name)}">
+    row.innerHTML = `<input type="text" class="iname" list="pantryNames" placeholder="Zutat aus Vorrat wählen oder neu eintippen" value="${escapeAttr(ing.name)}">
       <input type="number" class="iamt" value="${ing.amount}"><select class="iunit">${unitOptions}</select><button title="Entfernen">×</button>`;
-    row.querySelector('.iname').addEventListener('input', e=>{ ing.name=e.target.value; });
-    row.querySelector('.iamt').addEventListener('input', e=>{ ing.amount=Number(e.target.value)||0; });
-    row.querySelector('.iunit').addEventListener('change', e=>{ ing.unit=e.target.value; });
+    row.querySelector('.iname').addEventListener('input', e=>{
+      ing.name=e.target.value;
+      // Zutat matcht einen Vorrats-Eintrag -> dessen Einheit automatisch übernehmen, für konsistente Schreibweise/Zählung
+      const match = pantry.find(p=> p.name.trim().toLowerCase()===e.target.value.trim().toLowerCase());
+      if(match && match.unit && UNITS.includes(match.unit)){
+        ing.unit = match.unit;
+        row.querySelector('.iunit').value = match.unit;
+      }
+      updateDishCalcHint();
+    });
+    row.querySelector('.iamt').addEventListener('input', e=>{ ing.amount=Number(e.target.value)||0; updateDishCalcHint(); });
+    row.querySelector('.iunit').addEventListener('change', e=>{ ing.unit=e.target.value; updateDishCalcHint(); });
     row.querySelector('button').addEventListener('click', ()=>{ editorIngredients.splice(idx,1); renderEditorIngredients(); });
     wrap.appendChild(row);
   });
+  updateDishCalcHint();
 }
+/* Zeigt den aus dem Vorrat berechneten kcal/Ballaststoffe-Wert als Hinweis unter den manuellen Feldern */
+const GRAM_TARGET = 600;
+function kcalFromGramIngredients(){
+  return editorIngredients.filter(i=>i.unit==='g').reduce((s,i)=>{
+    const p = pantryItem(i.name);
+    return s + (p ? nutrientContribution(i, p.kcalPerUnit) : 0);
+  },0);
+}
+function updateDishCalcHint(){
+  const tempDish = { ingredients: editorIngredients.filter(i=>i.name.trim()) };
+  const ck = calculatedKcal(tempDish), cf = calculatedFiber(tempDish);
+  const manualKcal = Number(document.getElementById('dishKcal').value)||0;
+  const manualFiber = Number(document.getElementById('dishFiber').value)||0;
+  document.getElementById('dishKcalCalc').textContent = `berechnet: ${ck} kcal${manualKcal>0?' (dein Wert wird verwendet)':' (wird verwendet, da kein eigener Wert gesetzt)'}`;
+  document.getElementById('dishFiberCalc').textContent = `berechnet: ${cf} g${manualFiber>0?' (dein Wert wird verwendet)':' (wird verwendet, da kein eigener Wert gesetzt)'}`;
+
+  const over = ck > GRAM_TARGET;
+  const noteEl = document.getElementById('gramSumNote');
+  noteEl.textContent = `Berechnete kcal: ${ck} / ${GRAM_TARGET} kcal`;
+  noteEl.style.color = over ? 'var(--coral)' : 'var(--ink-soft)';
+  const btn = document.getElementById('autoGramBtn');
+  btn.disabled = !over || kcalFromGramIngredients()<=0;
+}
+document.getElementById('autoGramBtn').addEventListener('click', ()=>{
+  const tempDish = { ingredients: editorIngredients.filter(i=>i.name.trim()) };
+  const totalKcal = calculatedKcal(tempDish);
+  const kcalG = kcalFromGramIngredients();
+  const kcalOther = totalKcal - kcalG;
+  if(totalKcal<=GRAM_TARGET || kcalG<=0) return;
+  let factor = (GRAM_TARGET - kcalOther) / kcalG;
+  factor = Math.max(0, factor);
+  editorIngredients.forEach(i=>{ if(i.unit==='g') i.amount = Math.round(i.amount*factor); });
+  renderEditorIngredients();
+  if(kcalOther >= GRAM_TARGET){
+    setStatus('Die Zutaten ohne Gramm-Einheit liegen allein schon über 600 kcal – Gramm-Anpassung allein reicht nicht aus.');
+  }
+});
+document.getElementById('dishKcal').addEventListener('input', updateDishCalcHint);
+document.getElementById('dishFiber').addEventListener('input', updateDishCalcHint);
 document.getElementById('dishAddIng').addEventListener('click', ()=>{ editorIngredients.push({name:'',amount:1,unit:'g'}); renderEditorIngredients(); });
 document.getElementById('dishCancel').addEventListener('click', ()=> document.getElementById('dishModalBg').classList.remove('open'));
 document.getElementById('dishSave').addEventListener('click', async ()=>{
@@ -1517,8 +1626,8 @@ function computeNeedForRange(fromDay, toDay){
     if(p && p.ignore) return; // "nicht prüfen" -> nie auf die Einkaufsliste
     const bestand = p ? p.bestand : 0;
     const minimum = p ? p.mindestbestand : 0;
-    const nutzbar = Math.max(0, bestand - minimum);
-    const kaufen = Math.max(0, Math.round((entry.benoetigt - nutzbar)*100)/100);
+    /* Kombiniert: nach dem Kauf soll der Bestand sowohl den Bedarf decken als auch wieder das Minimum erreichen */
+    const kaufen = Math.max(0, Math.round((entry.benoetigt + minimum - bestand)*100)/100);
     if(kaufen > 0) items.push({ name:entry.name, unit:entry.unit, amount:kaufen, benoetigt:entry.benoetigt, bestand });
   });
   return items.sort((a,b)=> a.name.localeCompare(b.name,'de'));
@@ -1570,6 +1679,7 @@ function shoppingListText(items){
 const _needsCreating = new Set();
 async function computeShoppingNeeds(){
   const needed = buildShoppingList();
+  const neededNames = new Set(needed.map(i=> i.name.trim().toLowerCase()));
   for(const item of needed){
     const key = item.name.trim().toLowerCase();
     const existing = shoppingNeeds.find(s=> s.name.trim().toLowerCase()===key && s.status!=='gekauft');
@@ -1587,11 +1697,25 @@ async function computeShoppingNeeds(){
       _needsCreating.delete(key);
     }
   }
+  // "offen" Einträge, die laut aktueller Rechnung nicht mehr gebraucht werden, automatisch entfernen.
+  // "liste"/"gekauft" bleiben unangetastet, da das eine bewusste Entscheidung war.
+  const stale = shoppingNeeds.filter(s=> s.status==='offen' && !neededNames.has(s.name.trim().toLowerCase()));
+  for(const s of stale){
+    try{ if(s.id) await atDelete('ShoppingNeeds', s.id); }catch(e){ console.error(e); }
+  }
+  if(stale.length) shoppingNeeds = shoppingNeeds.filter(s=> !stale.includes(s));
+
   renderShopPreview();
   renderUpcoming();
   renderDashboardBadge();
 }
-document.getElementById('refreshNeedsBtn').addEventListener('click', ()=> computeShoppingNeeds());
+document.getElementById('refreshNeedsBtn').addEventListener('click', async (e)=>{
+  const btn = e.currentTarget;
+  const original = btn.textContent;
+  btn.textContent = '… prüft'; btn.disabled = true;
+  try{ await computeShoppingNeeds(); }
+  finally{ btn.textContent = '✓ aktualisiert'; setTimeout(()=>{ btn.textContent = original; btn.disabled = false; }, 1200); }
+});
 function renderDashboardBadge(){
   const n = shoppingNeeds.filter(s=> s.status==='offen').length;
   const badge = document.getElementById('dashBadge');
@@ -1624,7 +1748,7 @@ function renderShopPreview(){
       actions = `<div class="need-actions"><span class="need-status">✓ eingekauft: ${item.boughtAmount} ${item.unit}</span></div>`;
     }
     return `<div class="need-row ${item.status}" data-id="${item.id}">
-      <div class="need-top"><p class="need-name">${escapeAttr(item.name)} ${urgencyBadge}</p><span class="need-amt">${item.amount} ${item.unit}</span></div>
+      <div class="need-top"><p class="need-name">${escapeAttr(item.name)} ${urgencyBadge}</p><span class="need-amt">Kaufen: ${item.amount} ${item.unit}</span></div>
       ${actions}
       <button class="dismiss-btn" title="Eintrag entfernen">✕ entfernen</button>
     </div>`;
@@ -1664,7 +1788,7 @@ function renderUpcoming(){
   wrap.innerHTML = list.map((item,i)=>{
     const label = item.daysUntil===null ? '' : `in ${item.daysUntil} Tagen benötigt`;
     return `<div class="need-row upcoming" data-i="${i}">
-      <div class="need-top"><p class="need-name">${escapeAttr(item.name)} ${label?`<span class="urgency-badge">${label}</span>`:''}</p><span class="need-amt">${item.amount} ${item.unit}</span></div>
+      <div class="need-top"><p class="need-name">${escapeAttr(item.name)} ${label?`<span class="urgency-badge">${label}</span>`:''}</p><span class="need-amt">Kaufen: ${item.amount} ${item.unit}</span></div>
       <div class="need-actions"><button class="mini-btn secondary add-upcoming-btn">Zur Einkaufsliste hinzufügen</button></div>
     </div>`;
   }).join('');

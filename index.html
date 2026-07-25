@@ -99,6 +99,7 @@ h2.section{font-family:'Fraunces',serif;font-weight:600;font-size:18px;margin:1.
 .ing-row span:last-child{font-family:'IBM Plex Mono',monospace;color:var(--ink);}
 .extra-row{cursor:default;padding:2px 0;}
 .swap-tag{color:var(--olive-dark);font-weight:500;}
+.dyn-tag{color:var(--water);font-weight:600;}
 .extra-right{display:flex;align-items:center;gap:2px;margin-left:auto;padding:8px 10px;}
 .extra-vals{display:flex;flex-direction:column;align-items:flex-end;gap:1px;}
 .extra-vals .food-kcal{margin-left:0;}
@@ -1095,7 +1096,7 @@ async function loadAll(){
     });
     WEEKDAYS.forEach(wd=> weekPlan[wd].sort((a,b)=> a.time.localeCompare(b.time)));
     await migrateSlotTimesToHours();
-    logEntries = logRecs.map(r=>({ id:r.id, date:r.fields.Date, type:r.fields.Type, name:r.fields.Name, kcal:Number(r.fields.Kcal)||0, fiber:Number(r.fields.Fiber)||0, time:r.fields.Time||'', checkedAt:r.fields.CheckedAt||'' }));
+    logEntries = logRecs.map(r=>({ id:r.id, date:r.fields.Date, type:r.fields.Type, name:r.fields.Name, kcal:Number(r.fields.Kcal)||0, fiber:Number(r.fields.Fiber)||0, time:r.fields.Time||'', checkedAt:r.fields.CheckedAt||'', slotId:r.fields.SlotId||'' }));
     weights = wRecs.map(r=>({ id:r.id, date:r.fields.Date, kg:Number(r.fields.Kg)||0 }));
     steps = sRecs.map(r=>({ id:r.id, date:r.fields.Date, steps:Number(r.fields.Steps)||0, kcal:Number(r.fields.Kcal)||0 }));
     setStatus('Verbunden');
@@ -1129,28 +1130,42 @@ function renderToday(){
   document.getElementById('planKcalTotal').textContent = planKcalTotal;
   document.getElementById('planFiberTotal').textContent = planFiberTotal.toLocaleString('de-DE',{minimumFractionDigits:1,maximumFractionDigits:1});
 
-  const planList = document.getElementById('planList');
-  planList.innerHTML = slots.map(slot=>{
+  const REAL_MEAL_MIN_KCAL = 80;
+  const GAP_MIN = 180;
+  const timeToMin = t=>{ const [h,m]=t.split(':').map(Number); return h*60+m; };
+  const minToTime = m=>{ m=((m%1440)+1440)%1440; return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0'); };
+
+  const resolvedSlots = slots.map(slot=>{
     const swap = daySwaps.find(s=> s.date===currentDate && s.slotId===slot.id);
     const dish = dishByName(swap ? swap.dishName : slot.dishName);
-    if(!dish) return '';
-    const logHit = dayLogPlan.find(l=> l.name===dish.name && l.time===slot.time);
-    const checked = !!logHit;
-    let early = false, earlyLabel = '';
-    if(checked && logHit.checkedAt){
-      const [ph,pm] = slot.time.split(':').map(Number);
-      const [ch,cm] = logHit.checkedAt.split(':').map(Number);
-      const diffMin = (ph*60+pm) - (ch*60+cm);
-      if(diffMin > 15){
-        early = true;
-        const h = Math.floor(diffMin/60), m = diffMin%60;
-        earlyLabel = (h>0?`${h} Std. `:'')+`${m} Min. zu früh`;
-      }
+    const logHit = dayLogPlan.find(l=> l.slotId ? l.slotId===slot.id : (dish && l.name===dish.name && l.time===slot.time));
+    return { slot, swap, dish, logHit };
+  });
+
+  let anchorMin = null;
+  resolvedSlots.forEach(rs=>{
+    if(!rs.dish) return;
+    const isRealMeal = effectiveKcal(rs.dish) >= REAL_MEAL_MIN_KCAL;
+    if(rs.logHit){
+      rs.displayTime = rs.logHit.checkedAt || rs.slot.time;
+      if(isRealMeal && rs.logHit.checkedAt) anchorMin = timeToMin(rs.logHit.checkedAt);
+    }else if(isRealMeal && anchorMin!=null){
+      anchorMin += GAP_MIN;
+      rs.displayTime = minToTime(anchorMin);
+      rs.dynamic = true;
+    }else{
+      rs.displayTime = rs.slot.time;
     }
-    return `<div class="food-row ${checked?'checked':''} ${early?'early':''}" data-slotid="${slot.id}" data-dishname="${escapeAttr(dish.name)}">
+  });
+
+  const planList = document.getElementById('planList');
+  planList.innerHTML = resolvedSlots.map(({slot, swap, dish, logHit, displayTime, dynamic})=>{
+    if(!dish) return '';
+    const checked = !!logHit;
+    return `<div class="food-row ${checked?'checked':''}" data-slotid="${slot.id}" data-dishname="${escapeAttr(dish.name)}">
       <div class="food-main" data-time="${slot.time}" data-kcal="${effectiveKcal(dish)}" data-fiber="${effectiveFiber(dish)}" data-loghit="${logHit?logHit.id:''}">
         <div class="check-ico">${checked?'✓':''}</div>
-        <div><p class="food-name">${escapeAttr(dish.name)}</p><p class="food-time">${swap?'<span class="swap-tag">getauscht</span> · ':''}geplant ${slot.time}</p>${early?`<p class="early-note">${earlyLabel}</p>`:''}</div>
+        <div><p class="food-name">${escapeAttr(dish.name)}</p><p class="food-time">${swap?'<span class="swap-tag">getauscht</span> · ':''}${dynamic?'<span class="dyn-tag">~</span> ':''}geplant ${displayTime}</p></div>
         <span class="food-kcal">${effectiveKcal(dish)} kcal<br><span class="food-fiber">${effectiveFiber(dish)} g Ballaststoffe</span></span>
       </div>
       <button class="info-btn" title="Zutaten anzeigen">ⓘ</button>
@@ -1185,16 +1200,21 @@ function renderToday(){
         }else{
           const now = new Date();
           const checkedAt = String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+          const slotId = row.closest('.food-row').dataset.slotid;
           let rec, savedCheckedAt = checkedAt;
           try{
-            rec = await atCreate('LogEntries', { Date: currentDate, Type:'plan', Name: row.closest('.food-row').dataset.dishname, Kcal: Number(row.dataset.kcal), Fiber: Number(row.dataset.fiber), Time: row.dataset.time, CheckedAt: checkedAt });
+            rec = await atCreate('LogEntries', { Date: currentDate, Type:'plan', Name: row.closest('.food-row').dataset.dishname, Kcal: Number(row.dataset.kcal), Fiber: Number(row.dataset.fiber), Time: row.dataset.time, CheckedAt: checkedAt, SlotId: slotId });
           }catch(fieldErr){
-            // Feld "CheckedAt" existiert in Airtable evtl. noch nicht -> ohne erneut versuchen, sonst geht das Abhaken komplett nicht
-            rec = await atCreate('LogEntries', { Date: currentDate, Type:'plan', Name: row.closest('.food-row').dataset.dishname, Kcal: Number(row.dataset.kcal), Fiber: Number(row.dataset.fiber), Time: row.dataset.time });
-            savedCheckedAt = '';
-            setStatus('Gespeichert (ohne Uhrzeit-Check – Feld "CheckedAt" fehlt noch in Airtable)');
+            // Feld "CheckedAt" oder "SlotId" existiert in Airtable evtl. noch nicht -> ohne erneut versuchen, sonst geht das Abhaken komplett nicht
+            try{
+              rec = await atCreate('LogEntries', { Date: currentDate, Type:'plan', Name: row.closest('.food-row').dataset.dishname, Kcal: Number(row.dataset.kcal), Fiber: Number(row.dataset.fiber), Time: row.dataset.time, CheckedAt: checkedAt });
+            }catch(fieldErr2){
+              rec = await atCreate('LogEntries', { Date: currentDate, Type:'plan', Name: row.closest('.food-row').dataset.dishname, Kcal: Number(row.dataset.kcal), Fiber: Number(row.dataset.fiber), Time: row.dataset.time });
+              savedCheckedAt = '';
+            }
+            setStatus('Gespeichert (Feld "CheckedAt" oder "SlotId" fehlt noch in Airtable – bitte ergänzen)');
           }
-          logEntries.push({ id:rec.id, date:currentDate, type:'plan', name:row.closest('.food-row').dataset.dishname, kcal:Number(row.dataset.kcal), fiber:Number(row.dataset.fiber), time:row.dataset.time, checkedAt:savedCheckedAt });
+          logEntries.push({ id:rec.id, date:currentDate, type:'plan', name:row.closest('.food-row').dataset.dishname, kcal:Number(row.dataset.kcal), fiber:Number(row.dataset.fiber), time:row.dataset.time, checkedAt:savedCheckedAt, slotId });
           if(dish) await adjustPantryForDish(dish, -1); // gegessen -> Bestand verbrauchen
         }
       }catch(e){ console.error(e); setStatus('Fehler beim Speichern'); }
@@ -1220,7 +1240,7 @@ function renderToday(){
   }));
 
   let total = 0, totalFiber = 0;
-  slots.forEach(slot=>{ const hit = dayLogPlan.find(l=> l.name===slot.dishName && l.time===slot.time); if(hit){ total += hit.kcal; totalFiber += hit.fiber||0; } });
+  resolvedSlots.forEach(({slot, dish})=>{ const hit = dayLogPlan.find(l=> l.slotId ? l.slotId===slot.id : (dish && l.name===dish.name && l.time===slot.time)); if(hit){ total += hit.kcal; totalFiber += hit.fiber||0; } });
   dayLogExtra.forEach(e=>{ total += e.kcal; totalFiber += e.fiber||0; });
   const target = targets[activeTarget];
   const remaining = target-total;

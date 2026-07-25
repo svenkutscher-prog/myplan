@@ -16,11 +16,8 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:'Inter',sans-ser
 .wrap{max-width:520px;margin:0 auto;}
 h1{font-family:'Fraunces',serif;font-weight:600;font-size:26px;margin:0 0 1.1rem;}
 h2.section{font-family:'Fraunces',serif;font-weight:600;font-size:18px;margin:1.8rem 0 .8rem;}
-.tabs{display:flex;gap:6px;margin-bottom:1.4rem;border-bottom:1px solid var(--line);position:relative;}
-.tab-aqua{position:relative;overflow:hidden;border-radius:6px 6px 0 0;}
-.tab-fill{position:absolute;left:0;right:0;bottom:0;height:0%;background:linear-gradient(180deg, var(--water-light,#B9D4E0), var(--water,#5B8FA8));opacity:.5;z-index:0;transition:height .3s;}
-.tab-wave{position:absolute;left:0;right:0;top:-5px;height:6px;width:100%;}
-.tab-aqua span{position:relative;z-index:1;}
+.tabs{display:flex;gap:6px;margin-bottom:.7rem;border-bottom:1px solid var(--line);position:relative;}
+
 .water-dropdown{display:none;position:absolute;top:60px;left:1.1rem;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:.9rem 1rem;box-shadow:0 8px 24px rgba(0,0,0,.12);z-index:20;min-width:220px;}
 .water-dropdown.open{display:block;}
 .water-dd-label{font-size:12.5px;color:var(--ink-soft);margin:0 0 .6rem;font-weight:500;}
@@ -34,13 +31,11 @@ h2.section{font-family:'Fraunces',serif;font-weight:600;font-size:18px;margin:1.
 .panel{display:none;}
 .panel.active{display:block;}
 
-.daynav{display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:.6rem;}
+
 .nav-arrow{border:none;background:transparent;font-size:15px;color:var(--ink-soft);cursor:pointer;padding:4px 8px;border-radius:6px;}
 .nav-arrow:hover{background:var(--card);}
 .nav-arrow:disabled{color:var(--line);cursor:default;background:transparent;}
-.daylabel{text-align:center;}
-.daylabel p{margin:0;font-size:12px;color:var(--ink-soft);}
-.daylabel h1{margin:0;font-size:20px;}
+
 
 .chips{display:flex;gap:6px;justify-content:center;margin-bottom:1.1rem;}
 .chip{font-size:11px;padding:5px 11px;border-radius:20px;border:1px solid var(--line);color:var(--ink-soft);background:#fff;cursor:pointer;}
@@ -54,7 +49,7 @@ h2.section{font-family:'Fraunces',serif;font-weight:600;font-size:18px;margin:1.
 
 .kcal-box{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:1.1rem 1.25rem;margin-bottom:1.2rem;}
 .stat-card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:1.1rem 1.2rem;margin-bottom:.8rem;display:flex;gap:14px;align-items:flex-start;}
-.gauge-card{background:transparent;border-radius:16px;padding:.6rem 1rem .9rem;margin-bottom:.8rem;text-align:center;}
+.gauge-card{background:transparent;border-radius:16px;padding:.3rem 1rem .9rem;margin-bottom:.8rem;text-align:center;}
 .gauge-svg{width:100%;max-width:180px;margin:0 auto;display:block;}
 .gauge-pct{font-size:28px;font-weight:600;fill:var(--ink);font-family:'Inter',sans-serif;}
 .gauge-sub{font-size:11.5px;fill:var(--ink-soft);font-family:'Inter',sans-serif;}
@@ -94,10 +89,16 @@ h2.section{font-family:'Fraunces',serif;font-weight:600;font-size:18px;margin:1.
 .food-row.checked .info-btn{border-left-color:var(--olive);color:var(--olive-dark);}
 .info-btn:hover{background:rgba(0,0,0,.04);}
 .info-btn.open{background:rgba(0,0,0,.06);}
-.ing-panel{width:100%;background:#fff;border-top:1px dashed var(--line);padding:8px 12px 10px 41px;font-size:12.5px;color:var(--ink-soft);}
+.ing-panel{display:none;width:100%;background:#fff;border-top:1px dashed var(--line);}
+.ing-panel.show{display:flex;align-items:stretch;}
+.ing-panel-body{flex:1;min-width:0;padding:8px 12px 10px 41px;font-size:12.5px;color:var(--ink-soft);}
+.ing-swap-btn{width:36px;flex-shrink:0;border:none;border-left:1px solid var(--line);background:transparent;color:var(--olive-dark);cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;}
+.ing-swap-btn:hover{background:rgba(0,0,0,.04);}
+.ing-swap-btn svg{width:16px;height:16px;}
 .ing-row{display:flex;justify-content:space-between;padding:3px 0;}
 .ing-row span:last-child{font-family:'IBM Plex Mono',monospace;color:var(--ink);}
 .extra-row{cursor:default;padding:2px 0;}
+.swap-tag{color:var(--olive-dark);font-weight:500;}
 .extra-right{display:flex;align-items:center;gap:2px;margin-left:auto;padding:8px 10px;}
 .extra-vals{display:flex;flex-direction:column;align-items:flex-end;gap:1px;}
 .extra-vals .food-kcal{margin-left:0;}
@@ -281,10 +282,7 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
 <div class="wrap">
   <h1>Nouri</h1>
   <div class="tabs">
-    <div class="tab active tab-aqua" data-tab="today" id="todayTab">
-      <div class="tab-fill" id="waterFill"><svg class="tab-wave" viewBox="0 0 100 10" preserveAspectRatio="none"><path d="M0 5 Q25 0 50 5 T100 5 V10 H0 Z" fill="var(--water-light)"/></svg></div>
-      <span id="todayTabLabel">–</span>
-    </div>
+    <div class="tab active" data-tab="today" id="todayTab">Heute</div>
     <div class="tab" data-tab="woche" title="Woche"><svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div>
     <div class="tab" data-tab="vorrat" title="Vorrat"><svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/></svg></div>
     <div class="tab" data-tab="einkaufen" title="Einkaufen"><svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.5 3h2l2.6 12.9a2 2 0 0 0 2 1.6h8.8a2 2 0 0 0 2-1.6L22 7H6"/></svg><span class="badge" id="dashBadge" style="display:none;"></span></div>
@@ -301,11 +299,6 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
 
   <!-- TODAY -->
   <div class="panel active" id="panelToday">
-    <div class="daynav">
-      <button class="nav-arrow" id="dayPrev">◀</button>
-      <div class="daylabel"><p id="dayWeekday">Montag</p><h1 id="dayDate">20. Juli</h1></div>
-      <button class="nav-arrow" id="dayNext">▶</button>
-    </div>
     <div class="gauge-card" id="gaugeCard" title="Wasser eintragen" style="cursor:pointer;">
       <svg viewBox="0 0 220 220" class="gauge-svg">
         <line x1="39.3" y1="180.7" x2="50.6" y2="169.4" stroke="var(--line)" stroke-width="2"/>
@@ -323,13 +316,12 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
       </svg>
       <div class="gauge-legend">
         <div class="gauge-legend-row"><span class="gauge-dot" style="background:var(--coral);"></span><span id="gaugeKcalVal">0/1400kcal</span></div>
-        <div class="gauge-legend-row"><span class="gauge-dot" style="background:var(--olive);"></span><span id="gaugeFiberVal">0/30g B</span></div>
-        <div class="gauge-legend-row"><span class="gauge-dot" style="background:var(--water);"></span><span id="gaugeWaterVal">0/0ml</span></div>
+        <div class="gauge-legend-row"><span class="gauge-dot" style="background:var(--olive);"></span><span id="gaugeFiberVal">0/30 gBall</span></div>
+        <div class="gauge-legend-row"><span class="gauge-dot" style="background:var(--water);"></span><span id="gaugeWaterVal">0/0 mlWa</span></div>
       </div>
-      <p class="stat-note" id="fiberPlannedNote" style="font-size:11px;color:var(--ink-soft);margin:.5rem 0 0;text-align:center;"></p>
     </div>
 
-    <p class="section-label">Dein Plan – antippen zum Abhaken</p>
+    <p class="section-label">Dein <span id="planKcalTotal">0</span>-kcal-Plan (<span id="planFiberTotal">0</span> g Ballaststoffe)</p>
     <div id="planList"></div>
 
     <p class="section-label" style="margin-top:1rem;">Snacks – passend zu deinem Rest-Budget</p>
@@ -486,6 +478,18 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
   </div>
 </div>
 
+<div class="modal-bg" id="daySwapModalBg">
+  <div class="modal">
+    <h2>Heute tauschen</h2>
+    <p class="section-label" id="daySwapLabel"></p>
+    <ul id="daySwapPickList"></ul>
+    <div class="modal-actions">
+      <button class="btn" id="daySwapReset" style="display:none;">Zurücksetzen</button>
+      <button class="btn" id="daySwapCancel">Abbrechen</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-bg" id="dayMoveModalBg">
   <div class="modal">
     <h2>Ganzen Tag tauschen mit …</h2>
@@ -567,15 +571,23 @@ async function atList(table){
   } while(offset);
   return records;
 }
+async function atErrorMessage(res){
+  try{
+    const body = await res.json();
+    return body?.error?.message || body?.error?.type || JSON.stringify(body);
+  }catch(e){
+    try{ return await res.text(); }catch(e2){ return `HTTP ${res.status}`; }
+  }
+}
 async function atCreate(table, fields){
   const res = await fetch(AT_URL(table), { method:'POST', headers: AT_HEADERS, body: JSON.stringify({ records:[{fields}], typecast:true }) });
-  if(!res.ok) throw new Error('Airtable-Fehler beim Anlegen in '+table);
+  if(!res.ok){ const msg = await atErrorMessage(res); console.error('Airtable-Fehler (Create)', table, fields, msg); throw new Error(`Airtable-Fehler beim Anlegen in ${table}: ${msg}`); }
   const data = await res.json();
   return data.records[0];
 }
 async function atUpdate(table, id, fields){
   const res = await fetch(AT_URL(table), { method:'PATCH', headers: AT_HEADERS, body: JSON.stringify({ records:[{id, fields}], typecast:true }) });
-  if(!res.ok) throw new Error('Airtable-Fehler beim Aktualisieren in '+table);
+  if(!res.ok){ const msg = await atErrorMessage(res); console.error('Airtable-Fehler (Update)', table, fields, msg); throw new Error(`Airtable-Fehler beim Aktualisieren in ${table}: ${msg}`); }
 }
 async function atDelete(table, id){
   const res = await fetch(`${AT_URL(table)}/${id}`, { method:'DELETE', headers: AT_HEADERS });
@@ -603,6 +615,7 @@ let steps = [];       // {id, date, steps, kcal}
 let pantry = [];      // {id|null, name, staple}  id null = noch nicht in Airtable angelegt
 let shoppingNeeds = []; // {id, name, unit, amount, status:'offen'|'liste'|'gekauft', boughtAmount}
 let snacks = []; // {id, name, kcal}
+let daySwaps = []; // {id, date, slotId, dishName} - Gericht nur für einen bestimmten Tag getauscht, ohne den Wochenplan zu ändern
 let water = []; // {id, date, ml}
 let bonusItems = []; // {id, name, kcal} - max 5, verwaltet im Vorrat-Tab
 let bonusLog = []; // {id, date, name, kcal} - jede Einlösung, zieht dauerhaft vom Guthaben ab
@@ -632,21 +645,6 @@ document.querySelectorAll('.tab').forEach(t=>{
   });
 });
 
-/* Long-Press auf den Heute-Tab -> Trinken-Dropdown, normaler Klick navigiert wie gewohnt */
-let waterPressTimer = null;
-const todayTabEl = document.getElementById('todayTab');
-function startWaterPress(){
-  waterPressTimer = setTimeout(()=>{
-    longPressFired = true;
-    document.getElementById('waterDropdown').classList.add('open');
-  }, 550);
-}
-function cancelWaterPress(){ clearTimeout(waterPressTimer); }
-todayTabEl.addEventListener('mousedown', startWaterPress);
-todayTabEl.addEventListener('touchstart', startWaterPress, {passive:true});
-todayTabEl.addEventListener('mouseup', cancelWaterPress);
-todayTabEl.addEventListener('mouseleave', cancelWaterPress);
-todayTabEl.addEventListener('touchend', cancelWaterPress);
 const gaugeCardEl = document.getElementById('gaugeCard');
 gaugeCardEl.addEventListener('click', e=>{
   e.stopPropagation();
@@ -654,7 +652,7 @@ gaugeCardEl.addEventListener('click', e=>{
 });
 document.addEventListener('click', e=>{
   const dd = document.getElementById('waterDropdown');
-  if(dd.classList.contains('open') && !dd.contains(e.target) && e.target!==todayTabEl && !todayTabEl.contains(e.target) && !gaugeCardEl.contains(e.target)) dd.classList.remove('open');
+  if(dd.classList.contains('open') && !dd.contains(e.target) && !gaugeCardEl.contains(e.target)) dd.classList.remove('open');
 });
 document.querySelectorAll('.water-dd-btns .qbtn').forEach(btn=> btn.addEventListener('click', async ()=>{
   await addWater(Number(btn.dataset.ml));
@@ -678,13 +676,9 @@ async function addWater(ml){
 }
 function renderTodayTab(){
   const date = todayStr();
-  const d = new Date(date+'T00:00:00');
-  document.getElementById('todayTabLabel').textContent = String(d.getDate()).padStart(2,'0')+'.'+String(d.getMonth()+1).padStart(2,'0')+'.';
   const entry = water.find(w=>w.date===date);
   const total = entry ? entry.ml : 0;
   const goal = waterGoalMl();
-  const pct = Math.min(100, Math.round((total/goal)*100));
-  document.getElementById('waterFill').style.height = pct+'%';
   document.getElementById('waterDdLabel').textContent = (total/1000).toLocaleString('de-DE',{minimumFractionDigits:1})+' / '+(goal/1000).toLocaleString('de-DE',{minimumFractionDigits:1})+' L heute';
 }
 
@@ -841,7 +835,7 @@ function resyncPantryFromDishes(){
     const existing = byName.get(key);
     if(existing){
       // Einheit im Gericht geändert? -> auch im Vorrat-Datensatz nachziehen
-      if(ing.unit && existing.unit !== ing.unit){ existing.unit = ing.unit; savePantryItem(existing); }
+      if(ing.unit && existing.unit !== ing.unit){ existing.unit = ing.unit; savePantryItem(existing).catch(err=>{ console.error(err); setStatus(err.message); }); }
       merged.push(existing);
     }else{
       merged.push({ id:null, name: ing.name.trim(), unit: ing.unit||'', bestand:0, mindestbestand:0, ignore:false, kcalPerUnit:0, fiberPerUnit:0 });
@@ -857,17 +851,18 @@ function pantryItem(name){
   return pantry.find(p=> p.name.trim().toLowerCase()===key);
 }
 async function savePantryItem(p){
-  try{
-    if(!p.id){
-      // Sperre: falls schon eine Anlage für diese Zutat läuft, darauf warten statt eine zweite zu starten
-      if(!p._creating){
-        p._creating = atCreate('Pantry', { Name:p.name, Bestand:p.bestand, Mindestbestand:p.mindestbestand, Unit:p.unit, Ignore:p.ignore, KcalPerUnit:p.kcalPerUnit, FiberPerUnit:p.fiberPerUnit })
-          .then(rec=>{ p.id = rec.id; p._creating = null; });
-      }
-      await p._creating;
+  // "Ignore" ist in Airtable ein Single-Select mit der einzigen Option "checked" (kein echtes Checkbox-Feld) -> kein Boolean, sondern Text bzw. null
+  const fields = { Bestand:p.bestand, Mindestbestand:p.mindestbestand, Unit:p.unit, KcalPerUnit:p.kcalPerUnit, FiberPerUnit:p.fiberPerUnit, Ignore: p.ignore ? 'checked' : null };
+  if(!p.id){
+    // Sperre: falls schon eine Anlage für diese Zutat läuft, darauf warten statt eine zweite zu starten
+    if(!p._creating){
+      p._creating = atCreate('Pantry', { Name:p.name, ...fields })
+        .then(rec=>{ p.id = rec.id; p._creating = null; })
+        .catch(e=>{ p._creating = null; throw e; });
     }
-    if(p.id) await atUpdate('Pantry', p.id, { Bestand:p.bestand, Mindestbestand:p.mindestbestand, Unit:p.unit, Ignore:p.ignore, KcalPerUnit:p.kcalPerUnit, FiberPerUnit:p.fiberPerUnit });
-  }catch(e){ console.error(e); setStatus('Pantry-Tabelle fehlt/unvollständig (Felder: Name, Bestand, Mindestbestand, Unit, Ignore, KcalPerUnit, FiberPerUnit)'); }
+    await p._creating;
+  }
+  if(p.id) await atUpdate('Pantry', p.id, fields);
 }
 /* kcal/Ballaststoffe pro Einheit -> tatsächlicher Beitrag für eine gegebene Zutatmenge.
    g/ml: Wert gilt pro 100 Einheiten. Stück/Dose/TL/EL: Wert gilt pro 1 Stück/Dose/TL/EL. */
@@ -909,11 +904,11 @@ function renderPantry(){
     </div>`).join('');
   wrap.querySelectorAll('.pantry-row').forEach(row=>{
     const i = Number(row.dataset.i); const p = pantry[i];
-    row.querySelector('.pf-bestand').addEventListener('change', e=>{ p.bestand = Number(e.target.value)||0; row.classList.toggle('low', !p.ignore && p.bestand<p.mindestbestand); savePantryItem(p); });
-    row.querySelector('.pf-min').addEventListener('change', e=>{ p.mindestbestand = Number(e.target.value)||0; row.classList.toggle('low', !p.ignore && p.bestand<p.mindestbestand); savePantryItem(p); });
-    row.querySelector('.pf-kcal').addEventListener('change', e=>{ p.kcalPerUnit = Number(e.target.value)||0; savePantryItem(p); });
-    row.querySelector('.pf-fiber').addEventListener('change', e=>{ p.fiberPerUnit = Number(e.target.value)||0; savePantryItem(p); });
-    row.querySelector('.toggle').addEventListener('click', ()=>{ p.ignore = !p.ignore; savePantryItem(p); renderPantry(); });
+    row.querySelector('.pf-bestand').addEventListener('change', e=>{ p.bestand = Number(e.target.value)||0; row.classList.toggle('low', !p.ignore && p.bestand<p.mindestbestand); savePantryItem(p).catch(err=>{ console.error(err); setStatus(err.message); }); });
+    row.querySelector('.pf-min').addEventListener('change', e=>{ p.mindestbestand = Number(e.target.value)||0; row.classList.toggle('low', !p.ignore && p.bestand<p.mindestbestand); savePantryItem(p).catch(err=>{ console.error(err); setStatus(err.message); }); });
+    row.querySelector('.pf-kcal').addEventListener('change', e=>{ p.kcalPerUnit = Number(e.target.value)||0; savePantryItem(p).catch(err=>{ console.error(err); setStatus(err.message); }); });
+    row.querySelector('.pf-fiber').addEventListener('change', e=>{ p.fiberPerUnit = Number(e.target.value)||0; savePantryItem(p).catch(err=>{ console.error(err); setStatus(err.message); }); });
+    row.querySelector('.toggle').addEventListener('click', ()=>{ p.ignore = !p.ignore; savePantryItem(p).catch(err=>{ console.error(err); setStatus(err.message); }); renderPantry(); });
   });
 }
 
@@ -943,7 +938,7 @@ document.getElementById('newIngSaveBtn').addEventListener('click', async ()=>{
     renderPantry();
     renderSnackManage();
     statusEl.textContent = `„${name}" wurde angelegt.`;
-  }catch(e){ console.error(e); statusEl.textContent = 'Fehler beim Anlegen – Pantry-Tabelle prüfen (Felder: Name, Bestand, Mindestbestand, Unit, Ignore, KcalPerUnit, FiberPerUnit).'; }
+  }catch(e){ console.error(e); statusEl.textContent = e.message || 'Fehler beim Anlegen.'; }
 });
 
 /* ================= BONUS (Guthaben einlösen) ================= */
@@ -1078,6 +1073,10 @@ async function loadAll(){
       snacks = snRecs.map(r=>({ id:r.id, name:r.fields.Name||'', kcal:Number(r.fields.Kcal)||0, amount:Number(r.fields.Amount)||1, source: r.fields.Source==='dish' ? 'dish' : 'pantry' }));
     }catch(e){ console.warn('Snacks-Tabelle noch nicht vorhanden – lege sie in Airtable an (Felder: Name, Amount, Kcal, Source).'); snacks = []; }
     try{
+      const dsRecs = await atList('DaySwaps');
+      daySwaps = dsRecs.map(r=>({ id:r.id, date:r.fields.Date||'', slotId:r.fields.SlotId||'', dishName:r.fields.DishName||'' }));
+    }catch(e){ console.warn('DaySwaps-Tabelle noch nicht vorhanden – lege sie in Airtable an (Felder: Date, SlotId, DishName).'); daySwaps = []; }
+    try{
       const wtRecs = await atList('Water');
       water = wtRecs.map(r=>({ id:r.id, date:r.fields.Date, ml:Number(r.fields.Ml)||0 }));
     }catch(e){ console.warn('Water-Tabelle noch nicht vorhanden – lege sie in Airtable an (Felder: Date, Ml).'); water = []; }
@@ -1112,17 +1111,28 @@ function render(){ renderToday(); renderWeek(); renderDishLibrary(); renderShopP
 /* ================= TODAY ================= */
 function renderToday(){
   const wd = weekdayOf(currentDate);
-  document.getElementById('dayWeekday').textContent = WEEKDAY_NAMES[wd] + (currentDate===todayStr() ? ' · heute' : '');
-  document.getElementById('dayDate').textContent = fmtDate(currentDate);
-  document.getElementById('dayNext').disabled = (currentDate >= todayStr());
 
   const slots = weekPlan[wd] || [];
   const dayLogPlan = logEntries.filter(l=> l.date===currentDate && l.type==='plan');
   const dayLogExtra = logEntries.filter(l=> l.date===currentDate && l.type==='extra');
 
+  const planKcalTotal = slots.reduce((sum,slot)=>{
+    const swap = daySwaps.find(s=> s.date===currentDate && s.slotId===slot.id);
+    const dish = dishByName(swap ? swap.dishName : slot.dishName);
+    return sum + (dish ? effectiveKcal(dish) : 0);
+  }, 0);
+  const planFiberTotal = Math.round(slots.reduce((sum,slot)=>{
+    const swap = daySwaps.find(s=> s.date===currentDate && s.slotId===slot.id);
+    const dish = dishByName(swap ? swap.dishName : slot.dishName);
+    return sum + (dish ? effectiveFiber(dish) : 0);
+  }, 0)*10)/10;
+  document.getElementById('planKcalTotal').textContent = planKcalTotal;
+  document.getElementById('planFiberTotal').textContent = planFiberTotal.toLocaleString('de-DE',{minimumFractionDigits:1,maximumFractionDigits:1});
+
   const planList = document.getElementById('planList');
   planList.innerHTML = slots.map(slot=>{
-    const dish = dishByName(slot.dishName);
+    const swap = daySwaps.find(s=> s.date===currentDate && s.slotId===slot.id);
+    const dish = dishByName(swap ? swap.dishName : slot.dishName);
     if(!dish) return '';
     const logHit = dayLogPlan.find(l=> l.name===dish.name && l.time===slot.time);
     const checked = !!logHit;
@@ -1140,19 +1150,27 @@ function renderToday(){
     return `<div class="food-row ${checked?'checked':''} ${early?'early':''}" data-slotid="${slot.id}" data-dishname="${escapeAttr(dish.name)}">
       <div class="food-main" data-time="${slot.time}" data-kcal="${effectiveKcal(dish)}" data-fiber="${effectiveFiber(dish)}" data-loghit="${logHit?logHit.id:''}">
         <div class="check-ico">${checked?'✓':''}</div>
-        <div><p class="food-name">${escapeAttr(dish.name)}</p><p class="food-time">geplant ${slot.time}</p>${early?`<p class="early-note">${earlyLabel}</p>`:''}</div>
+        <div><p class="food-name">${escapeAttr(dish.name)}</p><p class="food-time">${swap?'<span class="swap-tag">getauscht</span> · ':''}geplant ${slot.time}</p>${early?`<p class="early-note">${earlyLabel}</p>`:''}</div>
         <span class="food-kcal">${effectiveKcal(dish)} kcal<br><span class="food-fiber">${effectiveFiber(dish)} g Ballaststoffe</span></span>
       </div>
       <button class="info-btn" title="Zutaten anzeigen">ⓘ</button>
-      <div class="ing-panel" style="display:none;">${dish.ingredients.length ? dish.ingredients.map(i=>`<div class="ing-row"><span>${escapeAttr(i.name)}</span><span>${i.amount} ${i.unit}</span></div>`).join('') : '<span>Keine Zutaten hinterlegt.</span>'}</div>
+      <div class="ing-panel">
+        <div class="ing-panel-body">${dish.ingredients.length ? dish.ingredients.map(i=>`<div class="ing-row"><span>${escapeAttr(i.name)}</span><span>${i.amount} ${i.unit}</span></div>`).join('') : '<span>Keine Zutaten hinterlegt.</span>'}</div>
+        <button class="ing-swap-btn" title="Nur heute tauschen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 21l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></button>
+      </div>
     </div>`;
   }).join('');
   planList.querySelectorAll('.info-btn').forEach(btn=> btn.addEventListener('click', e=>{
     e.stopPropagation();
     const panel = btn.nextElementSibling;
-    const open = panel.style.display !== 'none';
-    panel.style.display = open ? 'none' : 'block';
+    const open = panel.classList.contains('show');
+    panel.classList.toggle('show', !open);
     btn.classList.toggle('open', !open);
+  }));
+  planList.querySelectorAll('.ing-swap-btn').forEach(btn=> btn.addEventListener('click', e=>{
+    e.stopPropagation();
+    const row = btn.closest('.food-row');
+    openDaySwapModal(row.dataset.slotid);
   }));
   planList.querySelectorAll('.food-main').forEach(row=>{
     row.addEventListener('click', async ()=>{
@@ -1224,11 +1242,8 @@ function renderToday(){
   const waterPct = waterTarget>0 ? Math.round((waterTotal/waterTarget)*100) : 0;
   document.getElementById('gaugePct').textContent = waterPct+'%';
   document.getElementById('gaugeKcalVal').textContent = total+'/'+target+'kcal';
-  document.getElementById('gaugeFiberVal').textContent = Math.round(totalFiber*10)/10+'/'+fiberTarget+'g B';
-  document.getElementById('gaugeWaterVal').textContent = waterTotal+'/'+waterTarget+'ml';
-
-  const plannedFiberTotal = Math.round(slots.reduce((sum,slot)=>{ const dish=dishByName(slot.dishName); return sum + (dish?effectiveFiber(dish):0); },0)*10)/10;
-  document.getElementById('fiberPlannedNote').textContent = `Geplant für heute gesamt: ${plannedFiberTotal} g`;
+  document.getElementById('gaugeFiberVal').textContent = Math.round(totalFiber*10)/10+'/'+fiberTarget+' gBall';
+  document.getElementById('gaugeWaterVal').textContent = waterTotal+'/'+waterTarget+' mlWa';
 
   renderSnackChips(remaining);
 
@@ -1264,11 +1279,6 @@ function renderSnackChips(remaining){
   }));
 }
 
-document.getElementById('dayPrev').addEventListener('click', ()=>{ currentDate = addDays(currentDate,-1); renderToday(); });
-document.getElementById('dayNext').addEventListener('click', ()=>{
-  if(currentDate >= todayStr()) return;
-  currentDate = addDays(currentDate,1); renderToday();
-});
 
 document.getElementById('openExtraBtn').addEventListener('click', ()=>{
   document.getElementById('extraName').value=''; document.getElementById('extraKcal').value=''; document.getElementById('extraFiber').value='';
@@ -1527,6 +1537,45 @@ document.getElementById('swapConfirm').addEventListener('click', async ()=>{
     }catch(e){ setStatus('Fehler beim Speichern'); }
   }
   document.getElementById('swapModalBg').classList.remove('open');
+});
+
+/* Tausch NUR für heute (Wochenplan bleibt unverändert) */
+let daySwapSlotId = null;
+function openDaySwapModal(slotId){
+  daySwapSlotId = slotId;
+  const wd = weekdayOf(currentDate);
+  const slot = (weekPlan[wd]||[]).find(s=>s.id===slotId);
+  if(!slot) return;
+  document.getElementById('daySwapLabel').textContent = `Ersetzt "${slot.dishName}" um ${slot.time} – nur für ${fmtDate(currentDate)}`;
+  const existing = daySwaps.find(s=> s.date===currentDate && s.slotId===slotId);
+  document.getElementById('daySwapReset').style.display = existing ? 'inline-flex' : 'none';
+  const ul = document.getElementById('daySwapPickList');
+  ul.innerHTML = dishes.map(d=>`<li class="pick-row" data-name="${escapeAttr(d.name)}"><span class="pn">${escapeAttr(d.name)}</span><span class="pk">${effectiveKcal(d)} kcal</span></li>`).join('');
+  ul.querySelectorAll('.pick-row').forEach(row=> row.addEventListener('click', async ()=>{
+    const dishName = row.dataset.name;
+    try{
+      if(existing){
+        await atUpdate('DaySwaps', existing.id, { DishName: dishName });
+        existing.dishName = dishName;
+      }else{
+        const rec = await atCreate('DaySwaps', { Date: currentDate, SlotId: slotId, DishName: dishName });
+        daySwaps.push({ id:rec.id, date:currentDate, slotId, dishName });
+      }
+      renderToday();
+    }catch(e){ console.error(e); setStatus(e.message||'Fehler beim Tauschen'); }
+    document.getElementById('daySwapModalBg').classList.remove('open');
+  }));
+  document.getElementById('daySwapModalBg').classList.add('open');
+}
+document.getElementById('daySwapCancel').addEventListener('click', ()=> document.getElementById('daySwapModalBg').classList.remove('open'));
+document.getElementById('daySwapReset').addEventListener('click', async ()=>{
+  const existing = daySwaps.find(s=> s.date===currentDate && s.slotId===daySwapSlotId);
+  if(existing){
+    try{ await atDelete('DaySwaps', existing.id); }catch(e){ console.error(e); }
+    daySwaps = daySwaps.filter(s=>s.id!==existing.id);
+    renderToday();
+  }
+  document.getElementById('daySwapModalBg').classList.remove('open');
 });
 
 /* dish library */
@@ -1887,7 +1936,7 @@ function renderShopPreview(){
     item.status = 'gekauft'; item.boughtAmount = amount;
     try{ await atUpdate('ShoppingNeeds', item.id, { Status:'gekauft', BoughtAmount:amount }); }catch(err){ console.error(err); }
     const p = pantryItem(item.name);
-    if(p){ p.bestand = Math.round((p.bestand+amount)*100)/100; await savePantryItem(p); }
+    if(p){ p.bestand = Math.round((p.bestand+amount)*100)/100; try{ await savePantryItem(p); }catch(err){ console.error(err); setStatus(err.message); } }
     renderShopPreview(); renderUpcoming(); renderDashboardBadge();
   }));
 }

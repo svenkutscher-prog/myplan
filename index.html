@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-sale=1.0">
 <title>Nouri</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap');
@@ -71,6 +71,31 @@ h2.section{font-family:'Fraunces',serif;font-weight:600;font-size:18px;margin:1.
 .kcal-of{font-size:13px;color:var(--ink-soft);}
 .bar{height:8px;border-radius:5px;background:var(--line);overflow:hidden;}
 .bar-fill{height:100%;border-radius:5px;background:var(--olive);transition:width .25s ease;}
+.goal-card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:1rem 1.1rem;margin-bottom:1.1rem;}
+.goal-row{display:flex;align-items:center;gap:10px;font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--ink-soft);}
+.goal-sub{font-size:12.5px;color:var(--ink-soft);margin:.5rem 0 0;}
+.goal-edit{display:flex;gap:8px;margin-top:.6rem;}
+.goal-edit input{flex:1;font-size:13px;border:1px solid var(--line);border-radius:8px;padding:7px 9px;background:#fff;color:var(--ink);}
+.goal-edit button{border:none;background:var(--olive);color:#fff;border-radius:8px;padding:7px 12px;font-size:13px;cursor:pointer;}
+.dash-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;}
+.gear-btn{width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:var(--card);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.gear-btn:hover{background:var(--line);}
+.score-card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:1rem 1.1rem;margin-bottom:1.1rem;}
+.score-row{display:flex;align-items:center;gap:10px;padding:6px 0 2px;}
+.score-block{margin-bottom:12px;}
+.score-block:last-child{margin-bottom:0;}
+.score-bar-track{height:6px;background:var(--line);border-radius:4px;overflow:hidden;}
+.score-bar-fill{height:100%;border-radius:4px;transition:width .25s ease;}
+.score-sub{font-size:11.5px;color:var(--ink-soft);margin:4px 0 0;}
+.score-icon{font-size:16px;width:22px;text-align:center;}
+.score-name{flex:1;font-size:13.5px;color:var(--ink);}
+.score-badge{font-size:11.5px;padding:3px 10px;border-radius:20px;font-weight:500;}
+.score-badge.good{background:#E4EDDD;color:var(--olive-dark);}
+.score-badge.mid{background:#FBEED9;color:#8A5A1E;}
+.score-badge.low{background:var(--coral-bg);color:var(--coral);}
+.profile-field{margin-bottom:.8rem;}
+.profile-field label{display:block;font-size:12px;color:var(--ink-soft);margin-bottom:.3rem;}
+.profile-field input{width:100%;font-size:14px;border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:#fff;color:var(--ink);}
 .kcal-note{font-size:12.5px;color:var(--ink-soft);margin:8px 0 0;}
 
 .section-label{font-size:13px;font-weight:500;color:var(--ink-soft);margin:0 0 .6rem;}
@@ -441,6 +466,10 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
 
   <!-- DASHBOARD -->
   <div class="panel" id="panelDashboard">
+    <div class="dash-header">
+      <h2 class="section" style="margin:0;">Dashboard</h2>
+      <button class="gear-btn" id="openProfileBtn" title="Stammdaten bearbeiten">⚙️</button>
+    </div>
     <div class="guthaben-card" id="guthabenCard">
       <span class="gh-emoji">🎉</span>
       <p class="gh-label">Kcal-Guthaben</p>
@@ -454,6 +483,40 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
       <div class="dash-stat"><p class="ds-label">Aktuelles Gewicht</p><p class="ds-val" id="dsWeight">–</p><p class="ds-sub" id="dsWeightSub">–</p></div>
       <div class="dash-stat"><p class="ds-label">Schritte Ø/Tag (7 Tage)</p><p class="ds-val" id="dsSteps">–</p><p class="ds-sub">letzte 7 Tage</p></div>
       <div class="dash-stat"><p class="ds-label">Ø kcal (7 Tage)</p><p class="ds-val" id="dsAvgKcal">–</p><p class="ds-sub" id="dsAvgKcalSub">letzte 7 Tage</p></div>
+    </div>
+
+    <div class="goal-card">
+      <p class="chart-label" style="margin-bottom:.6rem;">Weg zum Ziel</p>
+      <div class="goal-row">
+        <span id="goalCurrentKg">–</span>
+        <div class="bar-track" style="flex:1;"><div class="bar-fill" id="goalFill" style="width:0%;background:var(--mustard);"></div></div>
+        <span id="goalTargetKg">–</span>
+      </div>
+      <p class="goal-sub" id="goalSub">Noch keine Gewichtsdaten.</p>
+    </div>
+
+    <div class="score-card">
+      <p class="chart-label" style="margin-bottom:.7rem;">Wie gesund lebst du gerade? <span class="section-note">letzte 7 Tage</span></p>
+      <div class="score-block" id="scoreKcalBlock">
+        <div class="score-row"><span class="score-icon">🔥</span><span class="score-name">Kalorien</span><span class="score-badge" id="scoreKcal">–</span></div>
+        <div class="score-bar-track"><div class="score-bar-fill" id="scoreKcalBar" style="width:0%;"></div></div>
+        <p class="score-sub" id="scoreKcalSub"></p>
+      </div>
+      <div class="score-block" id="scoreFiberBlock">
+        <div class="score-row"><span class="score-icon">🌾</span><span class="score-name">Ballaststoffe</span><span class="score-badge" id="scoreFiber">–</span></div>
+        <div class="score-bar-track"><div class="score-bar-fill" id="scoreFiberBar" style="width:0%;"></div></div>
+        <p class="score-sub" id="scoreFiberSub"></p>
+      </div>
+      <div class="score-block" id="scoreWaterBlock">
+        <div class="score-row"><span class="score-icon">💧</span><span class="score-name">Trinken</span><span class="score-badge" id="scoreWater">–</span></div>
+        <div class="score-bar-track"><div class="score-bar-fill" id="scoreWaterBar" style="width:0%;"></div></div>
+        <p class="score-sub" id="scoreWaterSub"></p>
+      </div>
+      <div class="score-block" id="scoreStepsBlock">
+        <div class="score-row"><span class="score-icon">🚶</span><span class="score-name">Bewegung</span><span class="score-badge" id="scoreSteps">–</span></div>
+        <div class="score-bar-track"><div class="score-bar-fill" id="scoreStepsBar" style="width:0%;"></div></div>
+        <p class="score-sub" id="scoreStepsSub"></p>
+      </div>
     </div>
 
     <p class="chart-label">Gewichtsverlauf</p>
@@ -487,6 +550,22 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
     <div class="modal-actions">
       <button class="btn" id="daySwapReset" style="display:none;">Zurücksetzen</button>
       <button class="btn" id="daySwapCancel">Abbrechen</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="profileModalBg">
+  <div class="modal">
+    <h2>Stammdaten</h2>
+    <p class="section-label">Werden für Fortschritt, Hochrechnung und Bewegungs-Ziel genutzt.</p>
+    <div class="profile-field"><label>Startgewicht (kg)</label><input type="number" id="profStartWeight" step="0.1"></div>
+    <div class="profile-field"><label>Wunschgewicht (kg)</label><input type="number" id="profGoalWeight" step="0.1"></div>
+    <div class="profile-field"><label>Schritte-Ziel (Ø/Tag)</label><input type="number" id="profStepsGoal" step="100"></div>
+    <div class="profile-field"><label>Max. Kalorien pro Tag</label><input type="number" id="profKcalMax" step="10"></div>
+    <div class="profile-field"><label>Ballaststoffe-Ziel pro Tag (g)</label><input type="number" id="profFiberGoal" step="1"></div>
+    <div class="modal-actions">
+      <button class="btn" id="profileCancel">Abbrechen</button>
+      <button class="btn primary" id="profileSave">Speichern</button>
     </div>
   </div>
 </div>
@@ -622,7 +701,7 @@ let bonusItems = []; // {id, name, kcal} - max 5, verwaltet im Vorrat-Tab
 let bonusLog = []; // {id, date, name, kcal} - jede Einlösung, zieht dauerhaft vom Guthaben ab
 let targets = { base:1800, deficit:1400 };
 let activeTarget = 'deficit';
-let profile = { startWeight:110, goalWeight:100 };
+let profile = { id:null, startWeight:110, goalWeight:99, stepsGoal:8000, kcalMax:1400, fiberGoal:30 };
 
 let currentDate = todayStr();
 let swapWeekday = null, swapTargetSlot = null, swapSelectedDishName = null;
@@ -642,7 +721,10 @@ document.querySelectorAll('.tab').forEach(t=>{
     document.getElementById('panel'+t.dataset.tab.charAt(0).toUpperCase()+t.dataset.tab.slice(1)).classList.add('active');
     if(t.dataset.tab === 'dashboard') renderDashboard();
     if(t.dataset.tab === 'einkaufen') computeShoppingNeeds();
-    if(t.dataset.tab === 'vorrat'){ resyncPantryFromDishes(); renderPantry(); renderSnackManage(); renderBonusManage(); }
+    if(t.dataset.tab === 'vorrat'){
+      resyncPantryFromDishes(); renderPantry(); renderSnackManage(); renderBonusManage();
+      reloadPantryFresh().then(()=>{ renderPantry(); renderSnackManage(); renderBonusManage(); });
+    }
   });
 });
 
@@ -703,10 +785,156 @@ function dayTotalKcal(date){
   return total;
 }
 
+function renderGoalCard(){
+  const sorted = [...weights].sort((a,b)=> a.date.localeCompare(b.date));
+  const current = sorted.length ? sorted[sorted.length-1].kg : profile.startWeight;
+  const goal = profile.goalWeight;
+  document.getElementById('goalCurrentKg').textContent = current.toLocaleString('de-DE',{minimumFractionDigits:1})+' kg';
+  document.getElementById('goalTargetKg').textContent = goal.toLocaleString('de-DE',{minimumFractionDigits:1})+' kg';
+
+  const totalSpan = profile.startWeight - goal;
+  const done = totalSpan !== 0 ? Math.max(0, Math.min(100, Math.round(((profile.startWeight-current)/totalSpan)*100))) : 0;
+  document.getElementById('goalFill').style.width = done+'%';
+
+  const remaining = Math.round((current-goal)*10)/10;
+  const sub = document.getElementById('goalSub');
+
+  if(remaining<=0){ sub.textContent = remaining===0 ? 'Ziel erreicht! 🎉' : `${Math.abs(remaining)} kg unter dem Ziel – Wunschgewicht schon erreicht.`; return; }
+  if(sorted.length < 2){ sub.textContent = `Noch ${remaining} kg bis zum Ziel – für eine Hochrechnung braucht's mehr Gewichtseinträge.`; return; }
+
+  // Erste 7 Tage ab dem ersten Eintrag ausklammern (Wasser-/Glykogenverlust, kein echter Fett-Trend)
+  const waterPhaseEnd = addDays(sorted[0].date, 7);
+  const afterWater = sorted.filter(w=> w.date > waterPhaseEnd);
+
+  const FALLBACK_LOW = 0.6, FALLBACK_HIGH = 0.9; // kg/Woche, physiologisch plausibler Richtwert
+  const MIN_TREND_DAYS = 21; // ab hier vertrauen wir dem eigenen gemessenen Trend statt der Schätzung
+
+  let rateLow, rateHigh, isEstimate;
+  const spanDays = afterWater.length ? (new Date(afterWater[afterWater.length-1].date+'T00:00:00') - new Date(afterWater[0].date+'T00:00:00'))/86400000 : 0;
+
+  if(afterWater.length < 2 || spanDays < MIN_TREND_DAYS){
+    rateLow = FALLBACK_LOW; rateHigh = FALLBACK_HIGH; isEstimate = true;
+  } else {
+    const t0 = new Date(afterWater[0].date+'T00:00:00').getTime();
+    const xs = afterWater.map(w=> (new Date(w.date+'T00:00:00').getTime()-t0)/86400000);
+    const ys = afterWater.map(w=> w.kg);
+    const n = xs.length;
+    const sumX = xs.reduce((a,b)=>a+b,0), sumY = ys.reduce((a,b)=>a+b,0);
+    const sumXY = xs.reduce((s,x,i)=> s+x*ys[i],0), sumXX = xs.reduce((s,x)=> s+x*x,0);
+    const denom = (n*sumXX - sumX*sumX);
+    const slopePerDay = denom!==0 ? (n*sumXY - sumX*sumY)/denom : 0;
+    const goalIsLoss = goal < profile.startWeight;
+    const weeklyRate = Math.abs(slopePerDay*7);
+    const movingTowardGoal = goalIsLoss ? slopePerDay < -0.01 : slopePerDay > 0.01;
+    // Gedeckelt auf ein plausibles Fenster, egal was der kurzfristige Trend zeigt
+    const clamped = Math.max(0.2, Math.min(1.2, movingTowardGoal ? weeklyRate : FALLBACK_LOW));
+    rateLow = Math.max(0.2, clamped*0.85); rateHigh = Math.min(1.2, clamped*1.15); isEstimate = false;
+  }
+
+  const weeksOptimistic = Math.ceil(remaining/rateHigh);
+  const weeksRealistic = Math.ceil(remaining/rateLow);
+  const dateOptimistic = fmtDate(addDays(todayStr(), Math.round(weeksOptimistic*7)));
+  const dateRealistic = fmtDate(addDays(todayStr(), Math.round(weeksRealistic*7)));
+
+  sub.textContent = `Noch ${remaining} kg bis zum Ziel – ${isEstimate?'Schätzung (noch kein eigener Trend)':'bei deinem Tempo'}: optimistisch ca. ${weeksOptimistic} Wochen (${dateOptimistic}), realistisch ca. ${weeksRealistic} Wochen (${dateRealistic}).`;
+}
+
+/* Stammdaten-Popup */
+document.getElementById('openProfileBtn').addEventListener('click', ()=>{
+  document.getElementById('profStartWeight').value = profile.startWeight;
+  document.getElementById('profGoalWeight').value = profile.goalWeight;
+  document.getElementById('profStepsGoal').value = profile.stepsGoal;
+  document.getElementById('profKcalMax').value = profile.kcalMax;
+  document.getElementById('profFiberGoal').value = profile.fiberGoal;
+  document.getElementById('profileModalBg').classList.add('open');
+});
+document.getElementById('profileCancel').addEventListener('click', ()=> document.getElementById('profileModalBg').classList.remove('open'));
+document.getElementById('profileSave').addEventListener('click', async ()=>{
+  const startWeight = Number(document.getElementById('profStartWeight').value)||profile.startWeight;
+  const goalWeight = Number(document.getElementById('profGoalWeight').value)||profile.goalWeight;
+  const stepsGoal = Number(document.getElementById('profStepsGoal').value)||profile.stepsGoal;
+  const kcalMax = Number(document.getElementById('profKcalMax').value)||profile.kcalMax;
+  const fiberGoal = Number(document.getElementById('profFiberGoal').value)||profile.fiberGoal;
+  const fields = { StartWeight: startWeight, GoalWeight: goalWeight, StepsGoal: stepsGoal, KcalMax: kcalMax, FiberGoal: fiberGoal };
+  try{
+    if(profile.id) await atUpdate('Profile', profile.id, fields);
+    else{ const rec = await atCreate('Profile', fields); profile.id = rec.id; }
+    profile = { id:profile.id, startWeight, goalWeight, stepsGoal, kcalMax, fiberGoal };
+    setStatus('Stammdaten gespeichert');
+    document.getElementById('profileModalBg').classList.remove('open');
+    renderGoalCard(); renderScoreCard();
+  }catch(e){ console.error(e); setStatus(e.message||'Fehler beim Speichern'); }
+});
+
+/* Score-Karte: Ampel-Bewertung über die letzten 7 Tage */
+function scoreBadge(prefix, ratio, barRatio, subText){
+  const el = document.getElementById('score'+prefix);
+  let cls, label;
+  if(ratio>=0.85){ cls='good'; label='gut'; }
+  else if(ratio>=0.6){ cls='mid'; label='ausbaufähig'; }
+  else{ cls='low'; label='niedrig'; }
+  el.className = 'score-badge '+cls;
+  el.textContent = label;
+  const bar = document.getElementById('score'+prefix+'Bar');
+  bar.style.width = Math.max(0,Math.min(100,Math.round(barRatio*100)))+'%';
+  bar.style.background = cls==='good' ? 'var(--olive)' : cls==='mid' ? '#D99A3D' : 'var(--coral)';
+  document.getElementById('score'+prefix+'Sub').textContent = subText;
+}
+function scoreEmpty(prefix){
+  document.getElementById('score'+prefix).textContent = '–';
+  document.getElementById('score'+prefix+'Bar').style.width = '0%';
+  document.getElementById('score'+prefix+'Sub').textContent = '';
+}
+function renderScoreCard(){
+  const last7 = [...Array(7)].map((_,i)=> addDays(todayStr(), -i)).filter(d=> d!==todayStr());
+  const fiberTarget = profile.fiberGoal, kcalMax = profile.kcalMax;
+
+  // Kalorien: ein Maximum, nicht "je mehr desto besser" -> drunterbleiben ist immer gut, nur Überschreiten senkt den Score
+  let kcalDays=0, kcalSum=0, fiberSum=0;
+  last7.forEach(d=>{
+    const dl = logEntries.filter(l=>l.date===d);
+    if(!dl.length) return;
+    kcalDays++;
+    kcalSum += dayTotalKcal(d);
+    fiberSum += dl.reduce((s,l)=> s+(l.fiber||0), 0);
+  });
+  if(kcalDays>0){
+    const avgKcal = Math.round(kcalSum/kcalDays);
+    const kcalScore = (kcalMax<=0 || avgKcal<=kcalMax) ? 1 : kcalMax/avgKcal;
+    scoreBadge('Kcal', kcalScore, Math.min(1, avgKcal/kcalMax), `Ø ${avgKcal} kcal (Max ${kcalMax})`);
+
+    const avgFiber = Math.round((fiberSum/kcalDays)*10)/10;
+    const fiberScore = Math.min(1, avgFiber/fiberTarget);
+    scoreBadge('Fiber', fiberScore, fiberScore, `Ø ${avgFiber} g (Ziel ${fiberTarget}g)`);
+  } else { scoreEmpty('Kcal'); scoreEmpty('Fiber'); }
+
+  // Trinken: Ø ml ggü. Tagesziel, mehr als Ziel ist nie schlechter
+  let waterDays=0, waterSum=0;
+  const goal = waterGoalMl();
+  last7.forEach(d=>{ const w = water.find(x=>x.date===d); if(w){ waterDays++; waterSum += w.ml; } });
+  if(waterDays>0){
+    const avgWater = Math.round(waterSum/waterDays);
+    const ratio = avgWater/goal;
+    scoreBadge('Water', ratio, Math.min(1, ratio), `Ø ${avgWater} ml (Ziel ${goal}ml)`);
+  } else scoreEmpty('Water');
+
+  // Bewegung: Ø Schritte ggü. Stammdaten-Ziel, mehr als Ziel ist nie schlechter
+  let stepDays=0, stepSum=0;
+  last7.forEach(d=>{ const s = steps.find(x=>x.date===d); if(s){ stepDays++; stepSum += s.steps; } });
+  if(stepDays>0){
+    const avgSteps = Math.round(stepSum/stepDays);
+    const ratio = avgSteps/profile.stepsGoal;
+    scoreBadge('Steps', ratio, Math.min(1, ratio), `Ø ${avgSteps.toLocaleString('de-DE')} Schritte (Ziel ${profile.stepsGoal.toLocaleString('de-DE')})`);
+  } else scoreEmpty('Steps');
+}
+
 function renderDashboard(){
   const muted = '#5C6B52', grid = '#D8E0CC';
   Chart.defaults.color = muted;
   Chart.defaults.font.family = "'Inter', sans-serif";
+
+  renderGoalCard();
+  renderScoreCard();
 
   /* Kcal-Guthaben: dauerhaft aufsummiert, nur Tage mit echten Einträgen, heute zählt noch nicht */
   const ghTarget = targets[activeTarget];
@@ -824,6 +1052,14 @@ function syncPantry(pRecs){
 }
 /* Wie syncPantry, aber ausgehend vom aktuellen lokalen Bestand statt einem Airtable-Refetch –
    damit neue Zutaten aus dem Menü sofort auftauchen, ohne "Neu laden". */
+async function reloadPantryFresh(){
+  // Holt den Vorrat live aus Airtable statt den ggf. veralteten Stand aus dem Speicher zu nehmen
+  // (wichtig bei mehreren Geräten gleichzeitig offen, z.B. iPhone + iPad)
+  try{
+    const pRecs = await atList('Pantry');
+    syncPantry(pRecs);
+  }catch(e){ console.warn('Vorrat konnte nicht neu geladen werden', e); }
+}
 function resyncPantryFromDishes(){
   const byName = new Map();
   pantry.forEach(p=> byName.set(p.name.trim().toLowerCase(), p));
@@ -1077,6 +1313,12 @@ async function loadAll(){
       const dsRecs = await atList('DaySwaps');
       daySwaps = dsRecs.map(r=>({ id:r.id, date:r.fields.Date||'', slotId:r.fields.SlotId||'', dishName:r.fields.DishName||'' }));
     }catch(e){ console.warn('DaySwaps-Tabelle noch nicht vorhanden – lege sie in Airtable an (Felder: Date, SlotId, DishName).'); daySwaps = []; }
+    try{
+      const profRecs = await atList('Profile');
+      if(profRecs[0]){
+        profile = { id:profRecs[0].id, startWeight:Number(profRecs[0].fields.StartWeight)||profile.startWeight, goalWeight:Number(profRecs[0].fields.GoalWeight)||profile.goalWeight, stepsGoal:Number(profRecs[0].fields.StepsGoal)||profile.stepsGoal, kcalMax:Number(profRecs[0].fields.KcalMax)||profile.kcalMax, fiberGoal:Number(profRecs[0].fields.FiberGoal)||profile.fiberGoal };
+      }
+    }catch(e){ console.warn('Profile-Tabelle noch nicht vorhanden – lege sie in Airtable an (Felder: StartWeight, GoalWeight, StepsGoal, KcalMax, FiberGoal). Nutze bis dahin Standardwerte.'); }
     try{
       const wtRecs = await atList('Water');
       water = wtRecs.map(r=>({ id:r.id, date:r.fields.Date, ml:Number(r.fields.Ml)||0 }));

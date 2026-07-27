@@ -1566,6 +1566,20 @@ function renderToday(){
   const dayLogPlan = logEntries.filter(l=> l.date===currentDate && l.type==='plan');
   const dayLogExtra = logEntries.filter(l=> l.date===currentDate && l.type==='extra');
 
+  /* EIN einheitlicher Fullness-Score: nur das, was heute wirklich gegessen wurde (Gerichte + Extras), kcal-gewichtet */
+  let dayFullnessWeighted = 0, dayFullnessBase = 0;
+  [...dayLogPlan, ...dayLogExtra].forEach(l=>{
+    let score = null;
+    if(l.type==='plan'){ const dish = dishByName(l.name); if(dish) score = dishFullnessScore(dish); }
+    else if(l.kcal>0 && (l.protein>0 || l.fiber>0)){
+      const proteinPer100 = ((l.protein||0)/l.kcal)*100;
+      const fiberPer100 = ((l.fiber||0)/l.kcal)*100;
+      score = Math.max(0, Math.min(100, Math.round(proteinPer100*3 + fiberPer100*2)));
+    }
+    if(score!==null){ dayFullnessWeighted += score*l.kcal; dayFullnessBase += l.kcal; }
+  });
+  const dayFullness = dayFullnessBase>0 ? Math.round(dayFullnessWeighted/dayFullnessBase) : null;
+
   const planKcalTotal = slots.reduce((sum,slot)=>{
     const swap = daySwaps.find(s=> s.date===currentDate && s.slotId===slot.id);
     const dish = dishByName(swap ? swap.dishName : slot.dishName);
@@ -1578,16 +1592,10 @@ function renderToday(){
   }, 0)*10)/10;
   document.getElementById('planKcalTotal').textContent = planKcalTotal;
   document.getElementById('planFiberTotal').textContent = planFiberTotal.toLocaleString('de-DE',{minimumFractionDigits:1,maximumFractionDigits:1});
-  let planFullnessWeighted = 0, planFullnessBase = 0;
-  slots.forEach(slot=>{
-    const swap = daySwaps.find(s=> s.date===currentDate && s.slotId===slot.id);
-    const dish = dishByName(swap ? swap.dishName : slot.dishName);
-    if(dish){ const s = dishFullnessScore(dish); const k = effectiveKcal(dish); if(s!==null){ planFullnessWeighted += s*k; planFullnessBase += k; } }
-  });
-  document.getElementById('planFullnessTotal').textContent = planFullnessBase>0 ? Math.round(planFullnessWeighted/planFullnessBase) : '–';
+  document.getElementById('planFullnessTotal').textContent = dayFullness===null ? '–' : dayFullness;
   const ffStatusEl = document.getElementById('ffStatus');
-  if(planFullnessBase>0){
-    const avgFF = Math.round(planFullnessWeighted/planFullnessBase);
+  if(dayFullness!==null){
+    const avgFF = dayFullness;
     let tier, title;
     if(avgFF>=65){ tier='good'; title='Guter Fullness-Tag'; }
     else if(avgFF>=40){ tier='mid'; title='Mittlerer Fullness-Tag'; }
@@ -1595,7 +1603,7 @@ function renderToday(){
     ffStatusEl.className = 'ff-status '+tier;
     ffStatusEl.style.display = 'flex';
     document.getElementById('ffStatusTitle').textContent = title;
-    document.getElementById('ffStatusSub').textContent = avgFF+' Ø – '+(tier==='good'?'sättigend, kein Anpassungsbedarf':tier==='mid'?'geht so, könnte sättigender sein':'heute wenig sättigend, Anpassung sinnvoll');
+    document.getElementById('ffStatusSub').textContent = avgFF+' Ø aus dem bisher Gegessenen – '+(tier==='good'?'sättigend, kein Anpassungsbedarf':tier==='mid'?'geht so, könnte sättigender sein':'heute wenig sättigend, Anpassung sinnvoll');
   }else{
     ffStatusEl.style.display = 'none';
   }
@@ -1712,24 +1720,11 @@ function renderToday(){
   }));
 
   let total = 0, totalFiber = 0;
-  let fullnessWeightedSum = 0, fullnessKcalBase = 0;
   resolvedSlots.forEach(({slot, dish})=>{
     const hit = dayLogPlan.find(l=> l.slotId ? l.slotId===slot.id : (dish && l.name===dish.name && l.time===slot.time));
-    if(hit){
-      total += hit.kcal; totalFiber += hit.fiber||0;
-      if(dish){ const s = dishFullnessScore(dish); if(s!==null){ fullnessWeightedSum += s*hit.kcal; fullnessKcalBase += hit.kcal; } }
-    }
+    if(hit){ total += hit.kcal; totalFiber += hit.fiber||0; }
   });
-  dayLogExtra.forEach(e=>{
-    total += e.kcal; totalFiber += e.fiber||0;
-    if(e.kcal>0 && (e.protein>0 || e.fiber>0)){
-      const proteinPer100kcal = ((e.protein||0)/e.kcal)*100;
-      const fiberPer100kcal = ((e.fiber||0)/e.kcal)*100;
-      const s = Math.max(0, Math.min(100, Math.round(proteinPer100kcal*3 + fiberPer100kcal*2)));
-      fullnessWeightedSum += s*e.kcal; fullnessKcalBase += e.kcal;
-    }
-  });
-  const dayFullness = fullnessKcalBase>0 ? Math.round(fullnessWeightedSum/fullnessKcalBase) : null;
+  dayLogExtra.forEach(e=>{ total += e.kcal; totalFiber += e.fiber||0; });
   const target = targets[activeTarget];
   const remaining = target-total;
   const fiberTarget = 30;

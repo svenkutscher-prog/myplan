@@ -280,6 +280,40 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
 .toggle.on .knob{left:18px;}
 .pantry-name{margin:0;font-size:14px;}
 .fullness-badge{display:inline-block;font-size:9.5px;font-weight:600;border-radius:20px;padding:1px 7px;margin-left:6px;vertical-align:middle;background:var(--line);color:var(--ink-soft);}
+
+.wk-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:1.4rem;}
+.wk-stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:1rem .7rem;text-align:center;}
+.wk-stat .wk-icon{width:30px;height:30px;border-radius:9px;margin:0 auto .5rem;display:flex;align-items:center;justify-content:center;}
+.wk-stat.eaten .wk-icon{background:var(--coral-bg);}
+.wk-stat.deficit .wk-icon{background:#E4EDDD;}
+.wk-stat.moved .wk-icon{background:#DCEAF0;}
+.wk-icon svg{width:16px;height:16px;}
+.wk-val{font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:600;margin:0;}
+.wk-label{font-size:10px;color:var(--ink-soft);margin:2px 0 0;line-height:1.3;}
+.compare-row{font-size:10px;color:var(--ink-soft);margin-top:.5rem;}
+.compare-row .delta.up{color:var(--coral);font-weight:600;}
+.compare-row .delta.down{color:var(--olive-dark);font-weight:600;}
+
+/* kompakte, aufklappbare Vorrat-Karten (iPhone-optimiert) */
+.p-card{background:var(--card);border:1px solid var(--line);border-radius:12px;margin-bottom:6px;overflow:hidden;}
+.p-card.low{border-color:var(--coral);background:var(--coral-bg);}
+.p-card.ignored{opacity:.55;}
+.p-row{display:flex;align-items:center;gap:7px;padding:8px 10px;}
+.p-name-wrap{flex:1;min-width:0;}
+.p-name{margin:0;font-size:13.5px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.p-mini{width:46px;flex-shrink:0;}
+.p-mini label{display:block;font-size:8px;color:var(--ink-soft);text-align:center;margin-bottom:1px;}
+.p-mini input{width:100%;border:1px solid var(--line);border-radius:7px;background:#fff;font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--ink);padding:4px 2px;text-align:center;}
+.p-expand-btn{width:26px;height:26px;border-radius:7px;background:transparent;border:1px solid var(--line);color:var(--ink-soft);flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+.p-expand-btn.open{background:var(--olive);border-color:var(--olive);color:#fff;}
+.p-expand-btn svg{width:13px;height:13px;}
+.p-detail{display:none;padding:0 10px 10px;border-top:1px dashed var(--line);margin-top:2px;gap:6px;}
+.p-detail.open{display:flex;padding-top:8px;}
+.p-dfield{flex:1;background:#fff;border:1px solid var(--line);border-radius:8px;padding:5px 6px;}
+.p-dfield label{display:block;font-size:8.5px;color:var(--ink-soft);text-transform:uppercase;margin-bottom:1px;}
+.p-dfield input{width:100%;border:none;background:transparent;font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--ink);padding:0;}
+.p-dprompt{width:28px;height:28px;border-radius:8px;background:var(--mustard-bg);display:flex;align-items:center;justify-content:center;color:var(--olive-dark);flex-shrink:0;align-self:center;cursor:pointer;border:none;}
+.p-dprompt svg{width:13px;height:13px;}
 .ff-status{display:flex;align-items:center;gap:10px;padding:10px 13px;border-radius:12px;margin-bottom:1rem;border:1px solid transparent;}
 .ff-status.good{background:#E4EDDD;border-color:var(--olive);}
 .ff-status.mid{background:var(--mustard-bg);border-color:var(--mustard);}
@@ -367,10 +401,9 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
         <text x="110" y="118" text-anchor="middle" class="gauge-pct" id="gaugePct">0%</text>
       </svg>
       <div class="gauge-legend">
-        <div class="gauge-legend-row"><span class="gauge-dot" style="background:var(--coral);"></span><span id="gaugeKcalVal">0/1400kcal</span></div>
+        <div class="gauge-legend-row"><span class="gauge-dot" style="background:var(--coral);"></span><span id="gaugeKcalVal">0/1400 kcal</span></div>
         <div class="gauge-legend-row"><span class="gauge-dot" style="background:var(--olive);"></span><span id="gaugeFiberVal">0/30 gBall</span></div>
         <div class="gauge-legend-row"><span class="gauge-dot" style="background:var(--water);"></span><span id="gaugeWaterVal">0/0 mlWa</span></div>
-        <div class="gauge-legend-row"><span class="gauge-dot" style="background:#7F77DD;"></span><span id="gaugeFullnessVal">– Fullness</span></div>
       </div>
     </div>
 
@@ -518,6 +551,28 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
       <div class="dash-stat"><p class="ds-label">Aktuelles Gewicht</p><p class="ds-val" id="dsWeight">–</p><p class="ds-sub" id="dsWeightSub">–</p></div>
       <div class="dash-stat"><p class="ds-label">Schritte Ø/Tag (7 Tage)</p><p class="ds-val" id="dsSteps">–</p><p class="ds-sub">letzte 7 Tage</p></div>
       <div class="dash-stat"><p class="ds-label">Ø kcal (7 Tage)</p><p class="ds-val" id="dsAvgKcal">–</p><p class="ds-sub" id="dsAvgKcalSub">letzte 7 Tage</p></div>
+    </div>
+
+    <p class="chart-label">Woche im Überblick (letzte 7 Tage)</p>
+    <div class="wk-grid">
+      <div class="wk-stat eaten">
+        <div class="wk-icon"><svg viewBox="0 0 24 24" fill="none" stroke="var(--coral)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c4 0 7-2.7 7-6.8 0-3.5-2.2-5.6-3.4-8-.6 1.3-1.5 2-2.4 1.3.7-2.4-.4-5-3-6.5.4 2.4-.6 3.8-2.3 5.6C6.1 9.5 5 11.6 5 14.2 5 18.7 8 22 12 22Z"/></svg></div>
+        <p class="wk-val" id="wkEaten">–</p>
+        <p class="wk-label">kcal gegessen</p>
+        <div class="compare-row" id="wkEatenCompare"></div>
+      </div>
+      <div class="wk-stat deficit">
+        <div class="wk-icon"><svg viewBox="0 0 24 24" fill="none" stroke="var(--olive-dark)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg></div>
+        <p class="wk-val" id="wkDeficit">–</p>
+        <p class="wk-label">kcal Defizit <span id="wkDeficitBasis"></span></p>
+        <div class="compare-row" id="wkDeficitCompare"></div>
+      </div>
+      <div class="wk-stat moved">
+        <div class="wk-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#378ADD" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8Z"/></svg></div>
+        <p class="wk-val" id="wkMoved">–</p>
+        <p class="wk-label">kcal Bewegung</p>
+        <div class="compare-row" id="wkMovedCompare"></div>
+      </div>
     </div>
 
     <div class="goal-card">
@@ -1006,6 +1061,37 @@ function renderDashboard(){
 
   const last7 = []; for(let i=6;i>=0;i--) last7.push(addDays(currentDate,-i));
   const stepsByDate = {}; steps.forEach(s=> stepsByDate[s.date]=s.steps);
+
+  /* Woche im Überblick: aktuelle 7 Tage vs. die 7 Tage davor */
+  const prev7 = []; for(let i=13;i>=7;i--) prev7.push(addDays(currentDate,-i));
+  const wkStepsKcalByDate = {}; steps.forEach(s=> wkStepsKcalByDate[s.date]=s.kcal);
+  const WK_BASIS = 1800;
+  function weekTotals(days){
+    let eaten=0, moved=0, deficit=0, eatenDays=0;
+    days.forEach(d=>{
+      const e = dayTotalKcal(d);
+      if(e>0){ eaten+=e; deficit += (WK_BASIS-e); eatenDays++; }
+      moved += wkStepsKcalByDate[d]||0;
+    });
+    return { eaten, moved, deficit, eatenDays };
+  }
+  const curWk = weekTotals(last7), prevWk = weekTotals(prev7);
+  function fmtDelta(cur, prev, lowerIsBetter){
+    if(prev===0 && cur===0) return '';
+    const diff = cur-prev;
+    const better = lowerIsBetter ? diff<0 : diff>0;
+    const cls = diff===0 ? '' : (better?'down':'up');
+    const sign = diff>0?'+':'';
+    return `Vorwoche ${prev.toLocaleString('de-DE')} <span class="delta ${cls}">${sign}${diff.toLocaleString('de-DE')}</span>`;
+  }
+  document.getElementById('wkEaten').textContent = curWk.eaten.toLocaleString('de-DE');
+  document.getElementById('wkEatenCompare').innerHTML = fmtDelta(curWk.eaten, prevWk.eaten, true);
+  document.getElementById('wkDeficit').textContent = (curWk.deficit>=0?'+':'')+curWk.deficit.toLocaleString('de-DE');
+  document.getElementById('wkDeficitBasis').textContent = `(ggü. ${WK_BASIS}/Tag)`;
+  document.getElementById('wkDeficitCompare').innerHTML = fmtDelta(curWk.deficit, prevWk.deficit, false);
+  document.getElementById('wkMoved').textContent = curWk.moved.toLocaleString('de-DE');
+  document.getElementById('wkMovedCompare').innerHTML = fmtDelta(curWk.moved, prevWk.moved, false);
+
   const stepsData = last7.map(d=> stepsByDate[d]||0);
   const stepsDaysWithData = last7.filter(d=> stepsByDate[d]!==undefined);
   const avgSteps = stepsDaysWithData.length ? Math.round(stepsDaysWithData.reduce((sum,d)=> sum+stepsByDate[d],0)/stepsDaysWithData.length) : 0;
@@ -1196,36 +1282,65 @@ function buildPantryPrompt(p){
   const basis = (p.unit==='g'||p.unit==='ml') ? `pro 100 ${p.unit}` : `für 1 ${p.unit||'Stück'}`;
   return `Schätze für folgendes Lebensmittel die Werte ${basis}: Kalorien (kcal), Ballaststoffe (g) und Protein (g). Gib die Antwort in genau diesem Format zurück, ohne weiteren Text: kcal: <Zahl>, Ballaststoffe: <Zahl in g>, Protein: <Zahl in g>\n\nLebensmittel: ${p.name}`;
 }
+let pantryExpanded = {}; // { "Zutatname": true/false } rein lokal, nicht persistiert
+function pantryRowHtml(p, i){
+  const score = fullnessScore(p);
+  const scoreBadge = score===null ? '' : `<span class="fullness-badge ${score>=50?'high':score>=25?'mid':'low'}">${score} FF</span>`;
+  const open = !!pantryExpanded[p.name];
+  const isG = p.unit==='g'||p.unit==='ml';
+  if(p.ignore){
+    return `
+    <div class="p-card ignored" data-i="${i}">
+      <div class="p-row">
+        <div class="p-name-wrap"><p class="p-name">${escapeAttr(p.name)}</p></div>
+        <span style="font-size:10.5px;color:var(--ink-soft);flex:1;text-align:right;margin-right:4px;">nicht geprüft</span>
+        <div class="toggle"><div class="knob"></div></div>
+      </div>
+    </div>`;
+  }
+  return `
+    <div class="p-card ${p.bestand<p.mindestbestand?'low':''}" data-i="${i}">
+      <div class="p-row">
+        <div class="p-name-wrap"><p class="p-name">${escapeAttr(p.name)} ${scoreBadge}</p></div>
+        <div class="p-mini"><label>Best.</label><input type="number" step="any" class="pf-bestand" value="${p.bestand}"></div>
+        <div class="p-mini"><label>Min.</label><input type="number" step="any" class="pf-min" value="${p.mindestbestand}"></div>
+        <button type="button" class="p-expand-btn ${open?'open':''}" title="Nährwerte"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${open?'<path d="M18 15l-6-6-6 6"/>':'<path d="M6 9l6 6 6-6"/>'}</svg></button>
+      </div>
+      <div class="p-detail ${open?'open':''}">
+        <div class="p-dfield"><label>kcal${isG?'/100':'/Stk'}</label><input type="number" step="any" class="pf-kcal" value="${p.kcalPerUnit}"></div>
+        <div class="p-dfield"><label>Bal.${isG?'/100':'/Stk'}</label><input type="number" step="any" class="pf-fiber" value="${p.fiberPerUnit}"></div>
+        <div class="p-dfield"><label>Prot.${isG?'/100':'/Stk'}</label><input type="number" step="any" class="pf-protein" value="${p.proteinPerUnit}"></div>
+        <button type="button" class="p-dprompt pf-prompt" title="Nährwerte per ChatGPT schätzen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></button>
+        <div class="toggle on" style="align-self:center;" title="Prüfen"><div class="knob"></div></div>
+      </div>
+    </div>`;
+}
 function renderPantry(){
   document.getElementById('newIngUnit').innerHTML = UNITS.map(u=>`<option value="${u}">${u}</option>`).join('');
   const wrap = document.getElementById('pantryList');
   if(!pantry.length){ wrap.innerHTML = '<p class="section-note">Noch keine Zutaten – lege zuerst ein paar Gerichte an.</p>'; return; }
-  wrap.innerHTML = pantry.map((p,i)=>{
-    const score = fullnessScore(p);
-    const scoreBadge = score===null ? '' : `<span class="fullness-badge ${score>=50?'high':score>=25?'mid':'low'}">${score} Fullness</span>`;
-    return `
-    <div class="pantry-row ${!p.ignore && p.bestand<p.mindestbestand?'low':''} ${p.ignore?'ignored':''}" data-i="${i}">
-      <div><p class="pantry-name">${escapeAttr(p.name)} ${scoreBadge}</p><p class="pantry-hint">${p.ignore?'wird nicht geprüft':(p.unit||'Einheit wie im Rezept')}</p></div>
-      <div class="pantry-fields">
-        <div class="pantry-field"><label>Bestand</label><input type="number" step="any" class="pf-bestand" value="${p.bestand}" ${p.ignore?'disabled':''}></div>
-        <div class="pantry-field"><label>Minimum</label><input type="number" step="any" class="pf-min" value="${p.mindestbestand}" ${p.ignore?'disabled':''}></div>
-        <div class="pantry-field"><label>kcal${p.unit==='g'||p.unit==='ml'?'/100':'/Stk'}</label><input type="number" step="any" class="pf-kcal" value="${p.kcalPerUnit}"></div>
-        <div class="pantry-field"><label>Bal.${p.unit==='g'||p.unit==='ml'?'/100':'/Stk'}</label><input type="number" step="any" class="pf-fiber" value="${p.fiberPerUnit}"></div>
-        <div class="pantry-field"><label>Prot.${p.unit==='g'||p.unit==='ml'?'/100':'/Stk'}</label><input type="number" step="any" class="pf-protein" value="${p.proteinPerUnit}"></div>
-        <button type="button" class="icon-btn pf-prompt" title="Nährwerte per ChatGPT schätzen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></button>
-        <div class="pantry-field"><label>Prüfen</label><div class="toggle ${p.ignore?'':'on'}"><div class="knob"></div></div></div>
-      </div>
-    </div>`;
-  }).join('');
-  wrap.querySelectorAll('.pantry-row').forEach(row=>{
+  const active = pantry.map((p,i)=>({p,i})).filter(x=>!x.p.ignore);
+  const ignored = pantry.map((p,i)=>({p,i})).filter(x=>x.p.ignore);
+  let html = active.map(x=> pantryRowHtml(x.p, x.i)).join('');
+  if(ignored.length){
+    html += `<p class="section-note" style="margin:1rem 0 .4rem;">Nicht geprüft (${ignored.length})</p>`;
+    html += ignored.map(x=> pantryRowHtml(x.p, x.i)).join('');
+  }
+  wrap.innerHTML = html;
+  wrap.querySelectorAll('.p-card').forEach(row=>{
     const i = Number(row.dataset.i); const p = pantry[i];
-    row.querySelector('.pf-bestand').addEventListener('change', e=>{ p.bestand = Number(e.target.value)||0; row.classList.toggle('low', !p.ignore && p.bestand<p.mindestbestand); savePantryItem(p).catch(err=>{ console.error(err); setStatus(err.message); }); });
-    row.querySelector('.pf-min').addEventListener('change', e=>{ p.mindestbestand = Number(e.target.value)||0; row.classList.toggle('low', !p.ignore && p.bestand<p.mindestbestand); savePantryItem(p).catch(err=>{ console.error(err); setStatus(err.message); }); });
-    row.querySelector('.pf-kcal').addEventListener('change', e=>{ p.kcalPerUnit = Number(e.target.value)||0; savePantryItem(p).catch(err=>{ console.error(err); setStatus(err.message); }); renderPantry(); });
-    row.querySelector('.pf-fiber').addEventListener('change', e=>{ p.fiberPerUnit = Number(e.target.value)||0; savePantryItem(p).catch(err=>{ console.error(err); setStatus(err.message); }); renderPantry(); });
-    row.querySelector('.pf-protein').addEventListener('change', e=>{ p.proteinPerUnit = Number(e.target.value)||0; savePantryItem(p).catch(err=>{ console.error(err); setStatus(err.message); }); renderPantry(); });
+    const bestandEl = row.querySelector('.pf-bestand'), minEl = row.querySelector('.pf-min');
+    if(bestandEl) bestandEl.addEventListener('change', e=>{ p.bestand = Number(e.target.value)||0; row.classList.toggle('low', p.bestand<p.mindestbestand); savePantryItem(p).catch(err=>{ console.error(err); setStatus(err.message); }); });
+    if(minEl) minEl.addEventListener('change', e=>{ p.mindestbestand = Number(e.target.value)||0; row.classList.toggle('low', p.bestand<p.mindestbestand); savePantryItem(p).catch(err=>{ console.error(err); setStatus(err.message); }); });
+    const kcalEl = row.querySelector('.pf-kcal'), fiberEl = row.querySelector('.pf-fiber'), protEl = row.querySelector('.pf-protein');
+    if(kcalEl) kcalEl.addEventListener('change', e=>{ p.kcalPerUnit = Number(e.target.value)||0; savePantryItem(p).catch(err=>{ console.error(err); setStatus(err.message); }); renderPantry(); });
+    if(fiberEl) fiberEl.addEventListener('change', e=>{ p.fiberPerUnit = Number(e.target.value)||0; savePantryItem(p).catch(err=>{ console.error(err); setStatus(err.message); }); renderPantry(); });
+    if(protEl) protEl.addEventListener('change', e=>{ p.proteinPerUnit = Number(e.target.value)||0; savePantryItem(p).catch(err=>{ console.error(err); setStatus(err.message); }); renderPantry(); });
+    const expandBtn = row.querySelector('.p-expand-btn');
+    if(expandBtn) expandBtn.addEventListener('click', ()=>{ pantryExpanded[p.name] = !pantryExpanded[p.name]; renderPantry(); });
     row.querySelector('.toggle').addEventListener('click', ()=>{ p.ignore = !p.ignore; savePantryItem(p).catch(err=>{ console.error(err); setStatus(err.message); }); renderPantry(); });
-    row.querySelector('.pf-prompt').addEventListener('click', async ()=>{
+    const promptBtn = row.querySelector('.pf-prompt');
+    if(promptBtn) promptBtn.addEventListener('click', async ()=>{
       const prompt = buildPantryPrompt(p);
       try{ await navigator.clipboard.writeText(prompt); setStatus('Prompt für "'+p.name+'" kopiert'); }
       catch(e){ setStatus('Kopieren nicht möglich'); }
@@ -1323,7 +1438,7 @@ function renderSnackManage(){
   const pantryOptions = [...pantry].filter(p=>p.kcalPerUnit>0).sort((a,b)=>a.name.localeCompare(b.name,'de')).map(p=>
     `<option value="p:${escapeAttr(p.name)}">${escapeAttr(p.name)} (${p.kcalPerUnit} kcal/${escapeAttr(p.unit||'Einheit')})</option>`).join('');
   const dishOptions = [...dishes].sort((a,b)=>a.name.localeCompare(b.name,'de')).map(d=>
-    `<option value="d:${escapeAttr(d.name)}">${escapeAttr(d.name)} (${d.kcal} kcal)</option>`).join('');
+    `<option value="d:${escapeAttr(d.name)}">${escapeAttr(d.name)} (${effectiveKcal(d)} kcal)</option>`).join('');
   select.innerHTML = '<option value="">Auswählen…</option>'
     + (pantryOptions ? `<optgroup label="Zutaten">${pantryOptions}</optgroup>` : '')
     + (dishOptions ? `<optgroup label="Gerichte">${dishOptions}</optgroup>` : '');
@@ -1333,7 +1448,7 @@ function renderSnackManage(){
   const withKcal = snacks.map(s=>{
     const amt = s.amount||1;
     const src = s.source==='dish' ? dishByName(s.name) : pantryItem(s.name);
-    const kcal = src ? Math.round((s.source==='dish'?src.kcal:src.kcalPerUnit)*amt) : (s.kcal||0);
+    const kcal = src ? Math.round((s.source==='dish'?effectiveKcal(src):src.kcalPerUnit)*amt) : (s.kcal||0);
     return { ...s, amt, kcal };
   });
   wrap.innerHTML = withKcal.sort((a,b)=>a.kcal-b.kcal).map(s=>`
@@ -1355,7 +1470,7 @@ document.getElementById('snackAddBtn').addEventListener('click', async ()=>{
   const source = raw.startsWith('d:') ? 'dish' : 'pantry';
   const name = raw.slice(2);
   const src = source==='dish' ? dishByName(name) : pantryItem(name);
-  const kcal = src ? Math.round((source==='dish'?src.kcal:src.kcalPerUnit)*amount) : 0;
+  const kcal = src ? Math.round((source==='dish'?effectiveKcal(src):src.kcalPerUnit)*amount) : 0;
   try{
     const rec = await atCreate('Snacks', { Name:name, Amount:amount, Kcal:kcal, Source:source });
     snacks.push({ id:rec.id, name, amount, kcal, source });
@@ -1606,7 +1721,6 @@ function renderToday(){
   });
   dayLogExtra.forEach(e=>{ total += e.kcal; totalFiber += e.fiber||0; });
   const dayFullness = fullnessKcalBase>0 ? Math.round(fullnessWeightedSum/fullnessKcalBase) : null;
-  document.getElementById('gaugeFullnessVal').textContent = dayFullness===null ? '– Fullness' : dayFullness+' Fullness';
   const target = targets[activeTarget];
   const remaining = target-total;
   const fiberTarget = 30;
@@ -1626,7 +1740,7 @@ function renderToday(){
 
   const waterPct = waterTarget>0 ? Math.round((waterTotal/waterTarget)*100) : 0;
   document.getElementById('gaugePct').textContent = waterPct+'%';
-  document.getElementById('gaugeKcalVal').textContent = total+'/'+target+'kcal';
+  document.getElementById('gaugeKcalVal').textContent = total+'/'+target+' kcal';
   document.getElementById('gaugeFiberVal').textContent = Math.round(totalFiber*10)/10+'/'+fiberTarget+' gBall';
   document.getElementById('gaugeWaterVal').textContent = waterTotal+'/'+waterTarget+' mlWa';
 
@@ -1642,8 +1756,8 @@ function renderSnackChips(remaining){
   const resolved = snacks.map(s=>{
     const amt = s.amount||1;
     const src = s.source==='dish' ? dishByName(s.name) : pantryItem(s.name);
-    const kcal = src ? Math.round((s.source==='dish'?src.kcal:src.kcalPerUnit)*amt) : (s.kcal||0);
-    const fiber = src ? Math.round((s.source==='dish'?src.fiber:src.fiberPerUnit)*amt*10)/10 : 0;
+    const kcal = src ? Math.round((s.source==='dish'?effectiveKcal(src):src.kcalPerUnit)*amt) : (s.kcal||0);
+    const fiber = src ? Math.round((s.source==='dish'?effectiveFiber(src):src.fiberPerUnit)*amt*10)/10 : 0;
     return { id:s.id, name: s.name+(amt!==1?` ×${amt}`:''), kcal, fiber };
   });
   const visible = resolved.filter(s=> s.kcal <= remaining + 100);

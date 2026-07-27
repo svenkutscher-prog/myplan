@@ -437,6 +437,7 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
         <div class="fcol"><label>Kcal</label><input type="number" id="extraKcal" placeholder="kcal"></div>
         <div class="fcol"><label>Ballaststoffe (g, optional)</label><input type="number" step="any" id="extraFiber" placeholder="g"></div>
       </div>
+      <div class="field"><label>Protein (g, optional)</label><input type="number" step="any" id="extraProtein" placeholder="g"></div>
       <div class="modal-actions"><button class="btn" id="extraCancel">Abbrechen</button><button class="btn primary" id="extraAddBtn">Hinzufügen</button></div>
     </div>
   </div>
@@ -1542,7 +1543,7 @@ async function loadAll(){
     });
     WEEKDAYS.forEach(wd=> weekPlan[wd].sort((a,b)=> a.time.localeCompare(b.time)));
     await migrateSlotTimesToHours();
-    logEntries = logRecs.map(r=>({ id:r.id, date:r.fields.Date, type:r.fields.Type, name:r.fields.Name, kcal:Number(r.fields.Kcal)||0, fiber:Number(r.fields.Fiber)||0, time:r.fields.Time||'', checkedAt:r.fields.CheckedAt||'', slotId:r.fields.SlotId||'' }));
+    logEntries = logRecs.map(r=>({ id:r.id, date:r.fields.Date, type:r.fields.Type, name:r.fields.Name, kcal:Number(r.fields.Kcal)||0, fiber:Number(r.fields.Fiber)||0, protein:Number(r.fields.Protein)||0, time:r.fields.Time||'', checkedAt:r.fields.CheckedAt||'', slotId:r.fields.SlotId||'' }));
     weights = wRecs.map(r=>({ id:r.id, date:r.fields.Date, kg:Number(r.fields.Kg)||0 }));
     steps = sRecs.map(r=>({ id:r.id, date:r.fields.Date, steps:Number(r.fields.Steps)||0, kcal:Number(r.fields.Kcal)||0 }));
     setStatus('Verbunden');
@@ -1719,7 +1720,15 @@ function renderToday(){
       if(dish){ const s = dishFullnessScore(dish); if(s!==null){ fullnessWeightedSum += s*hit.kcal; fullnessKcalBase += hit.kcal; } }
     }
   });
-  dayLogExtra.forEach(e=>{ total += e.kcal; totalFiber += e.fiber||0; });
+  dayLogExtra.forEach(e=>{
+    total += e.kcal; totalFiber += e.fiber||0;
+    if(e.kcal>0 && (e.protein>0 || e.fiber>0)){
+      const proteinPer100kcal = ((e.protein||0)/e.kcal)*100;
+      const fiberPer100kcal = ((e.fiber||0)/e.kcal)*100;
+      const s = Math.max(0, Math.min(100, Math.round(proteinPer100kcal*3 + fiberPer100kcal*2)));
+      fullnessWeightedSum += s*e.kcal; fullnessKcalBase += e.kcal;
+    }
+  });
   const dayFullness = fullnessKcalBase>0 ? Math.round(fullnessWeightedSum/fullnessKcalBase) : null;
   const target = targets[activeTarget];
   const remaining = target-total;
@@ -1758,21 +1767,22 @@ function renderSnackChips(remaining){
     const src = s.source==='dish' ? dishByName(s.name) : pantryItem(s.name);
     const kcal = src ? Math.round((s.source==='dish'?effectiveKcal(src):src.kcalPerUnit)*amt) : (s.kcal||0);
     const fiber = src ? Math.round((s.source==='dish'?effectiveFiber(src):src.fiberPerUnit)*amt*10)/10 : 0;
-    return { id:s.id, name: s.name+(amt!==1?` ×${amt}`:''), kcal, fiber };
+    const protein = src ? Math.round((s.source==='dish'?calculatedProtein(src):src.proteinPerUnit)*amt*10)/10 : 0;
+    return { id:s.id, name: s.name+(amt!==1?` ×${amt}`:''), kcal, fiber, protein };
   });
   const visible = resolved.filter(s=> s.kcal <= remaining + 100);
   if(!visible.length){ wrap.innerHTML = '<p class="section-note">Keine Snacks passend zum Rest-Budget – im Vorrat-Tab welche anlegen.</p>'; return; }
   wrap.innerHTML = [...visible].sort((a,b)=>a.kcal-b.kcal).map(s=>{
     const color = s.kcal <= remaining ? 'green' : 'orange';
-    return `<button class="snack-chip ${color}" data-id="${s.id}" data-name="${escapeAttr(s.name)}" data-kcal="${s.kcal}" data-fiber="${s.fiber}">${escapeAttr(s.name)} · ${s.kcal} kcal</button>`;
+    return `<button class="snack-chip ${color}" data-id="${s.id}" data-name="${escapeAttr(s.name)}" data-kcal="${s.kcal}" data-fiber="${s.fiber}" data-protein="${s.protein}">${escapeAttr(s.name)} · ${s.kcal} kcal</button>`;
   }).join('');
   wrap.querySelectorAll('.snack-chip').forEach(btn=> btn.addEventListener('click', async ()=>{
-    const name = btn.dataset.name, kcal = Number(btn.dataset.kcal), fiber = Number(btn.dataset.fiber);
+    const name = btn.dataset.name, kcal = Number(btn.dataset.kcal), fiber = Number(btn.dataset.fiber), protein = Number(btn.dataset.protein);
     const now = new Date();
     const time = String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
     try{
-      const rec = await atCreate('LogEntries', { Date: currentDate, Type:'extra', Name:name, Kcal:kcal, Fiber:fiber, Time:time });
-      logEntries.push({ id:rec.id, date:currentDate, type:'extra', name, kcal, fiber, time });
+      const rec = await atCreate('LogEntries', { Date: currentDate, Type:'extra', Name:name, Kcal:kcal, Fiber:fiber, Protein:protein, Time:time });
+      logEntries.push({ id:rec.id, date:currentDate, type:'extra', name, kcal, fiber, protein, time });
       renderToday();
     }catch(e){ setStatus('Fehler beim Speichern'); }
   }));
@@ -1780,7 +1790,7 @@ function renderSnackChips(remaining){
 
 
 document.getElementById('openExtraBtn').addEventListener('click', ()=>{
-  document.getElementById('extraName').value=''; document.getElementById('extraKcal').value=''; document.getElementById('extraFiber').value='';
+  document.getElementById('extraName').value=''; document.getElementById('extraKcal').value=''; document.getElementById('extraFiber').value=''; document.getElementById('extraProtein').value='';
   document.getElementById('extraModalBg').classList.add('open');
 });
 document.getElementById('extraCancel').addEventListener('click', ()=> document.getElementById('extraModalBg').classList.remove('open'));
@@ -1788,12 +1798,13 @@ document.getElementById('extraAddBtn').addEventListener('click', async ()=>{
   const name = document.getElementById('extraName').value.trim();
   const kcal = Number(document.getElementById('extraKcal').value)||0;
   const fiber = Number(document.getElementById('extraFiber').value)||0;
+  const protein = Number(document.getElementById('extraProtein').value)||0;
   if(!name || kcal<=0) return;
   const now = new Date();
   const time = String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
   try{
-    const rec = await atCreate('LogEntries', { Date: currentDate, Type:'extra', Name:name, Kcal:kcal, Fiber:fiber, Time:time });
-    logEntries.push({ id:rec.id, date:currentDate, type:'extra', name, kcal, fiber, time });
+    const rec = await atCreate('LogEntries', { Date: currentDate, Type:'extra', Name:name, Kcal:kcal, Fiber:fiber, Protein:protein, Time:time });
+    logEntries.push({ id:rec.id, date:currentDate, type:'extra', name, kcal, fiber, protein, time });
     document.getElementById('extraModalBg').classList.remove('open');
     renderToday();
   }catch(e){ setStatus('Fehler beim Speichern'); }

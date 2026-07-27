@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-sale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Nouri</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap');
@@ -12,6 +12,11 @@
   --coral:#B3543A; --coral-bg:#F2DFD7; --water:#5B8FA8; --water-light:#B9D4E0; --water-bg:#DCEAF0;
 }
 *{box-sizing:border-box;}
+.loading-overlay{position:fixed;inset:0;background:var(--bg);z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;transition:opacity .3s ease;}
+.loading-overlay.hidden{opacity:0;pointer-events:none;}
+.loading-spinner{width:34px;height:34px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--olive);animation:loadingSpin .8s linear infinite;}
+.loading-text{font-family:'Fraunces',serif;font-weight:600;font-size:15px;color:var(--ink-soft);margin:0;}
+@keyframes loadingSpin{to{transform:rotate(360deg);}}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;padding:2rem 1.1rem 5rem;}
 .wrap{max-width:520px;margin:0 auto;}
 h1{font-family:'Fraunces',serif;font-weight:600;font-size:26px;margin:0 0 1.1rem;}
@@ -274,6 +279,23 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
 .toggle .knob{position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:left .15s;}
 .toggle.on .knob{left:18px;}
 .pantry-name{margin:0;font-size:14px;}
+.fullness-badge{display:inline-block;font-size:9.5px;font-weight:600;border-radius:20px;padding:1px 7px;margin-left:6px;vertical-align:middle;background:var(--line);color:var(--ink-soft);}
+.ff-status{display:flex;align-items:center;gap:10px;padding:10px 13px;border-radius:12px;margin-bottom:1rem;border:1px solid transparent;}
+.ff-status.good{background:#E4EDDD;border-color:var(--olive);}
+.ff-status.mid{background:var(--mustard-bg);border-color:var(--mustard);}
+.ff-status.low{background:var(--coral-bg);border-color:var(--coral);}
+.ff-status .dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.ff-status.good .dot{background:var(--olive);}
+.ff-status.mid .dot{background:var(--mustard);}
+.ff-status.low .dot{background:var(--coral);}
+.ff-status-text{flex:1;}
+.ff-status-title{font-size:13.5px;font-weight:600;margin:0;}
+.ff-status.good .ff-status-title{color:var(--olive-dark);}
+.ff-status.mid .ff-status-title{color:#8A5A17;}
+.ff-status.low .ff-status-title{color:var(--coral);}
+.ff-status-sub{font-size:11.5px;color:var(--ink-soft);margin:2px 0 0;}
+.fullness-badge.mid{background:var(--mustard-bg);color:#8A5A17;}
+.fullness-badge.high{background:#E4EDDD;color:var(--olive-dark);}
 .pantry-hint{margin:0;font-size:11px;color:var(--ink-soft);}
 .pantry-fields{display:flex;gap:8px;flex-shrink:0;}
 .pantry-field{display:flex;flex-direction:column;align-items:center;}
@@ -305,6 +327,10 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
 </style>
 </head>
 <body>
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-spinner"></div>
+  <p class="loading-text">Nouri lädt…</p>
+</div>
 <div class="wrap">
   <h1>Nouri</h1>
   <div class="tabs">
@@ -344,10 +370,18 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
         <div class="gauge-legend-row"><span class="gauge-dot" style="background:var(--coral);"></span><span id="gaugeKcalVal">0/1400kcal</span></div>
         <div class="gauge-legend-row"><span class="gauge-dot" style="background:var(--olive);"></span><span id="gaugeFiberVal">0/30 gBall</span></div>
         <div class="gauge-legend-row"><span class="gauge-dot" style="background:var(--water);"></span><span id="gaugeWaterVal">0/0 mlWa</span></div>
+        <div class="gauge-legend-row"><span class="gauge-dot" style="background:#7F77DD;"></span><span id="gaugeFullnessVal">– Fullness</span></div>
       </div>
     </div>
 
-    <p class="section-label">Dein <span id="planKcalTotal">0</span>-kcal-Plan (<span id="planFiberTotal">0</span> g Ballaststoffe)</p>
+    <p class="section-label">Dein <span id="planKcalTotal">0</span>-kcal-Plan (<span id="planFiberTotal">0</span> g Ballaststoffe, Ø <span id="planFullnessTotal">–</span> Fullness)</p>
+    <div class="ff-status" id="ffStatus" style="display:none;">
+      <span class="dot"></span>
+      <div class="ff-status-text">
+        <p class="ff-status-title" id="ffStatusTitle"></p>
+        <p class="ff-status-sub" id="ffStatusSub"></p>
+      </div>
+    </div>
     <div id="planList"></div>
 
     <p class="section-label" style="margin-top:1rem;">Snacks – passend zu deinem Rest-Budget</p>
@@ -430,6 +464,7 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
         <input type="number" id="newIngMin" class="qkcal" placeholder="Minimum" value="0">
         <input type="number" id="newIngKcal" class="qkcal" placeholder="kcal">
         <input type="number" id="newIngFiber" class="qkcal" placeholder="Bal.">
+        <input type="number" id="newIngProtein" class="qkcal" placeholder="Prot.">
         <button id="newIngSaveBtn">+</button>
       </div>
     </div>
@@ -525,8 +560,14 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
     <p class="chart-label">Schritte, letzte 7 Tage</p>
     <div class="chart-wrap"><canvas id="stepsChart" role="img" aria-label="Schritte pro Tag, letzte 7 Tage"></canvas></div>
 
-    <p class="chart-label">Kalorien vs. Ziel, letzte 7 Tage</p>
-    <div class="chart-wrap"><canvas id="kcalChart" role="img" aria-label="Kalorien pro Tag im Vergleich zum Ziel, letzte 7 Tage"></canvas></div>
+    <p class="chart-label">Gegessen, Bewegung & Netto, letzte 14 Tage</p>
+    <div class="chart-legend" style="display:flex;flex-wrap:wrap;gap:14px;margin-bottom:8px;font-size:11.5px;color:var(--ink-soft);">
+      <span><span style="display:inline-block;width:10px;height:2px;background:#D85A30;margin-right:4px;"></span>Gegessen</span>
+      <span><span style="display:inline-block;width:10px;height:2px;background:#378ADD;margin-right:4px;"></span>Bewegung</span>
+      <span><span style="display:inline-block;width:10px;height:2px;background:#4a3aa7;margin-right:4px;"></span>Netto</span>
+      <span><span style="display:inline-block;width:10px;height:0;border-top:1px dashed #898781;margin-right:4px;"></span>Ziel</span>
+    </div>
+    <div class="chart-wrap"><canvas id="kcalChart" role="img" aria-label="Gegessene, verbrannte und Netto-Kalorien pro Tag im Vergleich zum Ziel, letzte 14 Tage"></canvas></div>
 
     <p class="chart-label">Trinken, letzte 7 Tage</p>
     <div class="chart-wrap"><canvas id="waterChart" role="img" aria-label="Getrunkene Liter pro Tag, letzte 7 Tage"></canvas></div>
@@ -772,17 +813,7 @@ function upsertChart(canvasId, config){
 }
 
 function dayTotalKcal(date){
-  const wd = weekdayOf(date);
-  const slots = weekPlan[wd] || [];
-  let total = 0;
-  logEntries.filter(l=>l.date===date).forEach(l=>{
-    if(l.type==='extra') total += l.kcal;
-    else if(l.type==='plan'){
-      const matchesSlot = slots.some(s=> s.dishName===l.name && s.time===l.time);
-      if(matchesSlot) total += l.kcal;
-    }
-  });
-  return total;
+  return logEntries.filter(l=>l.date===date).reduce((sum,l)=> sum+l.kcal, 0);
 }
 
 function renderGoalCard(){
@@ -996,10 +1027,20 @@ function renderDashboard(){
   document.getElementById('dsAvgKcal').style.color = avgKcal>target ? 'var(--coral)' : 'var(--olive-dark)';
   document.getElementById('dsAvgKcalSub').textContent = avgKcal>target ? `über ${target} kcal Ziel` : `im Rahmen (Ziel ${target})`;
 
+  const last14 = []; for(let i=13;i>=0;i--) last14.push(addDays(currentDate,-i));
+  const stepsKcalByDate = {}; steps.forEach(s=> stepsKcalByDate[s.date]=s.kcal);
+  const eatenData = last14.map(d=> dayTotalKcal(d));
+  const movedData = last14.map(d=> stepsKcalByDate[d]||0);
+  const netData = eatenData.map((v,i)=> v-movedData[i]);
   upsertChart('kcalChart', {
-    type:'bar',
-    data:{ labels: last7.map(d=> WEEKDAY_NAMES[weekdayOf(d)].slice(0,2)),
-      datasets:[{ data: kcalData, backgroundColor: kcalData.map(v=> v>target?'#B3543A':'#4F6B44'), borderRadius:4, maxBarThickness:26 }] },
+    type:'line',
+    data:{ labels: last14.map(d=> WEEKDAY_NAMES[weekdayOf(d)].slice(0,2)),
+      datasets:[
+        { data: eatenData, borderColor:'#D85A30', borderWidth:1.5, pointRadius:2, tension:0.3 },
+        { data: movedData, borderColor:'#378ADD', borderWidth:1.5, pointRadius:2, tension:0.3 },
+        { data: netData, borderColor:'#4a3aa7', backgroundColor:'rgba(74,58,167,0.08)', borderWidth:2.5, pointRadius:3, tension:0.3, fill:true },
+        { data: last14.map(()=>target), borderColor:'#898781', borderWidth:1, borderDash:[4,4], pointRadius:0 }
+      ] },
     options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
       scales:{ y:{ grid:{color:grid} }, x:{ grid:{display:false} } } }
   });
@@ -1035,7 +1076,7 @@ async function adjustPantryForDish(dish, sign){
 function syncPantry(pRecs){
   const byName = new Map();
   pRecs.forEach(r=> byName.set((r.fields.Name||'').trim().toLowerCase(),
-    { id:r.id, name:r.fields.Name||'', unit:r.fields.Unit||'', bestand:Number(r.fields.Bestand)||0, mindestbestand:Number(r.fields.Mindestbestand)||0, ignore: !!r.fields.Ignore, kcalPerUnit:Number(r.fields.KcalPerUnit)||0, fiberPerUnit:Number(r.fields.FiberPerUnit)||0 }));
+    { id:r.id, name:r.fields.Name||'', unit:r.fields.Unit||'', bestand:Number(r.fields.Bestand)||0, mindestbestand:Number(r.fields.Mindestbestand)||0, ignore: !!r.fields.Ignore, kcalPerUnit:Number(r.fields.KcalPerUnit)||0, fiberPerUnit:Number(r.fields.FiberPerUnit)||0, proteinPerUnit:Number(r.fields.ProteinPerUnit)||0 }));
   const seen = new Set();
   const merged = [];
   dishes.forEach(d=> d.ingredients.forEach(ing=>{
@@ -1043,7 +1084,7 @@ function syncPantry(pRecs){
     if(!key || seen.has(key)) return;
     seen.add(key);
     const existing = byName.get(key);
-    merged.push(existing || { id:null, name: ing.name.trim(), unit: ing.unit||'', bestand:0, mindestbestand:0, ignore:false, kcalPerUnit:0, fiberPerUnit:0 });
+    merged.push(existing || { id:null, name: ing.name.trim(), unit: ing.unit||'', bestand:0, mindestbestand:0, ignore:false, kcalPerUnit:0, fiberPerUnit:0, proteinPerUnit:0 });
   }));
   // Eigenständige Zutaten (z.B. manuell im Vorrat angelegt, in keinem Gericht als Zutat verwendet) nicht verwerfen
   byName.forEach((item, key)=>{ if(!seen.has(key)){ seen.add(key); merged.push(item); } });
@@ -1075,7 +1116,7 @@ function resyncPantryFromDishes(){
       if(ing.unit && existing.unit !== ing.unit){ existing.unit = ing.unit; savePantryItem(existing).catch(err=>{ console.error(err); setStatus(err.message); }); }
       merged.push(existing);
     }else{
-      merged.push({ id:null, name: ing.name.trim(), unit: ing.unit||'', bestand:0, mindestbestand:0, ignore:false, kcalPerUnit:0, fiberPerUnit:0 });
+      merged.push({ id:null, name: ing.name.trim(), unit: ing.unit||'', bestand:0, mindestbestand:0, ignore:false, kcalPerUnit:0, fiberPerUnit:0, proteinPerUnit:0 });
     }
   }));
   // Eigenständige Zutaten (nicht in einem Gericht verwendet, z.B. manuell im Vorrat angelegt) beibehalten
@@ -1089,7 +1130,7 @@ function pantryItem(name){
 }
 async function savePantryItem(p){
   // "Ignore" ist in Airtable ein Single-Select mit der einzigen Option "checked" (kein echtes Checkbox-Feld) -> kein Boolean, sondern Text bzw. null
-  const fields = { Bestand:p.bestand, Mindestbestand:p.mindestbestand, Unit:p.unit, KcalPerUnit:p.kcalPerUnit, FiberPerUnit:p.fiberPerUnit, Ignore: p.ignore ? 'checked' : null };
+  const fields = { Bestand:p.bestand, Mindestbestand:p.mindestbestand, Unit:p.unit, KcalPerUnit:p.kcalPerUnit, FiberPerUnit:p.fiberPerUnit, ProteinPerUnit:p.proteinPerUnit, Ignore: p.ignore ? 'checked' : null };
   if(!p.id){
     // Sperre: falls schon eine Anlage für diese Zutat läuft, darauf warten statt eine zweite zu starten
     if(!p._creating){
@@ -1121,31 +1162,75 @@ function calculatedFiber(dish){
     return sum + (p ? nutrientContribution(ing, p.fiberPerUnit) : 0);
   },0)*10)/10;
 }
+function calculatedProtein(dish){
+  return Math.round(dish.ingredients.reduce((sum,ing)=>{
+    const p = pantryItem(ing.name);
+    return sum + (p ? nutrientContribution(ing, p.proteinPerUnit) : 0);
+  },0)*10)/10;
+}
 /* Manueller Wert hat Vorrang, berechneter Wert ist der Fallback */
 function effectiveKcal(dish){ return dish.kcal>0 ? dish.kcal : calculatedKcal(dish); }
 function effectiveFiber(dish){ return dish.fiber>0 ? dish.fiber : calculatedFiber(dish); }
+
+/* Fullness Score fürs GANZE GERICHT, aus der Summe aller Zutaten (gleiche Heuristik wie pro Zutat) */
+function dishFullnessScore(dish){
+  const kcal = effectiveKcal(dish);
+  if(!kcal) return null;
+  const protein = calculatedProtein(dish);
+  const fiber = effectiveFiber(dish);
+  const proteinPer100kcal = (protein/kcal)*100;
+  const fiberPer100kcal = (fiber/kcal)*100;
+  return Math.max(0, Math.min(100, Math.round(proteinPer100kcal*3 + fiberPer100kcal*2)));
+}
+
+/* Eigene, vereinfachte Näherung an einen "Fullness Score" (0-100) – KEIN echter/validierter
+   Satiety-Index wie in der Holt-Studie, sondern eine Heuristik: mehr Protein und Ballaststoffe
+   pro 100 kcal = höherer Wert, da beides laut Forschung die Haupttreiber für Sättigung sind. */
+function fullnessScore(p){
+  if(!p.kcalPerUnit) return null;
+  const proteinPer100kcal = (p.proteinPerUnit/p.kcalPerUnit)*100;
+  const fiberPer100kcal = (p.fiberPerUnit/p.kcalPerUnit)*100;
+  return Math.max(0, Math.min(100, Math.round(proteinPer100kcal*3 + fiberPer100kcal*2)));
+}
+function buildPantryPrompt(p){
+  const basis = (p.unit==='g'||p.unit==='ml') ? `pro 100 ${p.unit}` : `für 1 ${p.unit||'Stück'}`;
+  return `Schätze für folgendes Lebensmittel die Werte ${basis}: Kalorien (kcal), Ballaststoffe (g) und Protein (g). Gib die Antwort in genau diesem Format zurück, ohne weiteren Text: kcal: <Zahl>, Ballaststoffe: <Zahl in g>, Protein: <Zahl in g>\n\nLebensmittel: ${p.name}`;
+}
 function renderPantry(){
   document.getElementById('newIngUnit').innerHTML = UNITS.map(u=>`<option value="${u}">${u}</option>`).join('');
   const wrap = document.getElementById('pantryList');
   if(!pantry.length){ wrap.innerHTML = '<p class="section-note">Noch keine Zutaten – lege zuerst ein paar Gerichte an.</p>'; return; }
-  wrap.innerHTML = pantry.map((p,i)=>`
+  wrap.innerHTML = pantry.map((p,i)=>{
+    const score = fullnessScore(p);
+    const scoreBadge = score===null ? '' : `<span class="fullness-badge ${score>=50?'high':score>=25?'mid':'low'}">${score} Fullness</span>`;
+    return `
     <div class="pantry-row ${!p.ignore && p.bestand<p.mindestbestand?'low':''} ${p.ignore?'ignored':''}" data-i="${i}">
-      <div><p class="pantry-name">${escapeAttr(p.name)}</p><p class="pantry-hint">${p.ignore?'wird nicht geprüft':(p.unit||'Einheit wie im Rezept')}</p></div>
+      <div><p class="pantry-name">${escapeAttr(p.name)} ${scoreBadge}</p><p class="pantry-hint">${p.ignore?'wird nicht geprüft':(p.unit||'Einheit wie im Rezept')}</p></div>
       <div class="pantry-fields">
         <div class="pantry-field"><label>Bestand</label><input type="number" step="any" class="pf-bestand" value="${p.bestand}" ${p.ignore?'disabled':''}></div>
         <div class="pantry-field"><label>Minimum</label><input type="number" step="any" class="pf-min" value="${p.mindestbestand}" ${p.ignore?'disabled':''}></div>
         <div class="pantry-field"><label>kcal${p.unit==='g'||p.unit==='ml'?'/100':'/Stk'}</label><input type="number" step="any" class="pf-kcal" value="${p.kcalPerUnit}"></div>
         <div class="pantry-field"><label>Bal.${p.unit==='g'||p.unit==='ml'?'/100':'/Stk'}</label><input type="number" step="any" class="pf-fiber" value="${p.fiberPerUnit}"></div>
+        <div class="pantry-field"><label>Prot.${p.unit==='g'||p.unit==='ml'?'/100':'/Stk'}</label><input type="number" step="any" class="pf-protein" value="${p.proteinPerUnit}"></div>
+        <button type="button" class="icon-btn pf-prompt" title="Nährwerte per ChatGPT schätzen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></button>
         <div class="pantry-field"><label>Prüfen</label><div class="toggle ${p.ignore?'':'on'}"><div class="knob"></div></div></div>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
   wrap.querySelectorAll('.pantry-row').forEach(row=>{
     const i = Number(row.dataset.i); const p = pantry[i];
     row.querySelector('.pf-bestand').addEventListener('change', e=>{ p.bestand = Number(e.target.value)||0; row.classList.toggle('low', !p.ignore && p.bestand<p.mindestbestand); savePantryItem(p).catch(err=>{ console.error(err); setStatus(err.message); }); });
     row.querySelector('.pf-min').addEventListener('change', e=>{ p.mindestbestand = Number(e.target.value)||0; row.classList.toggle('low', !p.ignore && p.bestand<p.mindestbestand); savePantryItem(p).catch(err=>{ console.error(err); setStatus(err.message); }); });
-    row.querySelector('.pf-kcal').addEventListener('change', e=>{ p.kcalPerUnit = Number(e.target.value)||0; savePantryItem(p).catch(err=>{ console.error(err); setStatus(err.message); }); });
-    row.querySelector('.pf-fiber').addEventListener('change', e=>{ p.fiberPerUnit = Number(e.target.value)||0; savePantryItem(p).catch(err=>{ console.error(err); setStatus(err.message); }); });
+    row.querySelector('.pf-kcal').addEventListener('change', e=>{ p.kcalPerUnit = Number(e.target.value)||0; savePantryItem(p).catch(err=>{ console.error(err); setStatus(err.message); }); renderPantry(); });
+    row.querySelector('.pf-fiber').addEventListener('change', e=>{ p.fiberPerUnit = Number(e.target.value)||0; savePantryItem(p).catch(err=>{ console.error(err); setStatus(err.message); }); renderPantry(); });
+    row.querySelector('.pf-protein').addEventListener('change', e=>{ p.proteinPerUnit = Number(e.target.value)||0; savePantryItem(p).catch(err=>{ console.error(err); setStatus(err.message); }); renderPantry(); });
     row.querySelector('.toggle').addEventListener('click', ()=>{ p.ignore = !p.ignore; savePantryItem(p).catch(err=>{ console.error(err); setStatus(err.message); }); renderPantry(); });
+    row.querySelector('.pf-prompt').addEventListener('click', async ()=>{
+      const prompt = buildPantryPrompt(p);
+      try{ await navigator.clipboard.writeText(prompt); setStatus('Prompt für "'+p.name+'" kopiert'); }
+      catch(e){ setStatus('Kopieren nicht möglich'); }
+      window.open('https://chatgpt.com/', '_blank');
+    });
   });
 }
 
@@ -1161,7 +1246,8 @@ document.getElementById('newIngSaveBtn').addEventListener('click', async ()=>{
   const mindestbestand = Number(document.getElementById('newIngMin').value)||0;
   const kcalPerUnit = Number(document.getElementById('newIngKcal').value)||0;
   const fiberPerUnit = Number(document.getElementById('newIngFiber').value)||0;
-  const p = { id:null, name, unit, bestand, mindestbestand, ignore:false, kcalPerUnit, fiberPerUnit };
+  const proteinPerUnit = Number(document.getElementById('newIngProtein').value)||0;
+  const p = { id:null, name, unit, bestand, mindestbestand, ignore:false, kcalPerUnit, fiberPerUnit, proteinPerUnit };
   try{
     await savePantryItem(p);
     if(!p.id) throw new Error('Kein id nach dem Anlegen erhalten');
@@ -1172,6 +1258,7 @@ document.getElementById('newIngSaveBtn').addEventListener('click', async ()=>{
     document.getElementById('newIngMin').value = '0';
     document.getElementById('newIngKcal').value = '';
     document.getElementById('newIngFiber').value = '';
+    document.getElementById('newIngProtein').value = '';
     renderPantry();
     renderSnackManage();
     statusEl.textContent = `„${name}" wurde angelegt.`;
@@ -1291,6 +1378,8 @@ document.getElementById('bonusAddBtn').addEventListener('click', async ()=>{
 
 async function loadAll(){
   setStatus('Lädt…');
+  document.getElementById('loadingOverlay').classList.remove('hidden');
+  document.querySelector('.loading-text').textContent = 'Nouri lädt…';
   try{
     const [dishRecs, wpRecs, logRecs, wRecs, sRecs] = await Promise.all([
       atList('Dishes'), atList('WeekPlan'), atList('LogEntries'), atList('Weights'), atList('Steps')
@@ -1342,9 +1431,11 @@ async function loadAll(){
     weights = wRecs.map(r=>({ id:r.id, date:r.fields.Date, kg:Number(r.fields.Kg)||0 }));
     steps = sRecs.map(r=>({ id:r.id, date:r.fields.Date, steps:Number(r.fields.Steps)||0, kcal:Number(r.fields.Kcal)||0 }));
     setStatus('Verbunden');
+    document.getElementById('loadingOverlay').classList.add('hidden');
   }catch(e){
     console.error(e);
     setStatus('Verbindung fehlgeschlagen – prüfe Token/Base-ID');
+    document.querySelector('.loading-text').textContent = 'Verbindung fehlgeschlagen – bitte neu laden';
   }
   render();
 }
@@ -1371,6 +1462,27 @@ function renderToday(){
   }, 0)*10)/10;
   document.getElementById('planKcalTotal').textContent = planKcalTotal;
   document.getElementById('planFiberTotal').textContent = planFiberTotal.toLocaleString('de-DE',{minimumFractionDigits:1,maximumFractionDigits:1});
+  let planFullnessWeighted = 0, planFullnessBase = 0;
+  slots.forEach(slot=>{
+    const swap = daySwaps.find(s=> s.date===currentDate && s.slotId===slot.id);
+    const dish = dishByName(swap ? swap.dishName : slot.dishName);
+    if(dish){ const s = dishFullnessScore(dish); const k = effectiveKcal(dish); if(s!==null){ planFullnessWeighted += s*k; planFullnessBase += k; } }
+  });
+  document.getElementById('planFullnessTotal').textContent = planFullnessBase>0 ? Math.round(planFullnessWeighted/planFullnessBase) : '–';
+  const ffStatusEl = document.getElementById('ffStatus');
+  if(planFullnessBase>0){
+    const avgFF = Math.round(planFullnessWeighted/planFullnessBase);
+    let tier, title;
+    if(avgFF>=65){ tier='good'; title='Guter Fullness-Tag'; }
+    else if(avgFF>=40){ tier='mid'; title='Mittlerer Fullness-Tag'; }
+    else{ tier='low'; title='Eher niedriger Fullness-Tag'; }
+    ffStatusEl.className = 'ff-status '+tier;
+    ffStatusEl.style.display = 'flex';
+    document.getElementById('ffStatusTitle').textContent = title;
+    document.getElementById('ffStatusSub').textContent = avgFF+' Ø – '+(tier==='good'?'sättigend, kein Anpassungsbedarf':tier==='mid'?'geht so, könnte sättigender sein':'heute wenig sättigend, Anpassung sinnvoll');
+  }else{
+    ffStatusEl.style.display = 'none';
+  }
 
   const REAL_MEAL_MIN_KCAL = 80;
   const GAP_MIN = 180;
@@ -1404,10 +1516,12 @@ function renderToday(){
   planList.innerHTML = resolvedSlots.map(({slot, swap, dish, logHit, displayTime, dynamic})=>{
     if(!dish) return '';
     const checked = !!logHit;
+    const score = dishFullnessScore(dish);
+    const scoreBadge = score===null ? '' : `<span class="fullness-badge ${score>=50?'high':score>=25?'mid':'low'}">${score}</span>`;
     return `<div class="food-row ${checked?'checked':''}" data-slotid="${slot.id}" data-dishname="${escapeAttr(dish.name)}">
       <div class="food-main" data-time="${slot.time}" data-kcal="${effectiveKcal(dish)}" data-fiber="${effectiveFiber(dish)}" data-loghit="${logHit?logHit.id:''}">
         <div class="check-ico">${checked?'✓':''}</div>
-        <div><p class="food-name">${escapeAttr(dish.name)}</p><p class="food-time">${swap?'<span class="swap-tag">getauscht</span> · ':''}${dynamic?'<span class="dyn-tag">~</span> ':''}geplant ${displayTime}</p></div>
+        <div><p class="food-name">${escapeAttr(dish.name)} ${scoreBadge}</p><p class="food-time">${swap?'<span class="swap-tag">getauscht</span> · ':''}${dynamic?'<span class="dyn-tag">~</span> ':''}geplant ${displayTime}</p></div>
         <span class="food-kcal">${effectiveKcal(dish)} kcal<br><span class="food-fiber">${effectiveFiber(dish)} g Ballaststoffe</span></span>
       </div>
       <button class="info-btn" title="Zutaten anzeigen">ⓘ</button>
@@ -1482,8 +1596,17 @@ function renderToday(){
   }));
 
   let total = 0, totalFiber = 0;
-  resolvedSlots.forEach(({slot, dish})=>{ const hit = dayLogPlan.find(l=> l.slotId ? l.slotId===slot.id : (dish && l.name===dish.name && l.time===slot.time)); if(hit){ total += hit.kcal; totalFiber += hit.fiber||0; } });
+  let fullnessWeightedSum = 0, fullnessKcalBase = 0;
+  resolvedSlots.forEach(({slot, dish})=>{
+    const hit = dayLogPlan.find(l=> l.slotId ? l.slotId===slot.id : (dish && l.name===dish.name && l.time===slot.time));
+    if(hit){
+      total += hit.kcal; totalFiber += hit.fiber||0;
+      if(dish){ const s = dishFullnessScore(dish); if(s!==null){ fullnessWeightedSum += s*hit.kcal; fullnessKcalBase += hit.kcal; } }
+    }
+  });
   dayLogExtra.forEach(e=>{ total += e.kcal; totalFiber += e.fiber||0; });
+  const dayFullness = fullnessKcalBase>0 ? Math.round(fullnessWeightedSum/fullnessKcalBase) : null;
+  document.getElementById('gaugeFullnessVal').textContent = dayFullness===null ? '– Fullness' : dayFullness+' Fullness';
   const target = targets[activeTarget];
   const remaining = target-total;
   const fiberTarget = 30;
@@ -1660,11 +1783,14 @@ function renderWeek(){
     const slots = weekPlan[wd] || [];
     const dayTotal = slots.reduce((sum,slot)=>{ const d=dishByName(slot.dishName); return sum + (d?effectiveKcal(d):0); }, 0);
     const dayFiber = Math.round(slots.reduce((sum,slot)=>{ const d=dishByName(slot.dishName); return sum + (d?effectiveFiber(d):0); }, 0)*10)/10;
+    let dayFFWeighted = 0, dayFFBase = 0;
+    slots.forEach(slot=>{ const d=dishByName(slot.dishName); if(d){ const s=dishFullnessScore(d); const k=effectiveKcal(d); if(s!==null){ dayFFWeighted+=s*k; dayFFBase+=k; } } });
+    const dayFF = dayFFBase>0 ? Math.round(dayFFWeighted/dayFFBase) : null;
     const target = targets[activeTarget];
     const over = dayTotal > target;
     block.innerHTML = `<div class="day-block-head">
         <span class="day-title">${WEEKDAY_NAMES[wd]}</span>
-        <span class="day-total ${over?'over':''}">${dayTotal} / ${target} kcal &nbsp;·&nbsp; ${dayFiber} g Bal.</span>
+        <span class="day-total ${over?'over':''}">${dayTotal} / ${target} kcal &nbsp;·&nbsp; ${dayFiber} g Bal.${dayFF!==null?` &nbsp;·&nbsp; Ø ${dayFF} FF`:''}</span>
         <span class="head-spacer"></span>
         <div class="head-icons">
           ${editOn?`<button class="icon-btn day-move-btn" title="Ganzen Tag tauschen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 21l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></button>`:''}
@@ -1686,7 +1812,7 @@ function renderWeek(){
         </div>
         <select class="hour-select">${hourOptions}</select>`:`<span class="hour-select">${hour} h</span>`}
         <span class="slot-dishname">${dish?escapeAttr(dish.name):'—'}</span>
-        <span class="slot-kcal">${dish?effectiveKcal(dish):0} kcal / ${dish?effectiveFiber(dish):0}g Bal.</span>
+        <span class="slot-kcal">${dish?effectiveKcal(dish):0} kcal / ${dish?effectiveFiber(dish):0}g Bal.${dish&&dishFullnessScore(dish)!==null?` / ${dishFullnessScore(dish)} FF`:''}</span>
         ${editOn?`<div class="slot-actions">
           <button class="icon-btn" title="Tauschen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 21l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></button>
           <button class="icon-btn danger" title="Entfernen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
@@ -1784,10 +1910,14 @@ function openSwapModal(wd, slot){
 }
 function renderSwapList(){
   const ul = document.getElementById('swapPickList');
-  ul.innerHTML = dishes.map(d=>`<li class="pick-row ${d.name===swapSelectedDishName?'selected':''}" data-name="${escapeAttr(d.name)}"><span class="pn">${escapeAttr(d.name)}</span><span class="pk">${effectiveKcal(d)} kcal</span></li>`).join('');
+  ul.innerHTML = dishes.map(d=>{
+    const score = dishFullnessScore(d);
+    return `<li class="pick-row ${d.name===swapSelectedDishName?'selected':''}" data-name="${escapeAttr(d.name)}"><span class="pn">${escapeAttr(d.name)}</span><span class="pk">${effectiveKcal(d)} kcal${score!==null?` · ${score} FF`:''}</span></li>`;
+  }).join('');
   ul.querySelectorAll('.pick-row').forEach(row=> row.addEventListener('click', ()=>{ swapSelectedDishName=row.dataset.name; renderSwapList(); }));
   const d = dishByName(swapSelectedDishName);
-  document.getElementById('swapPreview').innerHTML = d ? `<b>${escapeAttr(d.name)}</b> · ${effectiveKcal(d)} kcal<br>${d.ingredients.map(i=>`${escapeAttr(i.name)} — ${i.amount}${i.unit}`).join(', ')}` : '';
+  const dScore = d ? dishFullnessScore(d) : null;
+  document.getElementById('swapPreview').innerHTML = d ? `<b>${escapeAttr(d.name)}</b> · ${effectiveKcal(d)} kcal${dScore!==null?` · ${dScore} FF`:''}<br>${d.ingredients.map(i=>`${escapeAttr(i.name)} — ${i.amount}${i.unit}`).join(', ')}` : '';
 }
 document.getElementById('swapCancel').addEventListener('click', ()=> document.getElementById('swapModalBg').classList.remove('open'));
 document.getElementById('swapConfirm').addEventListener('click', async ()=>{
@@ -1812,7 +1942,10 @@ function openDaySwapModal(slotId){
   const existing = daySwaps.find(s=> s.date===currentDate && s.slotId===slotId);
   document.getElementById('daySwapReset').style.display = existing ? 'inline-flex' : 'none';
   const ul = document.getElementById('daySwapPickList');
-  ul.innerHTML = dishes.map(d=>`<li class="pick-row" data-name="${escapeAttr(d.name)}"><span class="pn">${escapeAttr(d.name)}</span><span class="pk">${effectiveKcal(d)} kcal</span></li>`).join('');
+  ul.innerHTML = dishes.map(d=>{
+    const score = dishFullnessScore(d);
+    return `<li class="pick-row" data-name="${escapeAttr(d.name)}"><span class="pn">${escapeAttr(d.name)}</span><span class="pk">${effectiveKcal(d)} kcal${score!==null?` · ${score} FF`:''}</span></li>`;
+  }).join('');
   ul.querySelectorAll('.pick-row').forEach(row=> row.addEventListener('click', async ()=>{
     const dishName = row.dataset.name;
     try{
@@ -1843,8 +1976,27 @@ document.getElementById('daySwapReset').addEventListener('click', async ()=>{
 /* dish library */
 function renderDishLibrary(){
   const wrap = document.getElementById('dishLib');
-  wrap.innerHTML = dishes.map(d=>`<div class="dish-lib-item"><div><span class="dl-name">${escapeAttr(d.name)}</span><span class="dl-kcal">${effectiveKcal(d)} kcal</span></div>
-    <div class="dl-actions"><button data-act="edit" data-id="${d.id}">Bearbeiten</button><button data-act="del" data-id="${d.id}">Löschen</button></div></div>`).join('');
+  const groups = [
+    { key:'high', label:'Sehr sättigend (>80)', test:s=> s>80 },
+    { key:'mid', label:'Mittel (50–80)', test:s=> s>=50 && s<=80 },
+    { key:'low', label:'Wenig sättigend (<50)', test:s=> s<50 },
+  ];
+  const withScore = dishes.map(d=> ({ d, score: dishFullnessScore(d) }));
+  const noScore = withScore.filter(x=> x.score===null).map(x=>x.d);
+  let html = '';
+  groups.forEach(g=>{
+    const items = withScore.filter(x=> x.score!==null && g.test(x.score)).sort((a,b)=> b.score-a.score);
+    if(!items.length) return;
+    html += `<p class="section-note" style="margin:1rem 0 .4rem;">${g.label}</p>`;
+    html += items.map(({d,score})=> `<div class="dish-lib-item"><div><span class="dl-name">${escapeAttr(d.name)}</span><span class="dl-kcal">${effectiveKcal(d)} kcal</span> <span class="fullness-badge ${g.key}">${score} Fullness</span></div>
+      <div class="dl-actions"><button data-act="edit" data-id="${d.id}">Bearbeiten</button><button data-act="del" data-id="${d.id}">Löschen</button></div></div>`).join('');
+  });
+  if(noScore.length){
+    html += `<p class="section-note" style="margin:1rem 0 .4rem;">Ohne Score (kcal-Wert fehlt in der Pantry)</p>`;
+    html += noScore.map(d=> `<div class="dish-lib-item"><div><span class="dl-name">${escapeAttr(d.name)}</span><span class="dl-kcal">${effectiveKcal(d)} kcal</span></div>
+      <div class="dl-actions"><button data-act="edit" data-id="${d.id}">Bearbeiten</button><button data-act="del" data-id="${d.id}">Löschen</button></div></div>`).join('');
+  }
+  wrap.innerHTML = html;
   wrap.querySelectorAll('button[data-act="edit"]').forEach(b=> b.addEventListener('click', ()=> openDishEditor(dishes.find(d=>d.id===b.dataset.id))));
   wrap.querySelectorAll('button[data-act="del"]').forEach(b=> b.addEventListener('click', async ()=>{
     try{ await atDelete('Dishes', b.dataset.id); dishes = dishes.filter(d=>d.id!==b.dataset.id); render(); }

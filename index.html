@@ -122,6 +122,10 @@ h2.section{font-family:'Fraunces',serif;font-weight:600;font-size:18px;margin:1.
 .ing-panel{display:none;width:100%;background:#fff;border-top:1px dashed var(--line);}
 .ing-panel.show{display:flex;align-items:stretch;}
 .ing-panel-body{flex:1;min-width:0;padding:8px 12px 10px 41px;font-size:12.5px;color:var(--ink-soft);}
+.fullness-tip{margin-top:8px;padding-top:8px;border-top:1px dashed var(--line);}
+.fullness-tip-label{font-size:10.5px;color:var(--ink-soft);margin:0 0 4px;}
+.fullness-tip-row{display:flex;justify-content:space-between;padding:3px 0;font-size:12px;color:var(--ink);}
+.fullness-tip-row b{color:var(--olive-dark);}
 .ing-swap-btn{width:36px;flex-shrink:0;border:none;border-left:1px solid var(--line);background:transparent;color:var(--olive-dark);cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;}
 .ing-swap-btn:hover{background:rgba(0,0,0,.04);}
 .ing-swap-btn svg{width:16px;height:16px;}
@@ -1270,6 +1274,23 @@ function dishFullnessScore(dish){
   return Math.max(0, Math.min(100, Math.round(proteinPer100kcal*3 + fiberPer100kcal*2)));
 }
 
+/* Zeigt bis zu 2 Gerichte mit ähnlicher kcal-Zahl (±30%), aber höherem Fullness-Score, zum Vergleich */
+function buildFullnessTipHtml(dish, currentScore){
+  if(currentScore===null) return '';
+  const kcal = effectiveKcal(dish);
+  const alternatives = dishes
+    .filter(d=> d.name!==dish.name)
+    .map(d=> ({ d, score: dishFullnessScore(d), k: effectiveKcal(d) }))
+    .filter(x=> x.score!==null && x.score>currentScore && x.k>0 && Math.abs(x.k-kcal)<=kcal*0.3)
+    .sort((a,b)=> b.score-a.score)
+    .slice(0,2);
+  if(!alternatives.length) return '';
+  return `<div class="fullness-tip">
+    <p class="fullness-tip-label">Bessere Alternativen (ähnliche kcal):</p>
+    ${alternatives.map(a=> `<div class="fullness-tip-row"><span>${escapeAttr(a.d.name)}</span><span>${a.k} kcal · <b>${a.score}</b> statt ${currentScore}</span></div>`).join('')}
+  </div>`;
+}
+
 /* Eigene, vereinfachte Näherung an einen "Fullness Score" (0-100) – KEIN echter/validierter
    Satiety-Index wie in der Holt-Studie, sondern eine Heuristik: mehr Protein und Ballaststoffe
    pro 100 kcal = höherer Wert, da beides laut Forschung die Haupttreiber für Sättigung sind. */
@@ -1592,10 +1613,17 @@ function renderToday(){
   }, 0)*10)/10;
   document.getElementById('planKcalTotal').textContent = planKcalTotal;
   document.getElementById('planFiberTotal').textContent = planFiberTotal.toLocaleString('de-DE',{minimumFractionDigits:1,maximumFractionDigits:1});
-  document.getElementById('planFullnessTotal').textContent = dayFullness===null ? '–' : dayFullness;
+  let planFullnessWeighted = 0, planFullnessBase = 0;
+  slots.forEach(slot=>{
+    const swap = daySwaps.find(s=> s.date===currentDate && s.slotId===slot.id);
+    const dish = dishByName(swap ? swap.dishName : slot.dishName);
+    if(dish){ const s = dishFullnessScore(dish); const k = effectiveKcal(dish); if(s!==null){ planFullnessWeighted += s*k; planFullnessBase += k; } }
+  });
+  const planFullness = planFullnessBase>0 ? Math.round(planFullnessWeighted/planFullnessBase) : null;
+  document.getElementById('planFullnessTotal').textContent = planFullness===null ? '–' : planFullness;
   const ffStatusEl = document.getElementById('ffStatus');
-  if(dayFullness!==null){
-    const avgFF = dayFullness;
+  if(planFullness!==null){
+    const avgFF = planFullness;
     let tier, title;
     if(avgFF>=65){ tier='good'; title='Guter Fullness-Tag'; }
     else if(avgFF>=40){ tier='mid'; title='Mittlerer Fullness-Tag'; }
@@ -1603,7 +1631,7 @@ function renderToday(){
     ffStatusEl.className = 'ff-status '+tier;
     ffStatusEl.style.display = 'flex';
     document.getElementById('ffStatusTitle').textContent = title;
-    document.getElementById('ffStatusSub').textContent = avgFF+' Ø aus dem bisher Gegessenen – '+(tier==='good'?'sättigend, kein Anpassungsbedarf':tier==='mid'?'geht so, könnte sättigender sein':'heute wenig sättigend, Anpassung sinnvoll');
+    document.getElementById('ffStatusSub').textContent = avgFF+' Ø geplant – '+(tier==='good'?'sättigend, kein Anpassungsbedarf':tier==='mid'?'geht so, könnte sättigender sein':'heute wenig sättigend, Anpassung sinnvoll');
   }else{
     ffStatusEl.style.display = 'none';
   }
@@ -1650,7 +1678,10 @@ function renderToday(){
       </div>
       <button class="info-btn" title="Zutaten anzeigen">ⓘ</button>
       <div class="ing-panel">
-        <div class="ing-panel-body">${dish.ingredients.length ? dish.ingredients.map(i=>`<div class="ing-row"><span>${escapeAttr(i.name)}</span><span>${i.amount} ${i.unit}</span></div>`).join('') : '<span>Keine Zutaten hinterlegt.</span>'}</div>
+        <div class="ing-panel-body">
+          ${dish.ingredients.length ? dish.ingredients.map(i=>`<div class="ing-row"><span>${escapeAttr(i.name)}</span><span>${i.amount} ${i.unit}</span></div>`).join('') : '<span>Keine Zutaten hinterlegt.</span>'}
+          ${buildFullnessTipHtml(dish, score)}
+        </div>
         <button class="ing-swap-btn" title="Nur heute tauschen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 21l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></button>
       </div>
     </div>`;

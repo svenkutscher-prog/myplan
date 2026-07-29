@@ -269,6 +269,16 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
 .ds-sub{margin:4px 0 0;font-size:11.5px;color:var(--ink-soft);}
 .chart-label{font-size:13px;font-weight:500;color:var(--ink-soft);margin:0 0 .6rem;}
 .chart-wrap{position:relative;width:100%;height:200px;margin-bottom:1.6rem;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:.8rem;box-sizing:border-box;}
+.rhythm-chart{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:.9rem 1rem;margin-bottom:1.6rem;}
+.rhythm-axis{display:flex;margin-bottom:6px;}
+.rhythm-axis .rl{width:56px;flex-shrink:0;}
+.rhythm-axis .rt{flex:1;position:relative;height:13px;}
+.rhythm-axis .rt span{position:absolute;font-size:9.5px;color:var(--ink-soft);}
+.rhythm-row{display:flex;align-items:center;margin-bottom:7px;}
+.rhythm-row .rl{width:56px;flex-shrink:0;font-size:10.5px;color:var(--ink-soft);}
+.rhythm-track{flex:1;position:relative;height:18px;background:var(--bg);border-radius:6px;}
+.rhythm-dot{position:absolute;top:50%;width:8px;height:8px;border-radius:50%;background:var(--olive);transform:translate(-50%,-50%);}
+.rhythm-dot-legend{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px;vertical-align:-1px;}
 
 /* pantry */
 .pantry-row{display:flex;align-items:center;justify-content:space-between;padding:9px 11px;background:var(--card);border:1px solid var(--line);border-radius:10px;margin-bottom:6px;gap:10px;flex-wrap:wrap;}
@@ -631,6 +641,9 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
 
     <p class="chart-label">Trinken, letzte 7 Tage</p>
     <div class="chart-wrap"><canvas id="waterChart" role="img" aria-label="Getrunkene Liter pro Tag, letzte 7 Tage"></canvas></div>
+
+    <p class="chart-label">Tagesrhythmus, letzte 7 Tage</p>
+    <div id="rhythmChart" class="rhythm-chart"></div>
   </div>
 </div>
 
@@ -849,19 +862,22 @@ function waterGoalMl(){
   const w = sorted[0] ? sorted[0].kg : (profile.startWeight||80);
   return Math.round(w*32.5);
 }
+function waterDayTotal(date){ return water.filter(w=>w.date===date).reduce((s,w)=>s+w.ml,0); }
 async function addWater(ml){
   const date = todayStr();
+  const now = new Date();
+  const time = String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
   try{
-    const existing = water.find(w=>w.date===date);
-    if(existing){ await atUpdate('Water', existing.id, { Ml: existing.ml+ml }); existing.ml += ml; }
-    else{ const rec = await atCreate('Water', { Date: date, Ml: ml }); water.push({ id:rec.id, date, ml }); }
+    const rec = await atCreate('LogEntries', { Date: date, Type:'water', Name:'Wasser', Ml: ml, Time: time });
+    water.push({ id:rec.id, date, ml, time });
+    logEntries.push({ id:rec.id, date, type:'water', name:'Wasser', kcal:0, fiber:0, protein:0, ml, time, checkedAt:'', slotId:'' });
     renderTodayTab();
-  }catch(e){ setStatus('Water-Tabelle fehlt (Felder: Date, Ml)'); }
+    renderToday();
+  }catch(e){ setStatus('LogEntries-Tabelle braucht ein Feld "Ml" für Wasser-Einträge'); }
 }
 function renderTodayTab(){
   const date = todayStr();
-  const entry = water.find(w=>w.date===date);
-  const total = entry ? entry.ml : 0;
+  const total = waterDayTotal(date);
   const goal = waterGoalMl();
   document.getElementById('waterDdLabel').textContent = (total/1000).toLocaleString('de-DE',{minimumFractionDigits:1})+' / '+(goal/1000).toLocaleString('de-DE',{minimumFractionDigits:1})+' L heute';
 }
@@ -1002,7 +1018,7 @@ function renderScoreCard(){
   // Trinken: Ø ml ggü. Tagesziel, mehr als Ziel ist nie schlechter
   let waterDays=0, waterSum=0;
   const goal = waterGoalMl();
-  last7.forEach(d=>{ const w = water.find(x=>x.date===d); if(w){ waterDays++; waterSum += w.ml; } });
+  last7.forEach(d=>{ const t = waterDayTotal(d); if(t>0){ waterDays++; waterSum += t; } });
   if(waterDays>0){
     const avgWater = Math.round(waterSum/waterDays);
     const ratio = avgWater/goal;
@@ -1146,6 +1162,52 @@ function renderDashboard(){
     options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
       scales:{ y:{ grid:{color:grid}, suggestedMax: Math.max(3, Math.ceil(wGoal/1000)+0.5), ticks:{ callback:v=>v+' L' } }, x:{ grid:{display:false} } } }
   });
+
+  renderRhythmChart(last7);
+}
+
+/* Tagesrhythmus: alle Essenszeiten der letzten 7 Tage übereinandergelegt auf einer 24h-Achse */
+function renderRhythmChart(days){
+  const wrap = document.getElementById('rhythmChart');
+  let html = `<div class="rhythm-legend" style="display:flex;flex-wrap:wrap;gap:12px;margin-bottom:8px;font-size:11px;color:var(--ink-soft);">
+      <span><span class="rhythm-dot-legend" style="background:#000;"></span>Gewicht (Tagesstart)</span>
+      <span><span class="rhythm-dot-legend" style="background:#378ADD;"></span>Trinken</span>
+      <span><span class="rhythm-dot-legend" style="background:#639922;"></span>Essen</span>
+      <span><span class="rhythm-dot-legend" style="background:#E24B4A;"></span>Schritte</span>
+    </div>
+    <div class="rhythm-axis"><div class="rl"></div><div class="rt">
+      <span style="left:0%;">0</span><span style="left:25%;transform:translateX(-50%);">6</span>
+      <span style="left:50%;transform:translateX(-50%);">12</span><span style="left:75%;transform:translateX(-50%);">18</span>
+      <span style="left:100%;transform:translateX(-100%);">24</span>
+    </div></div>`;
+  const dot = (h,color)=> `<div class="rhythm-dot" style="left:${Math.max(0,Math.min(100,(h/24)*100))}%;background:${color};"></div>`;
+  days.forEach(d=>{
+    let dots = '';
+    const weightEntry = weights.find(w=>w.date===d);
+    if(weightEntry){
+      if(weightEntry.time){ const [h,m] = weightEntry.time.split(':').map(Number); dots += dot(h+(m||0)/60, '#000'); }
+      else dots += dot(0.3, '#000');
+    }
+    water.filter(w=>w.date===d).forEach(w=>{
+      if(!w.time) return;
+      const [h,m] = w.time.split(':').map(Number);
+      dots += dot(h+(m||0)/60, '#378ADD');
+    });
+    logEntries.filter(l=> l.date===d && (l.type==='plan' || l.type==='extra')).forEach(l=>{
+      const t = (l.type==='plan' && l.checkedAt) ? l.checkedAt : l.time;
+      if(!t) return;
+      const [h,m] = t.split(':').map(Number);
+      dots += dot(h+(m||0)/60, '#639922');
+    });
+    const stepEntry = steps.find(s=>s.date===d);
+    if(stepEntry && stepEntry.time){
+      const [h,m] = stepEntry.time.split(':').map(Number);
+      dots += dot(h+(m||0)/60, '#E24B4A');
+    }
+    const label = fmtDate(d).replace('. ', '.').slice(0,5);
+    html += `<div class="rhythm-row"><div class="rl">${WEEKDAY_NAMES[weekdayOf(d)].slice(0,2)} ${label}</div><div class="rhythm-track">${dots}</div></div>`;
+  });
+  wrap.innerHTML = html;
 }
 
 function dishByName(name){ return dishes.find(d=>d.name===name); }
@@ -1546,10 +1608,6 @@ async function loadAll(){
       }
     }catch(e){ console.warn('Profile-Tabelle noch nicht vorhanden – lege sie in Airtable an (Felder: StartWeight, GoalWeight, StepsGoal, KcalMax, FiberGoal). Nutze bis dahin Standardwerte.'); }
     try{
-      const wtRecs = await atList('Water');
-      water = wtRecs.map(r=>({ id:r.id, date:r.fields.Date, ml:Number(r.fields.Ml)||0 }));
-    }catch(e){ console.warn('Water-Tabelle noch nicht vorhanden – lege sie in Airtable an (Felder: Date, Ml).'); water = []; }
-    try{
       const bRecs = await atList('Bonus');
       bonusItems = bRecs.map(r=>({ id:r.id, name:r.fields.Name||'', kcal:Number(r.fields.Kcal)||0 }));
     }catch(e){ console.warn('Bonus-Tabelle noch nicht vorhanden – lege sie in Airtable an (Felder: Name, Kcal).'); bonusItems = []; }
@@ -1564,9 +1622,10 @@ async function loadAll(){
     });
     WEEKDAYS.forEach(wd=> weekPlan[wd].sort((a,b)=> a.time.localeCompare(b.time)));
     await migrateSlotTimesToHours();
-    logEntries = logRecs.map(r=>({ id:r.id, date:r.fields.Date, type:r.fields.Type, name:r.fields.Name, kcal:Number(r.fields.Kcal)||0, fiber:Number(r.fields.Fiber)||0, protein:Number(r.fields.Protein)||0, time:r.fields.Time||'', checkedAt:r.fields.CheckedAt||'', slotId:r.fields.SlotId||'' }));
-    weights = wRecs.map(r=>({ id:r.id, date:r.fields.Date, kg:Number(r.fields.Kg)||0 }));
-    steps = sRecs.map(r=>({ id:r.id, date:r.fields.Date, steps:Number(r.fields.Steps)||0, kcal:Number(r.fields.Kcal)||0 }));
+    logEntries = logRecs.map(r=>({ id:r.id, date:r.fields.Date, type:r.fields.Type, name:r.fields.Name, kcal:Number(r.fields.Kcal)||0, fiber:Number(r.fields.Fiber)||0, protein:Number(r.fields.Protein)||0, ml:Number(r.fields.Ml)||0, time:r.fields.Time||'', checkedAt:r.fields.CheckedAt||'', slotId:r.fields.SlotId||'' }));
+    water = logEntries.filter(l=> l.type==='water').map(l=>({ id:l.id, date:l.date, ml:l.ml, time:l.time }));
+    weights = wRecs.map(r=>({ id:r.id, date:r.fields.Date, kg:Number(r.fields.Kg)||0, time:r.fields.Time||'' }));
+    steps = sRecs.map(r=>({ id:r.id, date:r.fields.Date, steps:Number(r.fields.Steps)||0, kcal:Number(r.fields.Kcal)||0, time:r.fields.Time||'' }));
     setStatus('Verbunden');
     document.getElementById('loadingOverlay').classList.add('hidden');
   }catch(e){
@@ -1759,8 +1818,7 @@ function renderToday(){
   const target = targets[activeTarget];
   const remaining = target-total;
   const fiberTarget = 30;
-  const waterEntryToday = water.find(w=> w.date===currentDate);
-  const waterTotal = waterEntryToday ? waterEntryToday.ml : 0;
+  const waterTotal = waterDayTotal(currentDate);
   const waterTarget = waterGoalMl();
 
   function setGaugeArc(id, fraction){
@@ -1863,10 +1921,12 @@ document.getElementById('weightSaveBtn').addEventListener('click', async ()=>{
   const date = document.getElementById('weightDate').value || todayStr();
   const kg = Number(document.getElementById('weightKg').value);
   if(!kg) return;
+  const now = new Date();
+  const time = String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
   try{
     const existing = weights.find(w=>w.date===date);
-    if(existing){ await atUpdate('Weights', existing.id, { Kg: kg }); existing.kg = kg; }
-    else{ const rec = await atCreate('Weights', { Date: date, Kg: kg }); weights.push({ id:rec.id, date, kg }); }
+    if(existing){ await atUpdate('Weights', existing.id, { Kg: kg, Time: time }); existing.kg = kg; existing.time = time; }
+    else{ const rec = await atCreate('Weights', { Date: date, Kg: kg, Time: time }); weights.push({ id:rec.id, date, kg, time }); }
     document.getElementById('weightKg').value='';
     document.getElementById('weightModalBg').classList.remove('open');
     renderWeightBlock();
@@ -1889,10 +1949,12 @@ document.getElementById('stepsSaveBtn').addEventListener('click', async ()=>{
   const kcalRaw = document.getElementById('stepsKcalInput').value;
   if(stepsVal<=0) return;
   const kcal = kcalRaw ? Number(kcalRaw) : Math.round(stepsVal*(profile.startWeight||80)*0.00055);
+  const now = new Date();
+  const time = String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
   try{
     const existing = steps.find(s=>s.date===currentDate);
-    if(existing){ await atUpdate('Steps', existing.id, { Steps: stepsVal, Kcal: kcal }); existing.steps=stepsVal; existing.kcal=kcal; }
-    else{ const rec = await atCreate('Steps', { Date: currentDate, Steps: stepsVal, Kcal: kcal }); steps.push({ id:rec.id, date:currentDate, steps:stepsVal, kcal }); }
+    if(existing){ await atUpdate('Steps', existing.id, { Steps: stepsVal, Kcal: kcal, Time: time }); existing.steps=stepsVal; existing.kcal=kcal; existing.time=time; }
+    else{ const rec = await atCreate('Steps', { Date: currentDate, Steps: stepsVal, Kcal: kcal, Time: time }); steps.push({ id:rec.id, date:currentDate, steps:stepsVal, kcal, time }); }
     document.getElementById('stepsModalBg').classList.remove('open');
     renderStepsButton();
     setStatus('Gespeichert');

@@ -437,7 +437,7 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
     <p class="section-label">Zusätzlich gegessen</p>
     <div id="extraList"></div>
     <div class="pill-row">
-      <button class="open-btn" id="openExtraBtn"><span class="ic a">🍽️</span> Extra Gericht</button>
+      <button class="open-btn" id="openExtraBtn"><span class="ic a">🍽️</span> Gericht hinzufügen</button>
       <button class="open-btn" id="openWeightBtn"><span class="ic b">⚖️</span> Gewicht <span class="sub" id="weightBtnSub"></span></button>
       <button class="open-btn" id="openStepsBtn"><span class="ic c">👟</span> Schritte <span class="sub" id="stepsBtnSub"></span></button>
     </div>
@@ -445,14 +445,10 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
 
   <div class="modal-bg" id="extraModalBg">
     <div class="modal">
-      <h2>Extra Gericht hinzufügen</h2>
-      <div class="field"><label>Name</label><input type="text" id="extraName" placeholder="z. B. Schokoriegel"></div>
-      <div class="field-row">
-        <div class="fcol"><label>Kcal</label><input type="number" id="extraKcal" placeholder="kcal"></div>
-        <div class="fcol"><label>Ballaststoffe (g, optional)</label><input type="number" step="any" id="extraFiber" placeholder="g"></div>
-      </div>
-      <div class="field"><label>Protein (g, optional)</label><input type="number" step="any" id="extraProtein" placeholder="g"></div>
-      <div class="modal-actions"><button class="btn" id="extraCancel">Abbrechen</button><button class="btn primary" id="extraAddBtn">Hinzufügen</button></div>
+      <h2>Gericht hinzufügen</h2>
+      <div class="field"><input type="text" id="extraSearch" placeholder="Gericht suchen …"></div>
+      <ul id="extraPickList"></ul>
+      <div class="modal-actions"><button class="btn" id="extraCancel">Abbrechen</button></div>
     </div>
   </div>
 
@@ -1873,26 +1869,36 @@ function renderSnackChips(remaining){
 }
 
 
+function renderExtraPickList(){
+  const ul = document.getElementById('extraPickList');
+  const q = document.getElementById('extraSearch').value.trim().toLowerCase();
+  const list = [...dishes].filter(d=> !q || d.name.toLowerCase().includes(q)).sort((a,b)=>a.name.localeCompare(b.name,'de'));
+  if(!list.length){ ul.innerHTML = '<li class="section-note" style="list-style:none;">Keine passenden Gerichte gefunden.</li>'; return; }
+  ul.innerHTML = list.map(d=>{
+    const score = dishFullnessScore(d);
+    return `<li class="pick-row" data-name="${escapeAttr(d.name)}"><span class="pn">${escapeAttr(d.name)}</span><span class="pk">${effectiveKcal(d)} kcal${score!==null?` · ${score} FF`:''}</span></li>`;
+  }).join('');
+  ul.querySelectorAll('.pick-row').forEach(row=> row.addEventListener('click', async ()=>{
+    const dish = dishByName(row.dataset.name);
+    if(!dish) return;
+    const now = new Date();
+    const time = String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+    const kcal = effectiveKcal(dish), fiber = effectiveFiber(dish), protein = calculatedProtein(dish);
+    try{
+      const rec = await atCreate('LogEntries', { Date: currentDate, Type:'extra', Name:dish.name, Kcal:kcal, Fiber:fiber, Protein:protein, Time:time });
+      logEntries.push({ id:rec.id, date:currentDate, type:'extra', name:dish.name, kcal, fiber, protein, time });
+      document.getElementById('extraModalBg').classList.remove('open');
+      renderToday();
+    }catch(e){ setStatus('Fehler beim Speichern'); }
+  }));
+}
 document.getElementById('openExtraBtn').addEventListener('click', ()=>{
-  document.getElementById('extraName').value=''; document.getElementById('extraKcal').value=''; document.getElementById('extraFiber').value=''; document.getElementById('extraProtein').value='';
+  document.getElementById('extraSearch').value='';
+  renderExtraPickList();
   document.getElementById('extraModalBg').classList.add('open');
 });
+document.getElementById('extraSearch').addEventListener('input', renderExtraPickList);
 document.getElementById('extraCancel').addEventListener('click', ()=> document.getElementById('extraModalBg').classList.remove('open'));
-document.getElementById('extraAddBtn').addEventListener('click', async ()=>{
-  const name = document.getElementById('extraName').value.trim();
-  const kcal = Number(document.getElementById('extraKcal').value)||0;
-  const fiber = Number(document.getElementById('extraFiber').value)||0;
-  const protein = Number(document.getElementById('extraProtein').value)||0;
-  if(!name || kcal<=0) return;
-  const now = new Date();
-  const time = String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
-  try{
-    const rec = await atCreate('LogEntries', { Date: currentDate, Type:'extra', Name:name, Kcal:kcal, Fiber:fiber, Protein:protein, Time:time });
-    logEntries.push({ id:rec.id, date:currentDate, type:'extra', name, kcal, fiber, protein, time });
-    document.getElementById('extraModalBg').classList.remove('open');
-    renderToday();
-  }catch(e){ setStatus('Fehler beim Speichern'); }
-});
 
 /* weight */
 function renderWeightBlock(){

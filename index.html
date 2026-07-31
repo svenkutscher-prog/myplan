@@ -276,8 +276,8 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
 .rhythm-axis .rt span{position:absolute;font-size:9.5px;color:var(--ink-soft);}
 .rhythm-row{display:flex;align-items:center;margin-bottom:7px;}
 .rhythm-row .rl{width:56px;flex-shrink:0;font-size:10.5px;color:var(--ink-soft);}
-.rhythm-track{flex:1;position:relative;height:18px;background:var(--bg);border-radius:6px;}
-.rhythm-dot{position:absolute;top:50%;width:8px;height:8px;border-radius:50%;background:var(--olive);transform:translate(-50%,-50%);}
+.rhythm-track{flex:1;position:relative;height:44px;background:var(--bg);border-radius:6px;}
+.rhythm-dot{position:absolute;width:7px;height:7px;border-radius:50%;background:var(--olive);transform:translate(-50%,-50%);border:1.5px solid var(--card);box-sizing:content-box;cursor:default;}
 .rhythm-dot-legend{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px;vertical-align:-1px;}
 
 /* pantry */
@@ -1176,30 +1176,62 @@ function renderRhythmChart(days){
       <span style="left:50%;transform:translateX(-50%);">12</span><span style="left:75%;transform:translateX(-50%);">18</span>
       <span style="left:100%;transform:translateX(-100%);">24</span>
     </div></div>`;
-  const dot = (h,color)=> `<div class="rhythm-dot" style="left:${Math.max(0,Math.min(100,(h/24)*100))}%;background:${color};"></div>`;
+  /* Jede Kategorie hat eine eigene vertikale Spur (Lane). Innerhalb einer Lane werden
+     Einträge, die zeitlich zu nah beieinander liegen (und sich sonst optisch verdecken würden),
+     automatisch leicht vertikal auseinandergezogen (Kollisionserkennung), statt sich einfach
+     stumm zu überlagern. Das war die Ursache dafür, dass ein Gewichts-Punkt "verschwand",
+     wenn ein Wasser-Eintrag zur exakt gleichen Zeit lag. */
+  const TRACK_HEIGHT = 44;
+  const LANE_CENTER = { weight:9, water:19, food:29, steps:39 };
+  const COLLISION_HOURS = 0.6; // Einträge näher als ~36 Minuten gelten als "kollidierend"
   days.forEach(d=>{
-    let dots = '';
+    const laneEntries = { weight:[], water:[], food:[], steps:[] };
+
     const weightEntry = weights.find(w=>w.date===d);
     if(weightEntry){
-      if(weightEntry.time){ const [h,m] = weightEntry.time.split(':').map(Number); dots += dot(h+(m||0)/60, '#000'); }
-      else dots += dot(0.3, '#000');
+      const label = `Gewicht: ${weightEntry.kg} kg${weightEntry.time?' um '+weightEntry.time:''}`;
+      let h = 0.3;
+      if(weightEntry.time){ const [hh,mm] = weightEntry.time.split(':').map(Number); h = hh+(mm||0)/60; }
+      laneEntries.weight.push({h, color:'#000', label});
     }
     water.filter(w=>w.date===d).forEach(w=>{
       if(!w.time) return;
-      const [h,m] = w.time.split(':').map(Number);
-      dots += dot(h+(m||0)/60, '#378ADD');
+      const [hh,mm] = w.time.split(':').map(Number);
+      laneEntries.water.push({h:hh+(mm||0)/60, color:'#378ADD', label:`Trinken: ${w.ml} ml um ${w.time}`});
     });
     logEntries.filter(l=> l.date===d && (l.type==='plan' || l.type==='extra')).forEach(l=>{
       const t = (l.type==='plan' && l.checkedAt) ? l.checkedAt : l.time;
       if(!t) return;
-      const [h,m] = t.split(':').map(Number);
-      dots += dot(h+(m||0)/60, '#639922');
+      const [hh,mm] = t.split(':').map(Number);
+      laneEntries.food.push({h:hh+(mm||0)/60, color:'#639922', label:`${l.name} um ${t}`});
     });
     const stepEntry = steps.find(s=>s.date===d);
     if(stepEntry && stepEntry.time){
-      const [h,m] = stepEntry.time.split(':').map(Number);
-      dots += dot(h+(m||0)/60, '#E24B4A');
+      const [hh,mm] = stepEntry.time.split(':').map(Number);
+      laneEntries.steps.push({h:hh+(mm||0)/60, color:'#E24B4A', label:`Schritte: ${stepEntry.steps} um ${stepEntry.time}`});
     }
+
+    let dots = '';
+    Object.keys(laneEntries).forEach(lane=>{
+      const sorted = laneEntries[lane].slice().sort((a,b)=>a.h-b.h);
+      // benachbarte Zeiten zu Clustern gruppieren
+      const clusters = [];
+      sorted.forEach(entry=>{
+        const last = clusters[clusters.length-1];
+        if(last && entry.h - last[last.length-1].h < COLLISION_HOURS) last.push(entry);
+        else clusters.push([entry]);
+      });
+      clusters.forEach(cluster=>{
+        const n = cluster.length;
+        cluster.forEach((entry,i)=>{
+          const jitter = n>1 ? (i-(n-1)/2) * 5 : 0;
+          const top = Math.min(TRACK_HEIGHT-4, Math.max(4, LANE_CENTER[lane]+jitter));
+          const left = Math.max(0,Math.min(100,(entry.h/24)*100));
+          dots += `<div class="rhythm-dot" style="left:${left}%;top:${top}px;background:${entry.color};" title="${escapeAttr(entry.label)}"></div>`;
+        });
+      });
+    });
+
     const label = fmtDate(d).replace('. ', '.').slice(0,5);
     html += `<div class="rhythm-row"><div class="rl">${WEEKDAY_NAMES[weekdayOf(d)].slice(0,2)} ${label}</div><div class="rhythm-track">${dots}</div></div>`;
   });

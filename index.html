@@ -304,9 +304,13 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
 .wk-icon svg{width:16px;height:16px;}
 .wk-val{font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:600;margin:0;}
 .wk-label{font-size:10px;color:var(--ink-soft);margin:2px 0 0;line-height:1.3;}
-.compare-row{font-size:10px;color:var(--ink-soft);margin-top:.5rem;}
-.compare-row .delta.up{color:var(--coral);font-weight:600;}
-.compare-row .delta.down{color:var(--olive-dark);font-weight:600;}
+.compare-row{font-size:10px;color:var(--ink-soft);margin-top:.5rem;line-height:1.5;}
+.compare-row .delta{display:inline-flex;align-items:center;gap:2px;font-weight:600;border-radius:20px;padding:2px 8px;font-size:10px;}
+.compare-row .delta.up{color:var(--coral);background:var(--coral-bg);}
+.compare-row .delta.down{color:var(--olive-dark);background:#E4EDDD;}
+.compare-row .delta.flat{color:var(--ink-soft);background:var(--line);}
+.compare-row .compare-ref{display:block;margin-top:3px;color:var(--ink-soft);opacity:.8;}
+.compare-row .compare-tracked{color:var(--coral);opacity:1;font-weight:500;}
 
 /* kompakte, aufklappbare Vorrat-Karten (iPhone-optimiert) */
 .p-card{background:var(--card);border:1px solid var(--line);border-radius:12px;margin-bottom:6px;overflow:hidden;}
@@ -564,24 +568,24 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
       <div class="dash-stat"><p class="ds-label">Ø kcal (7 Tage)</p><p class="ds-val" id="dsAvgKcal">–</p><p class="ds-sub" id="dsAvgKcalSub">letzte 7 Tage</p></div>
     </div>
 
-    <p class="chart-label">Woche im Überblick (letzte 7 Tage)</p>
+    <p class="chart-label">Woche im Überblick <span class="section-note">Ø pro getracktem Tag, letzte 7 Tage</span></p>
     <div class="wk-grid">
       <div class="wk-stat eaten">
         <div class="wk-icon"><svg viewBox="0 0 24 24" fill="none" stroke="var(--coral)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c4 0 7-2.7 7-6.8 0-3.5-2.2-5.6-3.4-8-.6 1.3-1.5 2-2.4 1.3.7-2.4-.4-5-3-6.5.4 2.4-.6 3.8-2.3 5.6C6.1 9.5 5 11.6 5 14.2 5 18.7 8 22 12 22Z"/></svg></div>
         <p class="wk-val" id="wkEaten">–</p>
-        <p class="wk-label">kcal gegessen</p>
+        <p class="wk-label">Ø kcal/Tag gegessen</p>
         <div class="compare-row" id="wkEatenCompare"></div>
       </div>
       <div class="wk-stat deficit">
         <div class="wk-icon"><svg viewBox="0 0 24 24" fill="none" stroke="var(--olive-dark)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg></div>
         <p class="wk-val" id="wkDeficit">–</p>
-        <p class="wk-label">kcal Defizit <span id="wkDeficitBasis"></span></p>
+        <p class="wk-label">Ø kcal Defizit <span id="wkDeficitBasis"></span></p>
         <div class="compare-row" id="wkDeficitCompare"></div>
       </div>
       <div class="wk-stat moved">
         <div class="wk-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#378ADD" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8Z"/></svg></div>
         <p class="wk-val" id="wkMoved">–</p>
-        <p class="wk-label">kcal Bewegung</p>
+        <p class="wk-label">Ø kcal/Tag Bewegung</p>
         <div class="compare-row" id="wkMovedCompare"></div>
       </div>
     </div>
@@ -1084,30 +1088,38 @@ function renderDashboard(){
   const wkStepsKcalByDate = {}; steps.forEach(s=> wkStepsKcalByDate[s.date]=s.kcal);
   const WK_BASIS = 1800;
   function weekTotals(days){
-    let eaten=0, moved=0, deficit=0, eatenDays=0;
+    let eatenSum=0, movedSum=0, eatenDays=0, movedDays=0;
     days.forEach(d=>{
       const e = dayTotalKcal(d);
-      if(e>0){ eaten+=e; deficit += (WK_BASIS-e); eatenDays++; }
-      moved += wkStepsKcalByDate[d]||0;
+      if(e>0){ eatenSum+=e; eatenDays++; }
+      const mv = wkStepsKcalByDate[d];
+      if(mv!==undefined){ movedSum+=mv; movedDays++; }
     });
-    return { eaten, moved, deficit, eatenDays };
+    const avgEaten = eatenDays ? Math.round(eatenSum/eatenDays) : 0;
+    const avgMoved = movedDays ? Math.round(movedSum/movedDays) : 0;
+    const avgDeficit = eatenDays ? (WK_BASIS-avgEaten) : 0;
+    return { avgEaten, avgMoved, avgDeficit, eatenDays, movedDays, totalDays: days.length };
   }
   const curWk = weekTotals(last7), prevWk = weekTotals(prev7);
-  function fmtDelta(cur, prev, lowerIsBetter){
+  function fmtDelta(cur, prev, lowerIsBetter, moreWord, lessWord, unit, prevDays, totalDays){
     if(prev===0 && cur===0) return '';
     const diff = cur-prev;
+    const trackedNote = prevDays<totalDays ? ` <span class="compare-tracked">(Vorwoche nur ${prevDays}/${totalDays} Tage getrackt)</span>` : '';
+    if(diff===0) return `<span class="delta flat">= wie Vorwoche</span><span class="compare-ref">Vorwoche Ø: ${prev.toLocaleString('de-DE')}${unit}/Tag${trackedNote}</span>`;
     const better = lowerIsBetter ? diff<0 : diff>0;
-    const cls = diff===0 ? '' : (better?'down':'up');
-    const sign = diff>0?'+':'';
-    return `Vorwoche ${prev.toLocaleString('de-DE')} <span class="delta ${cls}">${sign}${diff.toLocaleString('de-DE')}</span>`;
+    const cls = better ? 'down' : 'up';
+    const arrow = diff>0 ? '↑' : '↓';
+    const sign = diff>0 ? '+' : '';
+    const word = diff>0 ? moreWord : lessWord;
+    return `<span class="delta ${cls}">${arrow} ${sign}${diff.toLocaleString('de-DE')}${unit} ${word}</span><span class="compare-ref">Vorwoche Ø: ${prev.toLocaleString('de-DE')}${unit}/Tag${trackedNote}</span>`;
   }
-  document.getElementById('wkEaten').textContent = curWk.eaten.toLocaleString('de-DE');
-  document.getElementById('wkEatenCompare').innerHTML = fmtDelta(curWk.eaten, prevWk.eaten, true);
-  document.getElementById('wkDeficit').textContent = (curWk.deficit>=0?'+':'')+curWk.deficit.toLocaleString('de-DE');
-  document.getElementById('wkDeficitBasis').textContent = `(ggü. ${WK_BASIS}/Tag)`;
-  document.getElementById('wkDeficitCompare').innerHTML = fmtDelta(curWk.deficit, prevWk.deficit, false);
-  document.getElementById('wkMoved').textContent = curWk.moved.toLocaleString('de-DE');
-  document.getElementById('wkMovedCompare').innerHTML = fmtDelta(curWk.moved, prevWk.moved, false);
+  document.getElementById('wkEaten').textContent = curWk.avgEaten.toLocaleString('de-DE');
+  document.getElementById('wkEatenCompare').innerHTML = fmtDelta(curWk.avgEaten, prevWk.avgEaten, true, 'mehr Ø/Tag', 'weniger Ø/Tag', '', prevWk.eatenDays, prevWk.totalDays);
+  document.getElementById('wkDeficit').textContent = (curWk.avgDeficit>=0?'+':'')+curWk.avgDeficit.toLocaleString('de-DE');
+  document.getElementById('wkDeficitBasis').textContent = `Ø/Tag (ggü. ${WK_BASIS}/Tag)`;
+  document.getElementById('wkDeficitCompare').innerHTML = fmtDelta(curWk.avgDeficit, prevWk.avgDeficit, false, 'größeres Defizit', 'kleineres Defizit', '', prevWk.eatenDays, prevWk.totalDays);
+  document.getElementById('wkMoved').textContent = curWk.avgMoved.toLocaleString('de-DE');
+  document.getElementById('wkMovedCompare').innerHTML = fmtDelta(curWk.avgMoved, prevWk.avgMoved, false, 'mehr Ø/Tag', 'weniger Ø/Tag', '', prevWk.movedDays, prevWk.totalDays);
 
   const stepsData = last7.map(d=> stepsByDate[d]||0);
   const stepsDaysWithData = last7.filter(d=> stepsByDate[d]!==undefined);
@@ -1149,8 +1161,7 @@ function renderDashboard(){
   });
 
   const wGoal = waterGoalMl();
-  const waterByDate = {}; water.forEach(w=> waterByDate[w.date]=w.ml);
-  const waterData = last7.map(d=> Math.round((waterByDate[d]||0)/100)/10); // Liter, 1 Nachkommastelle
+  const waterData = last7.map(d=> Math.round(waterDayTotal(d)/100)/10); // Liter, 1 Nachkommastelle
   upsertChart('waterChart', {
     type:'bar',
     data:{ labels: last7.map(d=> WEEKDAY_NAMES[weekdayOf(d)].slice(0,2)),

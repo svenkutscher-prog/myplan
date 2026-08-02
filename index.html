@@ -334,8 +334,8 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
 .p-row{display:flex;align-items:center;gap:7px;padding:8px 10px;}
 .p-name-wrap{flex:1;min-width:0;}
 .p-name{margin:0;font-size:13.5px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.p-mini{width:46px;flex-shrink:0;}
-.p-mini label{display:block;font-size:8px;color:var(--ink-soft);text-align:center;margin-bottom:1px;}
+.p-mini{width:56px;flex-shrink:0;}
+.p-mini label{display:block;font-size:7.5px;color:var(--ink-soft);text-align:center;margin-bottom:1px;white-space:nowrap;}
 .p-mini input{width:100%;border:1px solid var(--line);border-radius:7px;background:#fff;font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--ink);padding:4px 2px;text-align:center;}
 .p-expand-btn{width:26px;height:26px;border-radius:7px;background:transparent;border:1px solid var(--line);color:var(--ink-soft);flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer;}
 .p-expand-btn.open{background:var(--olive);border-color:var(--olive);color:#fff;}
@@ -437,6 +437,7 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
         <div class="gauge-legend-row"><span class="gauge-dot" style="background:var(--coral);"></span><span id="gaugeKcalVal">0/1400 kcal</span></div>
         <div class="gauge-legend-row"><span class="gauge-dot" style="background:var(--olive);"></span><span id="gaugeFiberVal">0/30 gBall</span></div>
         <div class="gauge-legend-row"><span class="gauge-dot" style="background:var(--water);"></span><span id="gaugeWaterVal">0/0 mlWa</span></div>
+        <div class="gauge-legend-row"><span class="gauge-dot" style="background:var(--ink-soft);"></span><span id="gaugeDeficitVal">0 kcal Defizit</span></div>
       </div>
     </div>
 
@@ -446,6 +447,13 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
       <div class="ff-status-text">
         <p class="ff-status-title" id="ffStatusTitle"></p>
         <p class="ff-status-sub" id="ffStatusSub"></p>
+      </div>
+    </div>
+    <div class="ff-status good" id="deficitStatus">
+      <span class="dot"></span>
+      <div class="ff-status-text">
+        <p class="ff-status-title" id="deficitStatusTitle"></p>
+        <p class="ff-status-sub" id="deficitStatusSub"></p>
       </div>
     </div>
     <div id="planList"></div>
@@ -658,6 +666,14 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
       <span><span style="display:inline-block;width:10px;height:0;border-top:1px dashed #898781;margin-right:4px;"></span>Ziel</span>
     </div>
     <div class="chart-wrap"><canvas id="kcalChart" role="img" aria-label="Gegessene, verbrannte und Netto-Kalorien pro Tag im Vergleich zum Ziel, letzte 14 Tage"></canvas></div>
+    <p class="chart-label">Defizit, letzte 7 Tage</p>
+    <div style="display:flex;gap:14px;align-items:baseline;font-size:11.5px;color:var(--ink-soft);margin:0 0 .5rem;flex-wrap:wrap;">
+      <span style="display:flex;align-items:center;gap:4px;"><span style="width:9px;height:9px;border-radius:2px;background:#378ADD;display:inline-block;"></span>Essen</span>
+      <span style="display:flex;align-items:center;gap:4px;"><span style="width:9px;height:9px;border-radius:2px;background:#1D9E75;display:inline-block;"></span>Schritte</span>
+      <span style="display:flex;align-items:center;gap:4px;"><span style="width:12px;height:0;border-top:1.5px solid #D03B3B;display:inline-block;"></span><span id="deficitThresholdLabel">Warnschwelle</span></span>
+      <span id="deficitRatio" style="margin-left:auto;font-weight:500;"></span>
+    </div>
+    <div class="chart-wrap"><canvas id="deficitChart" role="img" aria-label="Kalorien-Defizit pro Tag, aufgeteilt in Essen-Anteil und Schritte-Anteil, letzte 7 Tage"></canvas></div>
 
     <p class="chart-label">Trinken, letzte 7 Tage</p>
     <div class="chart-wrap"><canvas id="waterChart" role="img" aria-label="Getrunkene Liter pro Tag, letzte 7 Tage"></canvas></div>
@@ -698,6 +714,8 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
     <div class="profile-field"><label>Max. Kalorien pro Tag</label><input type="number" id="profKcalMax" step="10"></div>
     <div class="profile-field"><label>Ballaststoffe-Ziel pro Tag (g)</label><input type="number" id="profFiberGoal" step="1"></div>
     <div class="profile-field"><label>Protein-Ziel pro Tag (g)</label><input type="number" id="profProteinGoal" step="1"></div>
+    <div class="profile-field"><label>Grundumsatz (kcal)</label><input type="number" id="profBmr" step="10"></div>
+    <div class="profile-field"><label>Warnschwelle Defizit (kcal)</label><input type="number" id="profDeficitWarn" step="50"></div>
     <div class="modal-actions">
       <button class="btn" id="profileCancel">Abbrechen</button>
       <button class="btn primary" id="profileSave">Speichern</button>
@@ -836,7 +854,7 @@ let bonusItems = []; // {id, name, kcal} - max 5, verwaltet im Vorrat-Tab
 let bonusLog = []; // {id, date, name, kcal} - jede Einlösung, zieht dauerhaft vom Guthaben ab
 let targets = { base:1800, deficit:1400 };
 let activeTarget = 'deficit';
-let profile = { id:null, startWeight:110, goalWeight:99, stepsGoal:8000, kcalMax:1400, fiberGoal:30, proteinGoal:130 };
+let profile = { id:null, startWeight:110, goalWeight:99, stepsGoal:8000, kcalMax:1400, fiberGoal:30, proteinGoal:130, bmr:1955, deficitWarnThreshold:1000 };
 
 let currentDate = todayStr();
 let swapWeekday = null, swapTargetSlot = null, swapSelectedDishName = null;
@@ -975,6 +993,8 @@ document.getElementById('openProfileBtn').addEventListener('click', ()=>{
   document.getElementById('profKcalMax').value = profile.kcalMax;
   document.getElementById('profFiberGoal').value = profile.fiberGoal;
   document.getElementById('profProteinGoal').value = profile.proteinGoal;
+  document.getElementById('profBmr').value = profile.bmr;
+  document.getElementById('profDeficitWarn').value = profile.deficitWarnThreshold;
   document.getElementById('profileModalBg').classList.add('open');
 });
 document.getElementById('profileCancel').addEventListener('click', ()=> document.getElementById('profileModalBg').classList.remove('open'));
@@ -985,23 +1005,25 @@ document.getElementById('profileSave').addEventListener('click', async ()=>{
   const kcalMax = Number(document.getElementById('profKcalMax').value)||profile.kcalMax;
   const fiberGoal = Number(document.getElementById('profFiberGoal').value)||profile.fiberGoal;
   const proteinGoal = Number(document.getElementById('profProteinGoal').value)||profile.proteinGoal||130;
-  const fields = { StartWeight: startWeight, GoalWeight: goalWeight, StepsGoal: stepsGoal, KcalMax: kcalMax, FiberGoal: fiberGoal, ProteinGoal: proteinGoal };
+  const bmr = Number(document.getElementById('profBmr').value)||profile.bmr||1955;
+  const deficitWarnThreshold = Number(document.getElementById('profDeficitWarn').value)||profile.deficitWarnThreshold||1000;
+  const fields = { StartWeight: startWeight, GoalWeight: goalWeight, StepsGoal: stepsGoal, KcalMax: kcalMax, FiberGoal: fiberGoal, ProteinGoal: proteinGoal, Bmr: bmr, DeficitWarnThreshold: deficitWarnThreshold };
   try{
     try{
       if(profile.id) await atUpdate('Profile', profile.id, fields);
       else{ const rec = await atCreate('Profile', fields); profile.id = rec.id; }
     }catch(fieldErr){
-      // Feld "ProteinGoal" existiert in Airtable evtl. noch nicht -> ohne erneut versuchen, sonst geht Speichern komplett nicht
-      const { ProteinGoal, ...fieldsWithoutProtein } = fields;
-      if(profile.id) await atUpdate('Profile', profile.id, fieldsWithoutProtein);
-      else{ const rec = await atCreate('Profile', fieldsWithoutProtein); profile.id = rec.id; }
-      setStatus('Gespeichert (Feld "ProteinGoal" fehlt noch in Airtable – bitte in der Profile-Tabelle als Number-Spalte ergänzen, dann erneut speichern)');
-      profile = { id:profile.id, startWeight, goalWeight, stepsGoal, kcalMax, fiberGoal, proteinGoal };
+      // Neuere Felder (ProteinGoal/Bmr/DeficitWarnThreshold) existieren in Airtable evtl. noch nicht -> ohne erneut versuchen, sonst geht Speichern komplett nicht
+      const { ProteinGoal, Bmr, DeficitWarnThreshold, ...fieldsWithoutNew } = fields;
+      if(profile.id) await atUpdate('Profile', profile.id, fieldsWithoutNew);
+      else{ const rec = await atCreate('Profile', fieldsWithoutNew); profile.id = rec.id; }
+      setStatus('Gespeichert (Felder "ProteinGoal"/"Bmr"/"DeficitWarnThreshold" fehlen noch in Airtable – bitte in der Profile-Tabelle als Number-Spalten ergänzen, dann erneut speichern)');
+      profile = { id:profile.id, startWeight, goalWeight, stepsGoal, kcalMax, fiberGoal, proteinGoal, bmr, deficitWarnThreshold };
       document.getElementById('profileModalBg').classList.remove('open');
       renderGoalCard(); renderScoreCard();
       return;
     }
-    profile = { id:profile.id, startWeight, goalWeight, stepsGoal, kcalMax, fiberGoal, proteinGoal };
+    profile = { id:profile.id, startWeight, goalWeight, stepsGoal, kcalMax, fiberGoal, proteinGoal, bmr, deficitWarnThreshold };
     setStatus('Stammdaten gespeichert');
     document.getElementById('profileModalBg').classList.remove('open');
     renderGoalCard(); renderScoreCard();
@@ -1199,6 +1221,54 @@ function renderDashboard(){
     options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
       scales:{ y:{ grid:{color:grid} }, x:{ grid:{display:false} } } }
   });
+
+  const stepsKcalByDate7 = {}; steps.forEach(s=> stepsKcalByDate7[s.date]=s.kcal);
+  const deficitFoodData = kcalData.map(v=> profile.bmr - v);
+  const deficitStepsData = last7.map(d=> stepsKcalByDate7[d]||0);
+  const deficitThreshold = profile.deficitWarnThreshold;
+  const deficitTotalData = deficitFoodData.map((f,i)=> f+deficitStepsData[i]);
+  const foodUnderData = deficitFoodData.map(f=> f<0 ? f : Math.min(f, deficitThreshold));
+  const stepsUnderData = deficitStepsData.map((s,i)=> Math.min(s, Math.max(0, deficitThreshold-Math.max(deficitFoodData[i],0))));
+  const excessData = deficitTotalData.map(t=> Math.max(0, t-deficitThreshold));
+  upsertChart('deficitChart', {
+    type:'bar',
+    data:{ labels: last7.map(d=> WEEKDAY_NAMES[weekdayOf(d)].slice(0,2)),
+      datasets:[
+        { label:'Essen', data: foodUnderData, backgroundColor:'#378ADD', stack:'d', borderRadius:3, maxBarThickness:26 },
+        { label:'Schritte', data: stepsUnderData, backgroundColor:'#1D9E75', stack:'d', borderRadius:3, maxBarThickness:26 },
+        { label:'Über Warnschwelle', data: excessData, backgroundColor:'#D03B3B', stack:'d', borderRadius:3, maxBarThickness:26 },
+        { type:'line', label:'Warnschwelle', data: last7.map(()=>deficitThreshold), borderColor:'#D03B3B', borderWidth:1.5, borderDash:[], pointRadius:0 }
+      ] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
+      scales:{
+        y:{ stacked:true, grid:{color:grid} },
+        x:{ stacked:true, grid:{display:false}, ticks:{ color: (ctx)=> deficitTotalData[ctx.index]>deficitThreshold ? '#D03B3B' : '#898781' } }
+      } },
+    plugins:[{
+      id:'deficitThresholdZone',
+      beforeDatasetsDraw(chart){
+        const {ctx, chartArea, scales:{y}} = chart;
+        const yPos = y.getPixelForValue(deficitThreshold);
+        if(yPos < chartArea.top || yPos > chartArea.bottom) return;
+        ctx.save();
+        ctx.fillStyle = 'rgba(208,59,59,0.06)';
+        ctx.fillRect(chartArea.left, chartArea.top, chartArea.width, yPos-chartArea.top);
+        ctx.restore();
+      }
+    }]
+  });
+
+  document.getElementById('deficitThresholdLabel').textContent = 'Warnschwelle ('+deficitThreshold.toLocaleString('de-DE')+' kcal)';
+
+  const foodSum7 = deficitFoodData.reduce((a,b)=>a+Math.max(0,b),0);
+  const stepsSum7 = deficitStepsData.reduce((a,b)=>a+b,0);
+  const ratioEl = document.getElementById('deficitRatio');
+  if(foodSum7+stepsSum7>0){
+    const foodShare = Math.round((foodSum7/(foodSum7+stepsSum7))*100);
+    ratioEl.textContent = `Verhältnis Essen : Schritte = ${foodShare} : ${100-foodShare}`;
+  }else{
+    ratioEl.textContent = '';
+  }
 
   const wGoal = waterGoalMl();
   const waterData = last7.map(d=> Math.round(waterDayTotal(d)/100)/10); // Liter, 1 Nachkommastelle
@@ -1445,12 +1515,16 @@ function buildPantryPrompt(p){
   const basis = (p.unit==='g'||p.unit==='ml') ? `pro 100 ${p.unit}` : `für 1 ${p.unit||'Stück'}`;
   return `Schätze für folgendes Lebensmittel die Werte ${basis}: Kalorien (kcal), Ballaststoffe (g) und Protein (g). Gib die Antwort in genau diesem Format zurück, ohne weiteren Text: kcal: <Zahl>, Ballaststoffe: <Zahl in g>, Protein: <Zahl in g>\n\nLebensmittel: ${p.name}`;
 }
+function unitAbbr(u){
+  return u==='Stück' ? 'Stk' : (u||'');
+}
 let pantryExpanded = {}; // { "Zutatname": true/false } rein lokal, nicht persistiert
 function pantryRowHtml(p, i){
   const score = fullnessScore(p);
   const scoreBadge = score===null ? '' : `<span class="fullness-badge ${score>=50?'high':score>=25?'mid':'low'}">${score} FF</span>`;
   const open = !!pantryExpanded[p.name];
   const isG = p.unit==='g'||p.unit==='ml';
+  const unitLabel = unitAbbr(p.unit);
   if(p.ignore){
     return `
     <div class="p-card ignored" data-i="${i}">
@@ -1465,8 +1539,8 @@ function pantryRowHtml(p, i){
     <div class="p-card ${p.bestand<p.mindestbestand?'low':''}" data-i="${i}">
       <div class="p-row">
         <div class="p-name-wrap"><p class="p-name">${escapeAttr(p.name)} ${scoreBadge}</p></div>
-        <div class="p-mini"><label>Best.</label><input type="number" step="any" class="pf-bestand" value="${p.bestand}"></div>
-        <div class="p-mini"><label>Min.</label><input type="number" step="any" class="pf-min" value="${p.mindestbestand}"></div>
+        <div class="p-mini"><label>Best.${unitLabel?` (${unitLabel})`:''}</label><input type="number" step="any" class="pf-bestand" value="${p.bestand}"></div>
+        <div class="p-mini"><label>Min.${unitLabel?` (${unitLabel})`:''}</label><input type="number" step="any" class="pf-min" value="${p.mindestbestand}"></div>
         <button type="button" class="p-expand-btn ${open?'open':''}" title="Nährwerte"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${open?'<path d="M18 15l-6-6-6 6"/>':'<path d="M6 9l6 6 6-6"/>'}</svg></button>
       </div>
       <div class="p-detail ${open?'open':''}">
@@ -1611,7 +1685,7 @@ function renderSnackManage(){
   const withKcal = snacks.map(s=>{
     const amt = s.amount||1;
     const src = s.source==='dish' ? dishByName(s.name) : pantryItem(s.name);
-    const kcal = src ? Math.round((s.source==='dish'?effectiveKcal(src):src.kcalPerUnit)*amt) : (s.kcal||0);
+    const kcal = src ? Math.round(s.source==='dish' ? effectiveKcal(src)*amt : nutrientContribution({unit:src.unit, amount:amt}, src.kcalPerUnit)) : (s.kcal||0);
     return { ...s, amt, kcal };
   });
   wrap.innerHTML = withKcal.sort((a,b)=>a.kcal-b.kcal).map(s=>`
@@ -1633,7 +1707,7 @@ document.getElementById('snackAddBtn').addEventListener('click', async ()=>{
   const source = raw.startsWith('d:') ? 'dish' : 'pantry';
   const name = raw.slice(2);
   const src = source==='dish' ? dishByName(name) : pantryItem(name);
-  const kcal = src ? Math.round((source==='dish'?effectiveKcal(src):src.kcalPerUnit)*amount) : 0;
+  const kcal = src ? Math.round(source==='dish' ? effectiveKcal(src)*amount : nutrientContribution({unit:src.unit, amount:amount}, src.kcalPerUnit)) : 0;
   try{
     const rec = await atCreate('Snacks', { Name:name, Amount:amount, Kcal:kcal, Source:source });
     snacks.push({ id:rec.id, name, amount, kcal, source });
@@ -1683,7 +1757,7 @@ async function loadAll(){
     try{
       const profRecs = await atList('Profile');
       if(profRecs[0]){
-        profile = { id:profRecs[0].id, startWeight:Number(profRecs[0].fields.StartWeight)||profile.startWeight, goalWeight:Number(profRecs[0].fields.GoalWeight)||profile.goalWeight, stepsGoal:Number(profRecs[0].fields.StepsGoal)||profile.stepsGoal, kcalMax:Number(profRecs[0].fields.KcalMax)||profile.kcalMax, fiberGoal:Number(profRecs[0].fields.FiberGoal)||profile.fiberGoal, proteinGoal:Number(profRecs[0].fields.ProteinGoal)||profile.proteinGoal };
+        profile = { id:profRecs[0].id, startWeight:Number(profRecs[0].fields.StartWeight)||profile.startWeight, goalWeight:Number(profRecs[0].fields.GoalWeight)||profile.goalWeight, stepsGoal:Number(profRecs[0].fields.StepsGoal)||profile.stepsGoal, kcalMax:Number(profRecs[0].fields.KcalMax)||profile.kcalMax, fiberGoal:Number(profRecs[0].fields.FiberGoal)||profile.fiberGoal, proteinGoal:Number(profRecs[0].fields.ProteinGoal)||profile.proteinGoal, bmr:Number(profRecs[0].fields.Bmr)||profile.bmr, deficitWarnThreshold:Number(profRecs[0].fields.DeficitWarnThreshold)||profile.deficitWarnThreshold };
       }
     }catch(e){ console.warn('Profile-Tabelle noch nicht vorhanden – lege sie in Airtable an (Felder: StartWeight, GoalWeight, StepsGoal, KcalMax, FiberGoal). Nutze bis dahin Standardwerte.'); }
     try{
@@ -1916,6 +1990,25 @@ function renderToday(){
   document.getElementById('gaugeFiberVal').textContent = Math.round(totalFiber*10)/10+'/'+fiberTarget+' gBall';
   document.getElementById('gaugeWaterVal').textContent = waterTotal+'/'+waterTarget+' mlWa';
 
+  const movementKcal = (steps.find(s=>s.date===currentDate)||{}).kcal || 0;
+  const deficit = Math.round(profile.bmr + movementKcal - total);
+  document.getElementById('gaugeDeficitVal').textContent = deficit.toLocaleString('de-DE')+' kcal Defizit';
+  const deficitEl = document.getElementById('deficitStatus');
+  let dTier, dTitle, dSub;
+  if(deficit > profile.deficitWarnThreshold){
+    dTier='low'; dTitle='Sehr großes Defizit';
+    dSub = deficit.toLocaleString('de-DE')+' kcal heute (Grundumsatz '+profile.bmr.toLocaleString('de-DE')+' + Bewegung '+movementKcal.toLocaleString('de-DE')+' − gegessen '+total.toLocaleString('de-DE')+') – auf Dauer sind oft 500–1.000 kcal leichter durchzuhalten und schonen die Muskulatur.';
+  }else if(deficit < 0){
+    dTier='mid'; dTitle='Kalorienüberschuss';
+    dSub = Math.abs(deficit).toLocaleString('de-DE')+' kcal über dem Grundumsatz + Bewegung.';
+  }else{
+    dTier='good'; dTitle='Defizit im geplanten Rahmen';
+    dSub = deficit.toLocaleString('de-DE')+' kcal heute (Grundumsatz '+profile.bmr.toLocaleString('de-DE')+' + Bewegung '+movementKcal.toLocaleString('de-DE')+' − gegessen '+total.toLocaleString('de-DE')+').';
+  }
+  deficitEl.className = 'ff-status '+dTier;
+  document.getElementById('deficitStatusTitle').textContent = dTitle;
+  document.getElementById('deficitStatusSub').textContent = dSub;
+
   renderSnackChips(remaining);
 
   renderWeightBlock();
@@ -1928,9 +2021,9 @@ function renderSnackChips(remaining){
   const resolved = snacks.map(s=>{
     const amt = s.amount||1;
     const src = s.source==='dish' ? dishByName(s.name) : pantryItem(s.name);
-    const kcal = src ? Math.round((s.source==='dish'?effectiveKcal(src):src.kcalPerUnit)*amt) : (s.kcal||0);
-    const fiber = src ? Math.round((s.source==='dish'?effectiveFiber(src):src.fiberPerUnit)*amt*10)/10 : 0;
-    const protein = src ? Math.round((s.source==='dish'?calculatedProtein(src):src.proteinPerUnit)*amt*10)/10 : 0;
+    const kcal = src ? Math.round(s.source==='dish' ? effectiveKcal(src)*amt : nutrientContribution({unit:src.unit, amount:amt}, src.kcalPerUnit)) : (s.kcal||0);
+    const fiber = src ? Math.round((s.source==='dish' ? effectiveFiber(src)*amt : nutrientContribution({unit:src.unit, amount:amt}, src.fiberPerUnit))*10)/10 : 0;
+    const protein = src ? Math.round((s.source==='dish' ? calculatedProtein(src)*amt : nutrientContribution({unit:src.unit, amount:amt}, src.proteinPerUnit))*10)/10 : 0;
     return { id:s.id, name: s.name+(amt!==1?` ×${amt}`:''), kcal, fiber, protein };
   });
   const visible = resolved.filter(s=> s.kcal <= remaining + 100);

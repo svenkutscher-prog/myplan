@@ -10,6 +10,7 @@
   --bg:#EEF2E6; --card:#FCFBF7; --ink:#26311F; --ink-soft:#5C6B52; --line:#D8E0CC;
   --olive:#4F6B44; --olive-dark:#3A4F32; --mustard:#C9862F; --mustard-bg:#F6E9D2;
   --coral:#B3543A; --coral-bg:#F2DFD7; --water:#5B8FA8; --water-light:#B9D4E0; --water-bg:#DCEAF0;
+  --plum:#7C5CAE; --plum-bg:#EAE3F3;
 }
 *{box-sizing:border-box;}
 .loading-overlay{position:fixed;inset:0;background:var(--bg);z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;transition:opacity .3s ease;}
@@ -176,6 +177,20 @@ h2.section{font-family:'Fraunces',serif;font-weight:600;font-size:18px;margin:1.
 .day-block-head .head-icons{display:flex;gap:2px;align-items:center;}
 .day-total{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:500;color:var(--olive-dark);}
 .day-total.over{color:var(--coral);}
+.day-total .protein-low{color:var(--coral);}
+.day-metrics{margin:0 0 12px;}
+.metric-labels{display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink-soft);margin-bottom:4px;}
+.metric-labels:not(:first-child){margin-top:12px;}
+.metric-labels .over,.metric-labels .low{color:var(--coral);}
+.split-bar{display:flex;align-items:center;height:6px;border-radius:4px;overflow:hidden;background:var(--line);}
+.split-bar .half{width:50%;height:100%;}
+.split-bar .half.left{display:flex;justify-content:flex-end;}
+.split-bar .fill{height:100%;}
+.split-bar .divider{width:1px;height:12px;background:var(--ink-soft);opacity:.35;flex-shrink:0;}
+.fill-kcal{background:var(--water);}
+.fill-ff{background:var(--mustard);}
+.fill-fiber{background:var(--olive);}
+.fill-protein{background:var(--plum);}
 .slot-row{display:flex;align-items:center;gap:.45rem;padding:8px 0;border-bottom:1px solid var(--line);}
 .slot-row:last-of-type{border-bottom:none;}
 .slot-row input[type=time]{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1px solid var(--line);border-radius:6px;padding:3px 4px;background:#fff;width:58px;color:var(--ink-soft);}
@@ -612,6 +627,11 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
         <div class="score-bar-track"><div class="score-bar-fill" id="scoreFiberBar" style="width:0%;"></div></div>
         <p class="score-sub" id="scoreFiberSub"></p>
       </div>
+      <div class="score-block" id="scoreProteinBlock">
+        <div class="score-row"><span class="score-icon">🥩</span><span class="score-name">Protein</span><span class="score-badge" id="scoreProtein">–</span></div>
+        <div class="score-bar-track"><div class="score-bar-fill" id="scoreProteinBar" style="width:0%;"></div></div>
+        <p class="score-sub" id="scoreProteinSub"></p>
+      </div>
       <div class="score-block" id="scoreWaterBlock">
         <div class="score-row"><span class="score-icon">💧</span><span class="score-name">Trinken</span><span class="score-badge" id="scoreWater">–</span></div>
         <div class="score-bar-track"><div class="score-bar-fill" id="scoreWaterBar" style="width:0%;"></div></div>
@@ -677,6 +697,7 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
     <div class="profile-field"><label>Schritte-Ziel (Ø/Tag)</label><input type="number" id="profStepsGoal" step="100"></div>
     <div class="profile-field"><label>Max. Kalorien pro Tag</label><input type="number" id="profKcalMax" step="10"></div>
     <div class="profile-field"><label>Ballaststoffe-Ziel pro Tag (g)</label><input type="number" id="profFiberGoal" step="1"></div>
+    <div class="profile-field"><label>Protein-Ziel pro Tag (g)</label><input type="number" id="profProteinGoal" step="1"></div>
     <div class="modal-actions">
       <button class="btn" id="profileCancel">Abbrechen</button>
       <button class="btn primary" id="profileSave">Speichern</button>
@@ -815,7 +836,7 @@ let bonusItems = []; // {id, name, kcal} - max 5, verwaltet im Vorrat-Tab
 let bonusLog = []; // {id, date, name, kcal} - jede Einlösung, zieht dauerhaft vom Guthaben ab
 let targets = { base:1800, deficit:1400 };
 let activeTarget = 'deficit';
-let profile = { id:null, startWeight:110, goalWeight:99, stepsGoal:8000, kcalMax:1400, fiberGoal:30 };
+let profile = { id:null, startWeight:110, goalWeight:99, stepsGoal:8000, kcalMax:1400, fiberGoal:30, proteinGoal:130 };
 
 let currentDate = todayStr();
 let swapWeekday = null, swapTargetSlot = null, swapSelectedDishName = null;
@@ -953,6 +974,7 @@ document.getElementById('openProfileBtn').addEventListener('click', ()=>{
   document.getElementById('profStepsGoal').value = profile.stepsGoal;
   document.getElementById('profKcalMax').value = profile.kcalMax;
   document.getElementById('profFiberGoal').value = profile.fiberGoal;
+  document.getElementById('profProteinGoal').value = profile.proteinGoal;
   document.getElementById('profileModalBg').classList.add('open');
 });
 document.getElementById('profileCancel').addEventListener('click', ()=> document.getElementById('profileModalBg').classList.remove('open'));
@@ -962,11 +984,24 @@ document.getElementById('profileSave').addEventListener('click', async ()=>{
   const stepsGoal = Number(document.getElementById('profStepsGoal').value)||profile.stepsGoal;
   const kcalMax = Number(document.getElementById('profKcalMax').value)||profile.kcalMax;
   const fiberGoal = Number(document.getElementById('profFiberGoal').value)||profile.fiberGoal;
-  const fields = { StartWeight: startWeight, GoalWeight: goalWeight, StepsGoal: stepsGoal, KcalMax: kcalMax, FiberGoal: fiberGoal };
+  const proteinGoal = Number(document.getElementById('profProteinGoal').value)||profile.proteinGoal||130;
+  const fields = { StartWeight: startWeight, GoalWeight: goalWeight, StepsGoal: stepsGoal, KcalMax: kcalMax, FiberGoal: fiberGoal, ProteinGoal: proteinGoal };
   try{
-    if(profile.id) await atUpdate('Profile', profile.id, fields);
-    else{ const rec = await atCreate('Profile', fields); profile.id = rec.id; }
-    profile = { id:profile.id, startWeight, goalWeight, stepsGoal, kcalMax, fiberGoal };
+    try{
+      if(profile.id) await atUpdate('Profile', profile.id, fields);
+      else{ const rec = await atCreate('Profile', fields); profile.id = rec.id; }
+    }catch(fieldErr){
+      // Feld "ProteinGoal" existiert in Airtable evtl. noch nicht -> ohne erneut versuchen, sonst geht Speichern komplett nicht
+      const { ProteinGoal, ...fieldsWithoutProtein } = fields;
+      if(profile.id) await atUpdate('Profile', profile.id, fieldsWithoutProtein);
+      else{ const rec = await atCreate('Profile', fieldsWithoutProtein); profile.id = rec.id; }
+      setStatus('Gespeichert (Feld "ProteinGoal" fehlt noch in Airtable – bitte in der Profile-Tabelle als Number-Spalte ergänzen, dann erneut speichern)');
+      profile = { id:profile.id, startWeight, goalWeight, stepsGoal, kcalMax, fiberGoal, proteinGoal };
+      document.getElementById('profileModalBg').classList.remove('open');
+      renderGoalCard(); renderScoreCard();
+      return;
+    }
+    profile = { id:profile.id, startWeight, goalWeight, stepsGoal, kcalMax, fiberGoal, proteinGoal };
     setStatus('Stammdaten gespeichert');
     document.getElementById('profileModalBg').classList.remove('open');
     renderGoalCard(); renderScoreCard();
@@ -994,16 +1029,17 @@ function scoreEmpty(prefix){
 }
 function renderScoreCard(){
   const last7 = [...Array(7)].map((_,i)=> addDays(todayStr(), -i)).filter(d=> d!==todayStr());
-  const fiberTarget = profile.fiberGoal, kcalMax = profile.kcalMax;
+  const fiberTarget = profile.fiberGoal, kcalMax = profile.kcalMax, proteinTarget = profile.proteinGoal;
 
   // Kalorien: ein Maximum, nicht "je mehr desto besser" -> drunterbleiben ist immer gut, nur Überschreiten senkt den Score
-  let kcalDays=0, kcalSum=0, fiberSum=0;
+  let kcalDays=0, kcalSum=0, fiberSum=0, proteinSum=0;
   last7.forEach(d=>{
     const dl = logEntries.filter(l=>l.date===d);
     if(!dl.length) return;
     kcalDays++;
     kcalSum += dayTotalKcal(d);
     fiberSum += dl.reduce((s,l)=> s+(l.fiber||0), 0);
+    proteinSum += dl.reduce((s,l)=> s+(l.protein||0), 0);
   });
   if(kcalDays>0){
     const avgKcal = Math.round(kcalSum/kcalDays);
@@ -1013,7 +1049,11 @@ function renderScoreCard(){
     const avgFiber = Math.round((fiberSum/kcalDays)*10)/10;
     const fiberScore = Math.min(1, avgFiber/fiberTarget);
     scoreBadge('Fiber', fiberScore, fiberScore, `Ø ${avgFiber} g (Ziel ${fiberTarget}g)`);
-  } else { scoreEmpty('Kcal'); scoreEmpty('Fiber'); }
+
+    const avgProtein = Math.round((proteinSum/kcalDays)*10)/10;
+    const proteinScore = Math.min(1, avgProtein/proteinTarget);
+    scoreBadge('Protein', proteinScore, proteinScore, `Ø ${avgProtein} g (Ziel ${proteinTarget}g)`);
+  } else { scoreEmpty('Kcal'); scoreEmpty('Fiber'); scoreEmpty('Protein'); }
 
   // Trinken: Ø ml ggü. Tagesziel, mehr als Ziel ist nie schlechter
   let waterDays=0, waterSum=0;
@@ -1643,7 +1683,7 @@ async function loadAll(){
     try{
       const profRecs = await atList('Profile');
       if(profRecs[0]){
-        profile = { id:profRecs[0].id, startWeight:Number(profRecs[0].fields.StartWeight)||profile.startWeight, goalWeight:Number(profRecs[0].fields.GoalWeight)||profile.goalWeight, stepsGoal:Number(profRecs[0].fields.StepsGoal)||profile.stepsGoal, kcalMax:Number(profRecs[0].fields.KcalMax)||profile.kcalMax, fiberGoal:Number(profRecs[0].fields.FiberGoal)||profile.fiberGoal };
+        profile = { id:profRecs[0].id, startWeight:Number(profRecs[0].fields.StartWeight)||profile.startWeight, goalWeight:Number(profRecs[0].fields.GoalWeight)||profile.goalWeight, stepsGoal:Number(profRecs[0].fields.StepsGoal)||profile.stepsGoal, kcalMax:Number(profRecs[0].fields.KcalMax)||profile.kcalMax, fiberGoal:Number(profRecs[0].fields.FiberGoal)||profile.fiberGoal, proteinGoal:Number(profRecs[0].fields.ProteinGoal)||profile.proteinGoal };
       }
     }catch(e){ console.warn('Profile-Tabelle noch nicht vorhanden – lege sie in Airtable an (Felder: StartWeight, GoalWeight, StepsGoal, KcalMax, FiberGoal). Nutze bis dahin Standardwerte.'); }
     try{
@@ -2045,20 +2085,46 @@ function renderWeek(){
     const slots = weekPlan[wd] || [];
     const dayTotal = slots.reduce((sum,slot)=>{ const d=dishByName(slot.dishName); return sum + (d?effectiveKcal(d):0); }, 0);
     const dayFiber = Math.round(slots.reduce((sum,slot)=>{ const d=dishByName(slot.dishName); return sum + (d?effectiveFiber(d):0); }, 0)*10)/10;
+    const dayProtein = Math.round(slots.reduce((sum,slot)=>{ const d=dishByName(slot.dishName); return sum + (d?calculatedProtein(d):0); }, 0)*10)/10;
     let dayFFWeighted = 0, dayFFBase = 0;
     slots.forEach(slot=>{ const d=dishByName(slot.dishName); if(d){ const s=dishFullnessScore(d); const k=effectiveKcal(d); if(s!==null){ dayFFWeighted+=s*k; dayFFBase+=k; } } });
     const dayFF = dayFFBase>0 ? Math.round(dayFFWeighted/dayFFBase) : null;
     const target = targets[activeTarget];
     const over = dayTotal > target;
+    const proteinShort = dayProtein < profile.proteinGoal;
+    const kcalPct = Math.max(0, Math.min(100, Math.round(dayTotal/target*100)));
+    const ffPct = dayFF!==null ? Math.max(0, Math.min(100, dayFF)) : 0;
+    const fiberPct = Math.max(0, Math.min(100, Math.round(dayFiber/profile.fiberGoal*100)));
+    const proteinPct = Math.max(0, Math.min(100, Math.round(dayProtein/profile.proteinGoal*100)));
     block.innerHTML = `<div class="day-block-head">
         <span class="day-title">${WEEKDAY_NAMES[wd]}</span>
-        <span class="day-total ${over?'over':''}">${dayTotal} / ${target} kcal &nbsp;·&nbsp; ${dayFiber} g Bal.${dayFF!==null?` &nbsp;·&nbsp; Ø ${dayFF} FF`:''}</span>
         <span class="head-spacer"></span>
         <div class="head-icons">
           ${editOn?`<button class="icon-btn day-move-btn" title="Ganzen Tag tauschen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 21l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></button>`:''}
           <button class="icon-btn day-edit-btn ${editOn?'active':''}" title="Bearbeiten"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg></button>
         </div>
-      </div><div class="slots"></div>`;
+      </div>
+      <div class="day-metrics">
+        <div class="metric-labels">
+          <span class="${over?'over':''}">${dayTotal} / ${target} kcal</span>
+          <span>${dayFF!==null?`Ø ${dayFF} FF`:'FF –'}</span>
+        </div>
+        <div class="split-bar">
+          <div class="half left"><div class="fill fill-kcal" style="width:${kcalPct}%;"></div></div>
+          <div class="divider"></div>
+          <div class="half"><div class="fill fill-ff" style="width:${ffPct}%;"></div></div>
+        </div>
+        <div class="metric-labels">
+          <span>${dayFiber} g Ballaststoffe</span>
+          <span class="${proteinShort?'low':''}">${dayProtein} / ${profile.proteinGoal} g Protein</span>
+        </div>
+        <div class="split-bar">
+          <div class="half left"><div class="fill fill-fiber" style="width:${fiberPct}%;"></div></div>
+          <div class="divider"></div>
+          <div class="half"><div class="fill fill-protein" style="width:${proteinPct}%;"></div></div>
+        </div>
+      </div>
+      <div class="slots"></div>`;
     if(editOn) block.querySelector('.day-move-btn').addEventListener('click', ()=> openDayMoveModal(wd));
     block.querySelector('.day-edit-btn').addEventListener('click', ()=>{ weekEditMode[wd] = !weekEditMode[wd]; renderWeek(); });
     const slotsWrap = block.querySelector('.slots');
@@ -2074,7 +2140,7 @@ function renderWeek(){
         </div>
         <select class="hour-select">${hourOptions}</select>`:`<span class="hour-select">${hour} h</span>`}
         <span class="slot-dishname">${dish?escapeAttr(dish.name):'—'}</span>
-        <span class="slot-kcal">${dish?effectiveKcal(dish):0} kcal / ${dish?effectiveFiber(dish):0}g Bal.${dish&&dishFullnessScore(dish)!==null?` / ${dishFullnessScore(dish)} FF`:''}</span>
+        <span class="slot-kcal">${dish?effectiveKcal(dish):0} kcal</span>
         ${editOn?`<div class="slot-actions">
           <button class="icon-btn" title="Tauschen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 21l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></button>
           <button class="icon-btn danger" title="Entfernen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>

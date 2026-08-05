@@ -146,6 +146,21 @@ h2.section{font-family:'Fraunces',serif;font-weight:600;font-size:18px;margin:1.
 .quick-add input.qkcal{flex:none;width:70px;}
 .quick-add button{width:38px;border:none;background:var(--olive);color:#fff;border-radius:8px;font-size:18px;cursor:pointer;}
 .quick-add button:hover{background:var(--olive-dark);}
+.routine-row{display:flex;align-items:center;gap:10px;padding:9px 11px;background:var(--card);border:1px solid var(--line);border-radius:10px;margin-bottom:6px;}
+.routine-check{width:24px;height:24px;border-radius:50%;border:1.5px solid var(--line);flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer;background:#fff;padding:0;}
+.routine-check.done{background:var(--olive);border-color:var(--olive);cursor:default;}
+.routine-check svg{width:13px;height:13px;color:#fff;visibility:hidden;}
+.routine-check.done svg{visibility:visible;}
+.routine-name{flex:1;font-size:13.5px;}
+.routine-name.done{color:var(--ink-soft);}
+.routine-del{border:none;background:transparent;color:var(--ink-soft);cursor:pointer;font-size:14px;padding:2px 4px;}
+.routine-del:hover{color:var(--coral);}
+.routine-grid{display:grid;grid-template-columns:96px repeat(7,1fr);align-items:center;row-gap:8px;margin-top:.6rem;}
+.routine-grid .rg-wd{text-align:center;font-size:10px;color:var(--ink-soft);}
+.routine-grid .rg-wd.today{color:var(--ink);font-weight:600;}
+.routine-grid .rg-name{font-size:12px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.routine-grid .rg-dot{width:15px;height:15px;border-radius:4px;background:var(--line);justify-self:center;}
+.routine-grid .rg-dot.done{background:var(--olive);}
 
 .weight-block, .steps-block{border-top:1px dashed var(--line);padding-top:1.1rem;margin-top:.4rem;}
 .pill-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:.8rem 0 1.4rem;}
@@ -243,7 +258,12 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
 .preview-box{border-top:1px dashed var(--line);margin-top:.8rem;padding-top:.7rem;font-size:13px;color:var(--ink-soft);min-height:20px;}
 .preview-box b{color:var(--ink);}
 .editor-row{display:flex;gap:.5rem;margin-bottom:.4rem;align-items:center;}
-.editor-row input.iname{flex:1;font-size:13.5px;border:1px solid var(--line);border-radius:7px;padding:5px 8px;background:#fff;color:var(--ink);}
+.iname-wrap{position:relative;flex:1;min-width:0;}
+.editor-row input.iname{flex:1;font-size:13.5px;border:1px solid var(--line);border-radius:7px;padding:5px 8px;background:#fff;color:var(--ink);width:100%;box-sizing:border-box;}
+.iname-suggest{position:absolute;top:calc(100% + 2px);left:0;right:0;z-index:50;background:#fff;border:1px solid var(--line);border-radius:8px;max-height:170px;overflow-y:auto;box-shadow:0 6px 14px rgba(0,0,0,.1);display:none;}
+.iname-suggest.open{display:block;}
+.iname-suggest .isug{padding:8px 10px;font-size:13.5px;color:var(--ink);cursor:pointer;}
+.iname-suggest .isug:active,.iname-suggest .isug.active{background:var(--card,#f4f4f0);}
 .editor-row input.iamt{width:60px;font-family:'IBM Plex Mono',monospace;font-size:13px;text-align:right;border:1px solid var(--line);border-radius:7px;padding:5px 6px;background:#fff;color:var(--ink);}
 .editor-row select.iname{flex:1;font-size:13.5px;border:1px solid var(--line);border-radius:7px;padding:5px 8px;background:#fff;color:var(--ink);}
 .editor-row select.iunit{font-size:12.5px;border:1px solid var(--line);border-radius:7px;padding:5px 4px;background:#fff;color:var(--ink-soft);width:64px;}
@@ -340,6 +360,9 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
 .p-expand-btn{width:26px;height:26px;border-radius:7px;background:transparent;border:1px solid var(--line);color:var(--ink-soft);flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer;}
 .p-expand-btn.open{background:var(--olive);border-color:var(--olive);color:#fff;}
 .p-expand-btn svg{width:13px;height:13px;}
+.p-cart-btn{width:26px;height:26px;border-radius:7px;background:transparent;border:1px solid var(--line);color:var(--ink-soft);flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+.p-cart-btn:active{background:var(--olive);border-color:var(--olive);color:#fff;}
+.p-cart-btn svg{width:13px;height:13px;}
 .p-detail{display:none;padding:0 10px 10px;border-top:1px dashed var(--line);margin-top:2px;gap:6px;}
 .p-detail.open{display:flex;padding-top:8px;}
 .p-dfield{flex:1;background:#fff;border:1px solid var(--line);border-radius:8px;padding:5px 6px;}
@@ -437,7 +460,6 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
         <div class="gauge-legend-row"><span class="gauge-dot" style="background:var(--coral);"></span><span id="gaugeKcalVal">0/1400 kcal</span></div>
         <div class="gauge-legend-row"><span class="gauge-dot" style="background:var(--olive);"></span><span id="gaugeFiberVal">0/30 gBall</span></div>
         <div class="gauge-legend-row"><span class="gauge-dot" style="background:var(--water);"></span><span id="gaugeWaterVal">0/0 mlWa</span></div>
-        <div class="gauge-legend-row"><span class="gauge-dot" style="background:var(--ink-soft);"></span><span id="gaugeDeficitVal">0 kcal Defizit</span></div>
       </div>
     </div>
 
@@ -467,6 +489,13 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
       <button class="open-btn" id="openExtraBtn"><span class="ic a">🍽️</span> Gericht hinzufügen</button>
       <button class="open-btn" id="openWeightBtn"><span class="ic b">⚖️</span> Gewicht <span class="sub" id="weightBtnSub"></span></button>
       <button class="open-btn" id="openStepsBtn"><span class="ic c">👟</span> Schritte <span class="sub" id="stepsBtnSub"></span></button>
+    </div>
+
+    <h2 class="section" style="margin-top:1.4rem;">Routine <span class="section-note" id="routineBadge"></span></h2>
+    <div id="routineList"></div>
+    <div class="quick-add">
+      <input type="text" id="routineNewName" placeholder="Neue Routine (z.B. Zähneputzen)">
+      <button id="routineAddBtn">+</button>
     </div>
   </div>
 
@@ -675,6 +704,13 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
     </div>
     <div class="chart-wrap"><canvas id="deficitChart" role="img" aria-label="Kalorien-Defizit pro Tag, aufgeteilt in Essen-Anteil und Schritte-Anteil, letzte 7 Tage"></canvas></div>
 
+    <p class="chart-label">Routine, letzte 7 Tage</p>
+    <div class="dash-stats" style="margin-bottom:.6rem;">
+      <div class="dash-stat"><p class="ds-label">Diese Woche</p><p class="ds-val" id="routineWeekPct">–</p></div>
+      <div class="dash-stat"><p class="ds-label">Aktuelle Serie</p><p class="ds-val" id="routineStreak">–</p></div>
+    </div>
+    <div id="routineGrid" class="routine-grid"></div>
+
     <p class="chart-label">Trinken, letzte 7 Tage</p>
     <div class="chart-wrap"><canvas id="waterChart" role="img" aria-label="Getrunkene Liter pro Tag, letzte 7 Tage"></canvas></div>
 
@@ -765,7 +801,6 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
     </div>
     <label style="display:block;font-size:12.5px;color:var(--ink-soft);margin-bottom:6px;">Zutaten</label>
     <div id="dishIngredients"></div>
-    <datalist id="pantryNames"></datalist>
     <button class="add-ing-editor" id="dishAddIng">+ Zutat</button>
     <p class="section-note" id="gramSumNote" style="margin:2px 0 6px;"></p>
     <button type="button" class="btn" id="autoGramBtn" style="width:100%;margin-bottom:.8rem;" disabled>⚖️ Auto Gramm-Anpassung (auf 600 kcal)</button>
@@ -851,6 +886,8 @@ let snacks = []; // {id, name, kcal}
 let daySwaps = []; // {id, date, slotId, dishName} - Gericht nur für einen bestimmten Tag getauscht, ohne den Wochenplan zu ändern
 let water = []; // {id, date, ml}
 let bonusItems = []; // {id, name, kcal} - max 5, verwaltet im Vorrat-Tab
+let routineTasks = []; // {id, name} - tägliche Routine-Aufgaben, selbst angelegt im Heute-Tab
+let routineLog = [];   // {id, date, taskName} - ein Eintrag pro erledigter Aufgabe/Tag, kein Zurücknehmen
 let bonusLog = []; // {id, date, name, kcal} - jede Einlösung, zieht dauerhaft vom Guthaben ab
 let targets = { base:1800, deficit:1400 };
 let activeTarget = 'deficit';
@@ -919,6 +956,92 @@ function renderTodayTab(){
   const total = waterDayTotal(date);
   const goal = waterGoalMl();
   document.getElementById('waterDdLabel').textContent = (total/1000).toLocaleString('de-DE',{minimumFractionDigits:1})+' / '+(goal/1000).toLocaleString('de-DE',{minimumFractionDigits:1})+' L heute';
+}
+
+/* ================= ROUTINE ================= */
+/* Einmal erledigt bleibt erledigt (kein Zurücknehmen), gilt für jeden Tag ohne Pausieren */
+function routineDoneOn(name, date){ return routineLog.some(r=> r.date===date && r.taskName===name); }
+function renderRoutine(){
+  const wrap = document.getElementById('routineList');
+  if(!wrap) return;
+  const badgeEl = document.getElementById('routineBadge');
+  if(!routineTasks.length){ wrap.innerHTML = '<p class="section-note">Noch keine Routine angelegt.</p>'; if(badgeEl) badgeEl.textContent = ''; return; }
+  const today = todayStr();
+  const doneCount = routineTasks.filter(t=> routineDoneOn(t.name, today)).length;
+  if(badgeEl) badgeEl.textContent = doneCount+'/'+routineTasks.length+' heute';
+  wrap.innerHTML = routineTasks.map(t=>{
+    const done = routineDoneOn(t.name, today);
+    return `<div class="routine-row" data-id="${t.id}">
+      <button type="button" class="routine-check ${done?'done':''}" title="${done?'heute erledigt':'als erledigt markieren'}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></button>
+      <span class="routine-name ${done?'done':''}">${escapeAttr(t.name)}</span>
+      <button type="button" class="routine-del" title="Routine entfernen">×</button>
+    </div>`;
+  }).join('');
+  wrap.querySelectorAll('.routine-row').forEach(row=>{
+    const id = row.dataset.id; const task = routineTasks.find(t=>t.id===id);
+    if(!task) return;
+    const checkBtn = row.querySelector('.routine-check');
+    if(!checkBtn.classList.contains('done')){
+      checkBtn.addEventListener('click', async ()=>{
+        try{
+          const rec = await atCreate('RoutineLog', { Date: today, TaskName: task.name });
+          routineLog.push({ id:rec.id, date:today, taskName:task.name });
+        }catch(e){ console.error(e); setStatus('RoutineLog-Tabelle fehlt (Felder: Date, TaskName)'); return; }
+        renderRoutine();
+      });
+    }
+    row.querySelector('.routine-del').addEventListener('click', async ()=>{
+      try{ await atDelete('RoutineTasks', task.id); }catch(e){ console.error(e); }
+      routineTasks = routineTasks.filter(t=>t.id!==task.id);
+      renderRoutine();
+    });
+  });
+}
+document.getElementById('routineAddBtn').addEventListener('click', async ()=>{
+  const input = document.getElementById('routineNewName');
+  const name = input.value.trim();
+  if(!name) return;
+  if(routineTasks.some(t=> t.name.trim().toLowerCase()===name.toLowerCase())){ setStatus('Diese Routine gibt es schon.'); return; }
+  try{
+    const rec = await atCreate('RoutineTasks', { Name:name });
+    routineTasks.push({ id:rec.id, name });
+    input.value = '';
+    renderRoutine();
+  }catch(e){ console.error(e); setStatus('RoutineTasks-Tabelle fehlt (Feld: Name)'); }
+});
+document.getElementById('routineNewName').addEventListener('keydown', e=>{
+  if(e.key==='Enter'){ e.preventDefault(); document.getElementById('routineAddBtn').click(); }
+});
+/* Dashboard: letzte 7 Tage als Raster (wie Defizit-/Gewichtsverlauf), plus Wochenquote und aktuelle Serie */
+function renderRoutineDashboard(){
+  const gridEl = document.getElementById('routineGrid');
+  if(!gridEl) return;
+  const pctEl = document.getElementById('routineWeekPct'), streakEl = document.getElementById('routineStreak');
+  if(!routineTasks.length){
+    gridEl.innerHTML = '<p class="section-note">Noch keine Routine angelegt.</p>';
+    if(pctEl) pctEl.textContent = '–'; if(streakEl) streakEl.textContent = '–';
+    return;
+  }
+  const today = todayStr();
+  const days = []; for(let i=6;i>=0;i--) days.push(addDays(today,-i));
+  let html = '<span></span>' + days.map(d=> `<span class="rg-wd ${d===today?'today':''}">${weekdayOf(d)[0]}</span>`).join('');
+  routineTasks.forEach(t=>{
+    html += `<span class="rg-name">${escapeAttr(t.name)}</span>`;
+    html += days.map(d=> `<span class="rg-dot ${routineDoneOn(t.name,d)?'done':''}"></span>`).join('');
+  });
+  gridEl.innerHTML = html;
+
+  let doneCells = 0;
+  days.forEach(d=> routineTasks.forEach(t=>{ if(routineDoneOn(t.name,d)) doneCells++; }));
+  const totalCells = days.length*routineTasks.length;
+  if(pctEl) pctEl.textContent = totalCells>0 ? Math.round(doneCells/totalCells*100)+'%' : '–';
+
+  let streak = 0;
+  for(let i=0;i<365;i++){
+    const d = addDays(today, -i);
+    if(routineTasks.every(t=> routineDoneOn(t.name, d))) streak++; else break;
+  }
+  if(streakEl) streakEl.textContent = streak+' Tag'+(streak===1?'':'e');
 }
 
 const chartInstances = {};
@@ -1104,6 +1227,7 @@ function renderDashboard(){
 
   renderGoalCard();
   renderScoreCard();
+  renderRoutineDashboard();
 
   /* Kcal-Guthaben: dauerhaft aufsummiert, nur Tage mit echten Einträgen, heute zählt noch nicht */
   const ghTarget = targets[activeTarget];
@@ -1541,9 +1665,11 @@ function pantryRowHtml(p, i){
         <div class="p-name-wrap"><p class="p-name">${escapeAttr(p.name)} ${scoreBadge}</p></div>
         <div class="p-mini"><label>Best.${unitLabel?` (${unitLabel})`:''}</label><input type="number" step="any" class="pf-bestand" value="${p.bestand}"></div>
         <div class="p-mini"><label>Min.${unitLabel?` (${unitLabel})`:''}</label><input type="number" step="any" class="pf-min" value="${p.mindestbestand}"></div>
+        <button type="button" class="p-cart-btn" title="Zur Einkaufsliste hinzufügen (Menge: Mindestbestand)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.5 3h2l2.6 12.9a2 2 0 0 0 2 1.6h8.8a2 2 0 0 0 2-1.6L22 7H6"/></svg></button>
         <button type="button" class="p-expand-btn ${open?'open':''}" title="Nährwerte"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${open?'<path d="M18 15l-6-6-6 6"/>':'<path d="M6 9l6 6 6-6"/>'}</svg></button>
       </div>
       <div class="p-detail ${open?'open':''}">
+        <div class="p-dfield"><label>Einheit</label><select class="pf-unit">${UNITS.map(u=>`<option value="${u}" ${u===p.unit?'selected':''}>${u}</option>`).join('')}</select></div>
         <div class="p-dfield"><label>kcal${isG?'/100':'/Stk'}</label><input type="number" step="any" class="pf-kcal" value="${p.kcalPerUnit}"></div>
         <div class="p-dfield"><label>Bal.${isG?'/100':'/Stk'}</label><input type="number" step="any" class="pf-fiber" value="${p.fiberPerUnit}"></div>
         <div class="p-dfield"><label>Prot.${isG?'/100':'/Stk'}</label><input type="number" step="any" class="pf-protein" value="${p.proteinPerUnit}"></div>
@@ -1569,6 +1695,26 @@ function renderPantry(){
     const bestandEl = row.querySelector('.pf-bestand'), minEl = row.querySelector('.pf-min');
     if(bestandEl) bestandEl.addEventListener('change', e=>{ p.bestand = Number(e.target.value)||0; row.classList.toggle('low', p.bestand<p.mindestbestand); savePantryItem(p).catch(err=>{ console.error(err); setStatus(err.message); }); });
     if(minEl) minEl.addEventListener('change', e=>{ p.mindestbestand = Number(e.target.value)||0; row.classList.toggle('low', p.bestand<p.mindestbestand); savePantryItem(p).catch(err=>{ console.error(err); setStatus(err.message); }); });
+    const unitEl = row.querySelector('.pf-unit');
+    if(unitEl) unitEl.addEventListener('change', e=>{ p.unit = e.target.value; savePantryItem(p).catch(err=>{ console.error(err); setStatus(err.message); }); renderPantry(); });
+    const cartBtn = row.querySelector('.p-cart-btn');
+    if(cartBtn) cartBtn.addEventListener('click', async ()=>{
+      const amount = p.mindestbestand;
+      if(!amount || amount<=0){ setStatus('Kein Mindestbestand gesetzt für "'+p.name+'"'); return; }
+      const key = p.name.trim().toLowerCase();
+      let existing = shoppingNeeds.find(s=> s.name.trim().toLowerCase()===key && s.status!=='gekauft');
+      try{
+        if(existing){
+          existing.status = 'liste'; existing.amount = amount; existing.unit = p.unit;
+          await atUpdate('ShoppingNeeds', existing.id, { Status:'liste', Amount:amount, Unit:p.unit });
+        }else{
+          const rec = await atCreate('ShoppingNeeds', { Name:p.name, Amount:amount, Unit:p.unit, Status:'liste' });
+          shoppingNeeds.push({ id:rec.id, name:p.name, unit:p.unit, amount:amount, status:'liste', boughtAmount:0 });
+        }
+        setStatus('"'+p.name+'" zur Einkaufsliste hinzugefügt');
+      }catch(err){ console.error(err); setStatus('ShoppingNeeds-Tabelle fehlt (Felder: Name, Amount, Unit, Status, BoughtAmount)'); }
+      renderShopPreview(); renderUpcoming(); renderDashboardBadge();
+    });
     const kcalEl = row.querySelector('.pf-kcal'), fiberEl = row.querySelector('.pf-fiber'), protEl = row.querySelector('.pf-protein');
     if(kcalEl) kcalEl.addEventListener('change', e=>{ p.kcalPerUnit = Number(e.target.value)||0; savePantryItem(p).catch(err=>{ console.error(err); setStatus(err.message); }); renderPantry(); });
     if(fiberEl) fiberEl.addEventListener('change', e=>{ p.fiberPerUnit = Number(e.target.value)||0; savePantryItem(p).catch(err=>{ console.error(err); setStatus(err.message); }); renderPantry(); });
@@ -1768,6 +1914,14 @@ async function loadAll(){
       const blRecs = await atList('BonusLog');
       bonusLog = blRecs.map(r=>({ id:r.id, date:r.fields.Date, name:r.fields.Name, kcal:Number(r.fields.Kcal)||0 }));
     }catch(e){ console.warn('BonusLog-Tabelle noch nicht vorhanden – lege sie in Airtable an (Felder: Date, Name, Kcal).'); bonusLog = []; }
+    try{
+      const rtRecs = await atList('RoutineTasks');
+      routineTasks = rtRecs.map(r=>({ id:r.id, name:r.fields.Name||'' }));
+    }catch(e){ console.warn('RoutineTasks-Tabelle noch nicht vorhanden – lege sie in Airtable an (Feld: Name).'); routineTasks = []; }
+    try{
+      const rlRecs = await atList('RoutineLog');
+      routineLog = rlRecs.map(r=>({ id:r.id, date:r.fields.Date||'', taskName:r.fields.TaskName||'' }));
+    }catch(e){ console.warn('RoutineLog-Tabelle noch nicht vorhanden – lege sie in Airtable an (Felder: Date, TaskName).'); routineLog = []; }
     weekPlan = {}; WEEKDAYS.forEach(wd=> weekPlan[wd]=[]);
     wpRecs.forEach(r=>{
       const wd = r.fields.Weekday;
@@ -1789,7 +1943,7 @@ async function loadAll(){
   render();
 }
 
-function render(){ renderToday(); renderWeek(); renderDishLibrary(); renderShopPreview(); renderUpcoming(); renderDashboardBadge(); renderTodayTab(); }
+function render(){ renderToday(); renderWeek(); renderDishLibrary(); renderShopPreview(); renderUpcoming(); renderDashboardBadge(); renderTodayTab(); renderRoutine(); }
 
 /* ================= TODAY ================= */
 function renderToday(){
@@ -1992,7 +2146,6 @@ function renderToday(){
 
   const movementKcal = (steps.find(s=>s.date===currentDate)||{}).kcal || 0;
   const deficit = Math.round(profile.bmr + movementKcal - total);
-  document.getElementById('gaugeDeficitVal').textContent = deficit.toLocaleString('de-DE')+' kcal Defizit';
   const deficitEl = document.getElementById('deficitStatus');
   let dTier, dTitle, dSub;
   if(deficit > profile.deficitWarnThreshold){
@@ -2472,32 +2625,70 @@ function openDishEditor(dish){
   renderEditorIngredients();
   document.getElementById('dishModalBg').classList.add('open');
 }
-function renderPantryDatalist(){
-  const dl = document.getElementById('pantryNames');
-  if(!dl) return;
+/* Liefert alle bekannten Zutatnamen (Vorrat + bereits in Gerichten verwendete), sortiert */
+function pantryNameList(){
   const names = new Set(pantry.map(p=>p.name));
   dishes.forEach(d=> d.ingredients.forEach(i=> i.name && names.add(i.name.trim())));
-  dl.innerHTML = [...names].sort((a,b)=>a.localeCompare(b,'de')).map(n=>`<option value="${escapeAttr(n)}">`).join('');
+  return [...names].sort((a,b)=>a.localeCompare(b,'de'));
+}
+/* Eigene Vorschlagsliste statt natives <datalist> — auf iOS Safari zeigt datalist
+   Vorschläge unzuverlässig an, v.a. innerhalb eines Modals. */
+function setupIngredientAutocomplete(input, suggestBox, onPick){
+  let items = [], activeIdx = -1;
+  function close(){ suggestBox.classList.remove('open'); suggestBox.innerHTML=''; items=[]; activeIdx=-1; }
+  function open(){
+    const q = input.value.trim().toLowerCase();
+    const all = pantryNameList();
+    items = (q ? all.filter(n=> n.toLowerCase().includes(q)) : all).slice(0,30);
+    if(!items.length){ close(); return; }
+    suggestBox.innerHTML = items.map((n,i)=>`<div class="isug" data-i="${i}">${escapeAttr(n)}</div>`).join('');
+    suggestBox.classList.add('open');
+    activeIdx = -1;
+  }
+  input.addEventListener('input', ()=>{ onPick.onInput(input.value); open(); });
+  input.addEventListener('focus', open);
+  input.addEventListener('blur', ()=> setTimeout(close, 150)); // Verzögerung, damit ein Klick auf die Liste noch ankommt
+  input.addEventListener('keydown', e=>{
+    if(!suggestBox.classList.contains('open')) return;
+    if(e.key==='ArrowDown'){ e.preventDefault(); activeIdx = Math.min(activeIdx+1, items.length-1); }
+    else if(e.key==='ArrowUp'){ e.preventDefault(); activeIdx = Math.max(activeIdx-1, 0); }
+    else if(e.key==='Enter'){ if(activeIdx>=0){ e.preventDefault(); pick(items[activeIdx]); } return; }
+    else if(e.key==='Escape'){ close(); return; }
+    else return;
+    [...suggestBox.children].forEach((el,i)=> el.classList.toggle('active', i===activeIdx));
+  });
+  function pick(name){
+    input.value = name;
+    onPick.onInput(name);
+    close();
+  }
+  suggestBox.addEventListener('mousedown', e=>{
+    const el = e.target.closest('.isug'); if(!el) return;
+    e.preventDefault();
+    pick(items[Number(el.dataset.i)]);
+  });
 }
 function renderEditorIngredients(){
-  renderPantryDatalist();
   const wrap = document.getElementById('dishIngredients');
   wrap.innerHTML = '';
   editorIngredients.forEach((ing, idx)=>{
     const row = document.createElement('div');
     row.className = 'editor-row';
     const unitOptions = UNITS.map(u=>`<option value="${u}" ${u===ing.unit?'selected':''}>${u}</option>`).join('');
-    row.innerHTML = `<input type="text" class="iname" list="pantryNames" placeholder="Zutat aus Vorrat wählen oder neu eintippen" value="${escapeAttr(ing.name)}">
+    row.innerHTML = `<div class="iname-wrap"><input type="text" class="iname" autocomplete="off" placeholder="Zutat aus Vorrat wählen oder neu eintippen" value="${escapeAttr(ing.name)}"><div class="iname-suggest"></div></div>
       <input type="number" class="iamt" value="${ing.amount}"><select class="iunit">${unitOptions}</select><button title="Entfernen">×</button>`;
-    row.querySelector('.iname').addEventListener('input', e=>{
-      ing.name=e.target.value;
-      // Zutat matcht einen Vorrats-Eintrag -> dessen Einheit automatisch übernehmen, für konsistente Schreibweise/Zählung
-      const match = pantry.find(p=> p.name.trim().toLowerCase()===e.target.value.trim().toLowerCase());
-      if(match && match.unit && UNITS.includes(match.unit)){
-        ing.unit = match.unit;
-        row.querySelector('.iunit').value = match.unit;
+    const nameInput = row.querySelector('.iname');
+    setupIngredientAutocomplete(nameInput, row.querySelector('.iname-suggest'), {
+      onInput: (val)=>{
+        ing.name = val;
+        // Zutat matcht einen Vorrats-Eintrag -> dessen Einheit automatisch übernehmen, für konsistente Schreibweise/Zählung
+        const match = pantry.find(p=> p.name.trim().toLowerCase()===val.trim().toLowerCase());
+        if(match && match.unit && UNITS.includes(match.unit)){
+          ing.unit = match.unit;
+          row.querySelector('.iunit').value = match.unit;
+        }
+        updateDishCalcHint();
       }
-      updateDishCalcHint();
     });
     row.querySelector('.iamt').addEventListener('input', e=>{ ing.amount=Number(e.target.value)||0; updateDishCalcHint(); });
     row.querySelector('.iunit').addEventListener('change', e=>{ ing.unit=e.target.value; updateDishCalcHint(); });

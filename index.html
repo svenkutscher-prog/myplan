@@ -1351,8 +1351,19 @@ function renderDashboard(){
   const deficitStepsData = last7.map(d=> stepsKcalByDate7[d]||0);
   const deficitThreshold = profile.deficitWarnThreshold;
   const deficitTotalData = deficitFoodData.map((f,i)=> f+deficitStepsData[i]);
-  const foodUnderData = deficitFoodData.map(f=> f<0 ? f : Math.min(f, deficitThreshold));
-  const stepsUnderData = deficitStepsData.map((s,i)=> Math.min(s, Math.max(0, deficitThreshold-Math.max(deficitFoodData[i],0))));
+  // Fläche unterhalb der Warnschwelle proportional zwischen Essen- und Schritte-Anteil aufteilen,
+  // damit der Schritte-Anteil nicht verschwindet, wenn der Essen-Anteil allein schon die Schwelle erreicht.
+  const foodUnderData = deficitFoodData.map((f,i)=>{
+    const food = Math.max(0, f);
+    const total = Math.max(0, deficitTotalData[i]);
+    const underTotal = Math.min(total, deficitThreshold);
+    return total>0 ? underTotal*(food/total) : 0;
+  });
+  const stepsUnderData = deficitStepsData.map((s,i)=>{
+    const total = Math.max(0, deficitTotalData[i]);
+    const underTotal = Math.min(total, deficitThreshold);
+    return total>0 ? underTotal*(s/total) : 0;
+  });
   const excessData = deficitTotalData.map(t=> Math.max(0, t-deficitThreshold));
   upsertChart('deficitChart', {
     type:'bar',

@@ -2048,7 +2048,7 @@ function renderToday(){
     const score = dishFullnessScore(dish);
     const scoreBadge = score===null ? '' : `<span class="fullness-badge ${score>=50?'high':score>=25?'mid':'low'}">${score}</span>`;
     return `<div class="food-row ${checked?'checked':''}" data-slotid="${slot.id}" data-dishname="${escapeAttr(dish.name)}">
-      <div class="food-main" data-time="${slot.time}" data-kcal="${effectiveKcal(dish)}" data-fiber="${effectiveFiber(dish)}" data-loghit="${logHit?logHit.id:''}">
+      <div class="food-main" data-time="${slot.time}" data-kcal="${effectiveKcal(dish)}" data-fiber="${effectiveFiber(dish)}" data-protein="${calculatedProtein(dish)}" data-loghit="${logHit?logHit.id:''}">
         <div class="check-ico">${checked?'✓':''}</div>
         <div><p class="food-name">${escapeAttr(dish.name)} ${scoreBadge}</p><p class="food-time">${swap?'<span class="swap-tag">getauscht</span> · ':''}${dynamic?'<span class="dyn-tag">~</span> ':''}geplant ${displayTime}</p></div>
         <span class="food-kcal">${effectiveKcal(dish)} kcal<br><span class="food-fiber">${effectiveFiber(dish)} g Ballaststoffe</span></span>
@@ -2091,18 +2091,18 @@ function renderToday(){
           const slotId = row.closest('.food-row').dataset.slotid;
           let rec, savedCheckedAt = checkedAt;
           try{
-            rec = await atCreate('LogEntries', { Date: currentDate, Type:'plan', Name: row.closest('.food-row').dataset.dishname, Kcal: Number(row.dataset.kcal), Fiber: Number(row.dataset.fiber), Time: row.dataset.time, CheckedAt: checkedAt, SlotId: slotId });
+            rec = await atCreate('LogEntries', { Date: currentDate, Type:'plan', Name: row.closest('.food-row').dataset.dishname, Kcal: Number(row.dataset.kcal), Fiber: Number(row.dataset.fiber), Protein: Number(row.dataset.protein), Time: row.dataset.time, CheckedAt: checkedAt, SlotId: slotId });
           }catch(fieldErr){
             // Feld "CheckedAt" oder "SlotId" existiert in Airtable evtl. noch nicht -> ohne erneut versuchen, sonst geht das Abhaken komplett nicht
             try{
-              rec = await atCreate('LogEntries', { Date: currentDate, Type:'plan', Name: row.closest('.food-row').dataset.dishname, Kcal: Number(row.dataset.kcal), Fiber: Number(row.dataset.fiber), Time: row.dataset.time, CheckedAt: checkedAt });
+              rec = await atCreate('LogEntries', { Date: currentDate, Type:'plan', Name: row.closest('.food-row').dataset.dishname, Kcal: Number(row.dataset.kcal), Fiber: Number(row.dataset.fiber), Protein: Number(row.dataset.protein), Time: row.dataset.time, CheckedAt: checkedAt });
             }catch(fieldErr2){
-              rec = await atCreate('LogEntries', { Date: currentDate, Type:'plan', Name: row.closest('.food-row').dataset.dishname, Kcal: Number(row.dataset.kcal), Fiber: Number(row.dataset.fiber), Time: row.dataset.time });
+              rec = await atCreate('LogEntries', { Date: currentDate, Type:'plan', Name: row.closest('.food-row').dataset.dishname, Kcal: Number(row.dataset.kcal), Fiber: Number(row.dataset.fiber), Protein: Number(row.dataset.protein), Time: row.dataset.time });
               savedCheckedAt = '';
             }
             setStatus('Gespeichert (Feld "CheckedAt" oder "SlotId" fehlt noch in Airtable – bitte ergänzen)');
           }
-          logEntries.push({ id:rec.id, date:currentDate, type:'plan', name:row.closest('.food-row').dataset.dishname, kcal:Number(row.dataset.kcal), fiber:Number(row.dataset.fiber), time:row.dataset.time, checkedAt:savedCheckedAt, slotId });
+          logEntries.push({ id:rec.id, date:currentDate, type:'plan', name:row.closest('.food-row').dataset.dishname, kcal:Number(row.dataset.kcal), fiber:Number(row.dataset.fiber), protein:Number(row.dataset.protein), time:row.dataset.time, checkedAt:savedCheckedAt, slotId });
           if(dish) await adjustPantryForDish(dish, -1); // gegessen -> Bestand verbrauchen
         }
       }catch(e){ console.error(e); setStatus('Fehler beim Speichern'); }

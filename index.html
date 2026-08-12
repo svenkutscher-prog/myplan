@@ -165,7 +165,17 @@ h2.section{font-family:'Fraunces',serif;font-weight:600;font-size:18px;margin:1.
 .routine-grid .rg-dot.done{background:var(--olive);}
 
 .weight-block, .steps-block{border-top:1px dashed var(--line);padding-top:1.1rem;margin-top:.4rem;}
-.pill-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:.8rem 0 1.4rem;}
+.pill-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:.8rem 0 1.4rem;}
+@media (max-width:480px){ .pill-row{grid-template-columns:repeat(2,1fr);} }
+.day-lock-banner{display:flex;align-items:center;gap:8px;background:#E4EDDD;color:var(--olive-dark);border-radius:10px;padding:.7rem .9rem;margin:0 0 1rem;font-size:13px;font-weight:500;}
+.day-split-row{display:flex;align-items:center;gap:8px;margin-bottom:7px;}
+.day-split-row .dsr-label{width:22px;font-size:11px;color:var(--ink-soft);flex-shrink:0;}
+.day-split-row .dsr-bar{flex:1;height:14px;border-radius:4px;overflow:hidden;display:flex;background:var(--line);}
+.day-split-row .dsr-bar.empty{background:var(--line);}
+#panelToday.day-locked #planList, #panelToday.day-locked #extraList, #panelToday.day-locked .quick-add,
+#panelToday.day-locked .gauge-card, #panelToday.day-locked #routineList,
+#panelToday.day-locked #openExtraBtn, #panelToday.day-locked #openWeightBtn, #panelToday.day-locked #openStepsBtn
+{ pointer-events:none; opacity:.5; filter:grayscale(.2); }
 .open-btn{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;padding:14px 6px;background:var(--card);border:1px solid var(--line);border-radius:10px;font-size:12.5px;color:var(--ink);cursor:pointer;font-family:'Inter',sans-serif;}
 .open-btn:hover{background:#fff;}
 .open-btn .ic{width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:15px;}
@@ -423,6 +433,11 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
   <div class="loading-spinner"></div>
   <p class="loading-text">Nouri lädt…</p>
 </div>
+<div class="loading-overlay hidden" id="startGateOverlay">
+  <p style="font-family:'Fraunces',serif;font-weight:600;font-size:17px;color:var(--ink);margin:0 0 6px;">Guten Morgen</p>
+  <p style="font-size:13px;color:var(--ink-soft);margin:0 0 18px;">Starte deinen Tag, um loszulegen.</p>
+  <button class="btn primary" id="startTagBtn" style="padding:14px 32px;font-size:15px;">Start Tag</button>
+</div>
 <div class="wrap">
   <h1>Nouri</h1>
   <div class="tabs">
@@ -443,6 +458,7 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
 
   <!-- TODAY -->
   <div class="panel active" id="panelToday">
+    <div class="day-lock-banner" id="dayLockBanner" style="display:none;">🏁 <span id="dayLockText"></span></div>
     <div class="gauge-card" id="gaugeCard" title="Wasser eintragen" style="cursor:pointer;">
       <svg viewBox="0 0 220 220" class="gauge-svg">
         <line x1="39.3" y1="180.7" x2="50.6" y2="169.4" stroke="var(--line)" stroke-width="2"/>
@@ -499,6 +515,7 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
       <button class="open-btn" id="openExtraBtn"><span class="ic a">🍽️</span> Gericht hinzufügen</button>
       <button class="open-btn" id="openWeightBtn"><span class="ic b">⚖️</span> Gewicht <span class="sub" id="weightBtnSub"></span></button>
       <button class="open-btn" id="openStepsBtn"><span class="ic c">👟</span> Schritte <span class="sub" id="stepsBtnSub"></span></button>
+      <button class="open-btn" id="endTagBtn"><span class="ic c">🏁</span> Tag beenden <span class="sub" id="endTagBtnSub"></span></button>
     </div>
 
     <h2 class="section" style="margin-top:1.4rem;">Routine <span class="section-note" id="routineBadge"></span></h2>
@@ -541,6 +558,17 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
         <div class="fcol"><label>Kcal (optional)</label><input type="number" id="stepsKcalInput" placeholder="kcal"></div>
       </div>
       <div class="modal-actions"><button class="btn" id="stepsCancel">Abbrechen</button><button class="btn primary" id="stepsSaveBtn">Speichern</button></div>
+    </div>
+  </div>
+
+  <div class="modal-bg" id="missedEndModalBg">
+    <div class="modal">
+      <h2>Tag nicht beendet</h2>
+      <p class="section-note" id="missedEndText">Du hast "Tag beenden" gestern nicht angeklickt. Wann ungefähr war dein Tag zu Ende?</p>
+      <div class="field-row">
+        <div class="fcol"><label>Ende (ca.)</label><input type="time" id="missedEndInput"></div>
+      </div>
+      <div class="modal-actions"><button class="btn" id="missedEndSkip">Weiß nicht mehr</button><button class="btn primary" id="missedEndSave">Speichern</button></div>
     </div>
   </div>
 
@@ -732,6 +760,14 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
     <p class="chart-label">Trinken, letzte 7 Tage</p>
     <div class="chart-wrap"><canvas id="waterChart" role="img" aria-label="Getrunkene Liter pro Tag, letzte 7 Tage"></canvas></div>
 
+    <p class="chart-label">Tagesaufteilung, letzte 7 Tage</p>
+    <div class="day-split-legend" style="display:flex;gap:12px;font-size:11px;color:var(--ink-soft);margin-bottom:8px;">
+      <span><span class="rhythm-dot-legend" style="background:#534AB7;"></span>Schlaf</span>
+      <span><span class="rhythm-dot-legend" style="background:#8B8A82;"></span>Wach</span>
+      <span><span class="rhythm-dot-legend" style="background:#639922;"></span>Essen</span>
+    </div>
+    <div id="daySplitChart"></div>
+
     <p class="chart-label">Tagesrhythmus, letzte 7 Tage</p>
     <div id="rhythmChart" class="rhythm-chart"></div>
   </div>
@@ -893,8 +929,16 @@ function fmtDate(dateStr){ const d = new Date(dateStr+'T00:00:00'); return `${d.
 function addDays(dateStr, n){ const d = new Date(dateStr+'T00:00:00'); d.setDate(d.getDate()+n); return fmtLocalDateStr(d); }
 
 /* Fasten: erste/letzte Mahlzeit pro Tag aus LogEntries ableiten (Getränke zählen nicht mit) */
+/* Fasten: erste/letzte Mahlzeit pro Tag aus LogEntries ableiten (Getränke zählen nicht mit).
+   Wichtig: bei Type 'plan' ist `time` die geplante Slot-Zeit aus dem Wochenplan, nicht wann
+   wirklich gegessen wurde -> dafür `checkedAt` (tatsächliche Abhak-Zeit) nehmen, mit Fallback
+   auf `time` falls checkedAt (noch) fehlt, z.B. bei älteren Einträgen ohne dieses Feld. */
 function mealTimesForDate(dateStr){
-  return logEntries.filter(l=> l.date===dateStr && (l.type==='plan'||l.type==='extra') && l.time).map(l=>l.time).sort();
+  return logEntries
+    .filter(l=> l.date===dateStr && (l.type==='plan'||l.type==='extra'))
+    .map(l=> l.type==='plan' ? (l.checkedAt || l.time) : l.time)
+    .filter(Boolean)
+    .sort();
 }
 function dateTimeFromDateStr(dateStr, hhmm){
   const [h,m] = hhmm.split(':').map(Number);
@@ -954,6 +998,111 @@ function updateFastStatus(){
   document.getElementById('fastStatusSub').textContent = sub;
 }
 setInterval(()=>{ if(document.getElementById('fastStatus')) updateFastStatus(); }, 60000);
+
+/* Start Tag / Ende Tag */
+function dayBoundFor(dateStr){ return dayBounds.find(d=>d.date===dateStr); }
+function dayStarted(dateStr){ const b = dayBoundFor(dateStr); return !!(b && b.startTag); }
+function dayEnded(dateStr){ const b = dayBoundFor(dateStr); return !!(b && b.endTag); }
+function nowHM(){ const n = new Date(); return String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0'); }
+async function setStartTag(dateStr, timeStr){
+  const existing = dayBoundFor(dateStr);
+  if(existing){ if(!existing.startTag){ await atUpdate('DayBounds', existing.id, { StartTag: timeStr }); existing.startTag = timeStr; } return existing; }
+  const rec = await atCreate('DayBounds', { Date: dateStr, StartTag: timeStr });
+  const obj = { id:rec.id, date:dateStr, startTag:timeStr, endTag:'' };
+  dayBounds.push(obj);
+  return obj;
+}
+async function setEndTag(dateStr, timeStr){
+  const existing = dayBoundFor(dateStr);
+  if(existing){ await atUpdate('DayBounds', existing.id, { EndTag: timeStr }); existing.endTag = timeStr; return existing; }
+  const rec = await atCreate('DayBounds', { Date: dateStr, EndTag: timeStr });
+  const obj = { id:rec.id, date:dateStr, startTag:'', endTag:timeStr };
+  dayBounds.push(obj);
+  return obj;
+}
+/* Prüft, ob ein Vortag ohne "Ende Tag" offen geblieben ist (bis zu 7 Tage zurück) und fragt
+   in dem Fall per Modal nach einer ungefähren Uhrzeit nach ("weiß nicht mehr" überspringt dauerhaft). */
+function findUnclosedPastDay(){
+  for(let i=1;i<=7;i++){
+    const d = addDays(todayStr(), -i);
+    const b = dayBoundFor(d);
+    if(b && b.startTag && !b.endTag) return d;
+  }
+  return null;
+}
+function openMissedEndModal(dateStr){
+  document.getElementById('missedEndText').textContent = `Du hast "Tag beenden" am ${dateStr.split('-').reverse().join('.')} nicht angeklickt. Wann ungefähr war dein Tag zu Ende?`;
+  document.getElementById('missedEndInput').value = '';
+  document.getElementById('missedEndModalBg').dataset.date = dateStr;
+  document.getElementById('missedEndModalBg').classList.add('open');
+}
+async function runGateCheck(){
+  const today = todayStr();
+  if(dayStarted(today)){
+    document.getElementById('startGateOverlay').classList.add('hidden');
+    return;
+  }
+  document.getElementById('startGateOverlay').classList.remove('hidden');
+}
+document.getElementById('startTagBtn').addEventListener('click', async ()=>{
+  const btn = document.getElementById('startTagBtn');
+  btn.disabled = true;
+  try{
+    await setStartTag(todayStr(), nowHM());
+    document.getElementById('startGateOverlay').classList.add('hidden');
+    const unclosed = findUnclosedPastDay();
+    if(unclosed) openMissedEndModal(unclosed);
+    updateDayLockUI();
+  }catch(e){ console.error(e); setStatus(e.message||'Fehler beim Starten des Tages'); }
+  btn.disabled = false;
+});
+document.getElementById('missedEndSave').addEventListener('click', async ()=>{
+  const dateStr = document.getElementById('missedEndModalBg').dataset.date;
+  const val = document.getElementById('missedEndInput').value;
+  try{
+    if(val) await setEndTag(dateStr, val);
+    else await setEndTag(dateStr, 'skipped');
+  }catch(e){ console.error(e); setStatus(e.message||'Fehler beim Speichern'); }
+  document.getElementById('missedEndModalBg').classList.remove('open');
+  renderDashboard();
+});
+document.getElementById('missedEndSkip').addEventListener('click', async ()=>{
+  const dateStr = document.getElementById('missedEndModalBg').dataset.date;
+  try{ await setEndTag(dateStr, 'skipped'); }catch(e){ console.error(e); }
+  document.getElementById('missedEndModalBg').classList.remove('open');
+  renderDashboard();
+});
+document.getElementById('endTagBtn').addEventListener('click', async ()=>{
+  if(currentDate !== todayStr()){ setStatus('Tag beenden geht nur für heute'); return; }
+  if(dayEnded(todayStr())) return;
+  try{
+    await setEndTag(todayStr(), nowHM());
+    updateDayLockUI();
+    renderDashboard();
+    setStatus('Tag beendet');
+  }catch(e){ console.error(e); setStatus(e.message||'Fehler beim Beenden des Tages'); }
+});
+function updateDayLockUI(){
+  const panel = document.getElementById('panelToday');
+  const btn = document.getElementById('endTagBtn');
+  const sub = document.getElementById('endTagBtnSub');
+  const banner = document.getElementById('dayLockBanner');
+  const bannerText = document.getElementById('dayLockText');
+  const ended = dayEnded(currentDate);
+  panel.classList.toggle('day-locked', ended);
+  banner.style.display = ended ? 'flex' : 'none';
+  if(ended){
+    const b = dayBoundFor(currentDate);
+    bannerText.textContent = 'Tag beendet um '+b.endTag+' · keine Änderungen mehr möglich';
+  }
+  if(currentDate===todayStr()){
+    btn.style.display = '';
+    if(ended){ btn.classList.add('done'); sub.textContent = dayBoundFor(currentDate).endTag; }
+    else{ btn.classList.remove('done'); sub.textContent = ''; }
+  }else{
+    btn.style.display = 'none';
+  }
+}
 function escapeAttr(s){ return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
 
 /* in-memory state, mirrors Airtable */
@@ -962,6 +1111,7 @@ let weekPlan = {};    // wd -> [{id, time, dishName}]
 let logEntries = [];  // {id, date, type, name, kcal, time}
 let weights = [];     // {id, date, kg}
 let steps = [];       // {id, date, steps, kcal}
+let dayBounds = [];   // {id, date, startTag, endTag}
 let pantry = [];      // {id|null, name, staple}  id null = noch nicht in Airtable angelegt
 let shoppingNeeds = []; // {id, name, unit, amount, status:'offen'|'liste'|'gekauft', boughtAmount}
 let snacks = []; // {id, name, kcal}
@@ -1527,6 +1677,49 @@ function renderDashboard(){
   });
 
   renderRhythmChart(last7);
+  renderDaySplitChart(last7);
+}
+
+/* Tagesaufteilung: pro Tag Schlaf (Ende Tag Vortag -> Start Tag) / Wach vor Essen / Essen-Fenster / Wach nach Essen,
+   als kompakter gestapelter Balken. Tage ohne Start/Ende-Tag-Daten bleiben leer/grau. */
+function renderDaySplitChart(days){
+  const wrap = document.getElementById('daySplitChart');
+  let html = '';
+  days.forEach(d=>{
+    const label = WEEKDAY_NAMES[weekdayOf(d)].slice(0,2);
+    const bound = dayBoundFor(d);
+    const prevBound = dayBoundFor(addDays(d,-1));
+    const start = bound && bound.startTag ? bound.startTag : '';
+    const end = bound && bound.endTag && bound.endTag!=='skipped' ? bound.endTag : '';
+    const prevEnd = prevBound && prevBound.endTag && prevBound.endTag!=='skipped' ? prevBound.endTag : '';
+    if(!start || !end){
+      html += `<div class="day-split-row"><span class="dsr-label">${label}</span><div class="dsr-bar empty"></div></div>`;
+      return;
+    }
+    const startDt = dateTimeFromDateStr(d, start);
+    const endDt = dateTimeFromDateStr(d, end);
+    if(endDt<=startDt){ html += `<div class="day-split-row"><span class="dsr-label">${label}</span><div class="dsr-bar empty"></div></div>`; return; }
+    const meals = mealTimesForDate(d);
+    let segments = [];
+    const sleepMin = prevEnd ? Math.max(0,(startDt - dateTimeFromDateStr(addDays(d,-1), prevEnd))/60000) : 0;
+    if(sleepMin>0) segments.push({ w:sleepMin, c:'#534AB7' });
+    if(meals.length){
+      const firstMealDt = dateTimeFromDateStr(d, meals[0]);
+      const lastMealDt = dateTimeFromDateStr(d, meals[meals.length-1]);
+      const wake1 = Math.max(0,(firstMealDt-startDt)/60000);
+      const eat = Math.max(0,(lastMealDt-firstMealDt)/60000);
+      const wake2 = Math.max(0,(endDt-lastMealDt)/60000);
+      if(wake1>0) segments.push({ w:wake1, c:'#8B8A82' });
+      if(eat>0) segments.push({ w:eat, c:'#639922' });
+      if(wake2>0) segments.push({ w:wake2, c:'#8B8A82' });
+    }else{
+      segments.push({ w:(endDt-startDt)/60000, c:'#8B8A82' });
+    }
+    const total = segments.reduce((s,seg)=>s+seg.w,0) || 1;
+    const bar = segments.map(seg=> `<div style="width:${(seg.w/total*100).toFixed(1)}%;background:${seg.c};"></div>`).join('');
+    html += `<div class="day-split-row"><span class="dsr-label">${label}</span><div class="dsr-bar">${bar}</div></div>`;
+  });
+  wrap.innerHTML = html;
 }
 
 /* Tagesrhythmus: alle Essenszeiten der letzten 7 Tage übereinandergelegt auf einer 24h-Achse */
@@ -2044,6 +2237,10 @@ async function loadAll(){
       const rlRecs = await atList('RoutineLog');
       routineLog = rlRecs.map(r=>({ id:r.id, date:r.fields.Date||'', taskName:r.fields.TaskName||'' }));
     }catch(e){ console.warn('RoutineLog-Tabelle noch nicht vorhanden – lege sie in Airtable an (Felder: Date, TaskName).'); routineLog = []; }
+    try{
+      const dbRecs = await atList('DayBounds');
+      dayBounds = dbRecs.map(r=>({ id:r.id, date:r.fields.Date||'', startTag:r.fields.StartTag||'', endTag:r.fields.EndTag||'' }));
+    }catch(e){ console.warn('DayBounds-Tabelle noch nicht vorhanden – lege sie in Airtable an (Felder: Date, StartTag, EndTag). Start/Ende-Tag funktioniert erst danach.'); dayBounds = []; }
     weekPlan = {}; WEEKDAYS.forEach(wd=> weekPlan[wd]=[]);
     wpRecs.forEach(r=>{
       const wd = r.fields.Weekday;
@@ -2057,6 +2254,7 @@ async function loadAll(){
     steps = sRecs.map(r=>({ id:r.id, date:r.fields.Date, steps:Number(r.fields.Steps)||0, kcal:Number(r.fields.Kcal)||0, time:r.fields.Time||'' }));
     setStatus('Verbunden');
     document.getElementById('loadingOverlay').classList.add('hidden');
+    runGateCheck();
   }catch(e){
     console.error(e);
     setStatus('Verbindung fehlgeschlagen – prüfe Token/Base-ID');
@@ -2289,6 +2487,7 @@ function renderToday(){
   renderWeightBlock();
   renderStepsButton();
   updateFastStatus();
+  updateDayLockUI();
 }
 
 /* Snack-Chips: grün passt ins Budget, orange bis 100 kcal drüber, mehr wird ausgeblendet */

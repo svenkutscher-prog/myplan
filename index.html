@@ -566,10 +566,10 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
   <div class="modal-bg" id="stepsModalBg">
     <div class="modal">
       <h2>Schritte eintragen</h2>
-      <p class="section-note">ca. kcal wird geschätzt, falls leer gelassen</p>
+      <p class="section-note">ca. kcal wird geschätzt, falls leer gelassen · du kannst auch "kcal,Schritte" in ein Feld einfügen (z. B. aus einer Export-Zeile)</p>
       <div class="field-row">
-        <div class="fcol"><label>Schritte heute</label><input type="number" id="stepsInput" placeholder="Schritte"></div>
-        <div class="fcol"><label>Kcal (optional)</label><input type="number" id="stepsKcalInput" placeholder="kcal"></div>
+        <div class="fcol"><label>Schritte heute</label><input type="text" inputmode="decimal" id="stepsInput" placeholder="Schritte"></div>
+        <div class="fcol"><label>Kcal (optional)</label><input type="text" inputmode="decimal" id="stepsKcalInput" placeholder="kcal"></div>
       </div>
       <div class="modal-actions"><button class="btn" id="stepsCancel">Abbrechen</button><button class="btn primary" id="stepsSaveBtn">Speichern</button></div>
     </div>
@@ -2679,6 +2679,31 @@ document.getElementById('weightSaveBtn').addEventListener('click', async ()=>{
 });
 
 /* steps */
+function tryParseCombinedStepsPaste(text){
+  // Erwartetes Format aus Export-Zeilen: "kcal,Schritte" z.B. "246.1199999999999,4946"
+  const parts = text.split(',').map(s=>s.trim()).filter(s=>s.length);
+  if(parts.length!==2) return null;
+  const a = Number(parts[0]), b = Number(parts[1]);
+  if(isNaN(a) || isNaN(b)) return null;
+  // Schritte sind immer eine ganze Zahl ohne Nachkommastellen -> der Wert mit Dezimalstellen ist kcal
+  const aIsInt = Number.isInteger(a), bIsInt = Number.isInteger(b);
+  let kcal, stepsVal;
+  if(aIsInt && !bIsInt){ stepsVal=a; kcal=b; }
+  else { kcal=a; stepsVal=b; } // Default/Normalfall: "kcal,Schritte"
+  return { kcal: Math.round(kcal*10)/10, stepsVal: Math.round(stepsVal) };
+}
+function handleCombinedStepsPaste(e){
+  const text = (e.clipboardData || window.clipboardData).getData('text');
+  if(!text || !text.includes(',')) return;
+  const parsed = tryParseCombinedStepsPaste(text);
+  if(!parsed) return;
+  e.preventDefault();
+  document.getElementById('stepsInput').value = parsed.stepsVal;
+  document.getElementById('stepsKcalInput').value = parsed.kcal;
+  setStatus(parsed.stepsVal.toLocaleString('de-DE')+' Schritte, '+parsed.kcal+' kcal erkannt');
+}
+document.getElementById('stepsInput').addEventListener('paste', handleCombinedStepsPaste);
+document.getElementById('stepsKcalInput').addEventListener('paste', handleCombinedStepsPaste);
 function renderStepsButton(){
   const todayEntry = steps.find(s=>s.date===currentDate);
   const sBtn = document.getElementById('openStepsBtn');

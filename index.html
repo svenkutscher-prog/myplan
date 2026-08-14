@@ -310,6 +310,12 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
 @keyframes bonusShimmer{0%{background-position:0% 0;}100%{background-position:200% 0;}}
 @keyframes bonusTwinkle{0%,100%{opacity:.4;transform:scale(.85);}50%{opacity:1;transform:scale(1.15);}}
 .dash-stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:.9rem 1rem;}
+.dash-stat.state-good{background:#E4EDDD;border-color:var(--olive);}
+.dash-stat.state-good .ds-val{color:var(--olive-dark);}
+.dash-stat.state-good .ds-sub{color:var(--olive-dark);}
+.dash-stat.state-bad{background:var(--coral-bg);border-color:var(--coral);}
+.dash-stat.state-bad .ds-val{color:var(--coral);}
+.dash-stat.state-bad .ds-sub{color:var(--coral);}
 .ds-label{margin:0 0 4px;font-size:12px;color:var(--ink-soft);}
 .ds-val{margin:0;font-family:'IBM Plex Mono',monospace;font-size:21px;font-weight:500;}
 .ds-sub{margin:4px 0 0;font-size:11.5px;color:var(--ink-soft);}
@@ -460,7 +466,6 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
   <!-- TODAY -->
   <div class="panel active" id="panelToday">
     <div class="day-lock-banner" id="dayLockBanner" style="display:none;">🏁 <span id="dayLockText"></span></div>
-    <div id="todayContent">
     <div class="gauge-card" id="gaugeCard" title="Wasser eintragen" style="cursor:pointer;">
       <svg viewBox="0 0 220 220" class="gauge-svg">
         <line x1="39.3" y1="180.7" x2="50.6" y2="169.4" stroke="var(--line)" stroke-width="2"/>
@@ -482,24 +487,18 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
         <div class="gauge-legend-row"><span class="gauge-dot" style="background:var(--water);"></span><span id="gaugeWaterVal">0/0 mlWa</span></div>
       </div>
     </div>
-
-    <div class="ff-status" id="fastStatus" style="display:none;">
-      <span class="dot"></span>
-      <div class="ff-status-text">
-        <p class="ff-status-title" id="fastStatusTitle"></p>
-        <p class="ff-status-countdown" id="fastStatusCountdown" style="display:none;"></p>
-      </div>
-    </div>
+    <div id="todayContent">
 
     <div class="dash-stats" id="fastWindowStats" style="display:none;">
-      <div class="dash-stat">
+      <div class="dash-stat" id="fastWindowCard">
         <p class="ds-label">Essensfenster</p>
         <p class="ds-val" id="fastWindowVal">–</p>
         <p class="ds-sub" id="fastWindowSub"></p>
       </div>
-      <div class="dash-stat">
+      <div class="dash-stat" id="lastFastCard">
         <p class="ds-label">Letztes Fastenfenster</p>
         <p class="ds-val" id="lastFastVal">–</p>
+        <p class="ds-sub" id="lastFastSub"></p>
       </div>
     </div>
 
@@ -1000,64 +999,74 @@ function fmtDurationHM(ms){
   const h = Math.floor(totalMin/60), m = totalMin%60;
   return h+' h '+String(m).padStart(2,'0')+' min';
 }
-function updateFastWindowStats(status){
-  const wrap = document.getElementById('fastWindowStats');
-  if(!status){ wrap.style.display='none'; return; }
-  const goalH = profile.fastGoalHours || 12;
-  const eatingWindowH = 24 - goalH;
-  document.getElementById('fastWindowVal').textContent = eatingWindowH+' h';
-  const subEl = document.getElementById('fastWindowSub');
-  if(status.tier==='eating' && status.msLeft>0){
-    subEl.textContent = 'noch '+fmtDurationHM(status.msLeft)+' offen';
-  }else if(status.tier==='eating'){
-    subEl.textContent = 'für heute vorbei';
-  }else{
-    subEl.textContent = 'noch nicht gestartet';
-  }
-  const lastFastMs = computeLastFastDuration();
-  document.getElementById('lastFastVal').textContent = lastFastMs===null ? '–' : fmtDurationHM(lastFastMs);
-  wrap.style.display = 'grid';
-}
 function fmtCountdown(ms){
   const totalSec = Math.max(0, Math.round(ms/1000));
   const h = Math.floor(totalSec/3600), m = Math.floor((totalSec%3600)/60), s = totalSec%60;
   return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
 }
 let fastStatusCache = null;
+function updateFastWindowStats(status){
+  const wrap = document.getElementById('fastWindowStats');
+  if(!status){ wrap.style.display='none'; return; }
+  const goalH = profile.fastGoalHours || 12;
+  const eatingWindowH = 24 - goalH;
+
+  // Karte 1: Essensfenster - grün solange kein Verstoß vorliegt, rot sobald das Fenster überschritten ist
+  const windowCard = document.getElementById('fastWindowCard');
+  const valEl = document.getElementById('fastWindowVal');
+  const subEl = document.getElementById('fastWindowSub');
+  valEl.textContent = eatingWindowH+' h';
+  let windowOk = true;
+  if(status.tier==='fasting' && status.msLeft>0){
+    subEl.textContent = fmtCountdown(status.msLeft)+' bis Essen erlaubt';
+    windowOk = true;
+  }else if(status.tier==='fasting'){
+    subEl.textContent = 'Du darfst jetzt essen';
+    windowOk = true;
+  }else if(status.tier==='eating' && status.msLeft>0){
+    subEl.textContent = 'noch '+fmtDurationHM(status.msLeft)+' offen';
+    windowOk = true;
+  }else{
+    subEl.textContent = 'Fenster überschritten';
+    windowOk = false;
+  }
+  windowCard.classList.toggle('state-good', windowOk);
+  windowCard.classList.toggle('state-bad', !windowOk);
+
+  // Karte 2: Letztes Fastenfenster - grün wenn das Fastenziel aus den Stammdaten erreicht wurde, sonst rot
+  const lastFastCard = document.getElementById('lastFastCard');
+  const lastFastMs = computeLastFastDuration();
+  const lastFastValEl = document.getElementById('lastFastVal');
+  const lastFastSubEl = document.getElementById('lastFastSub');
+  if(lastFastMs===null){
+    lastFastValEl.textContent = '–';
+    lastFastSubEl.textContent = '';
+    lastFastCard.classList.remove('state-good','state-bad');
+  }else{
+    lastFastValEl.textContent = fmtDurationHM(lastFastMs);
+    const metGoal = lastFastMs >= goalH*3600000;
+    lastFastSubEl.textContent = metGoal ? 'Ziel erreicht ('+goalH+' h)' : 'Ziel verfehlt ('+goalH+' h)';
+    lastFastCard.classList.toggle('state-good', metGoal);
+    lastFastCard.classList.toggle('state-bad', !metGoal);
+  }
+  wrap.style.display = 'grid';
+}
 function updateFastStatus(){
-  const el = document.getElementById('fastStatus');
   const status = computeFastStatus();
   fastStatusCache = status;
   updateFastWindowStats(status);
-  if(!status){ el.style.display='none'; return; }
-  el.style.display='flex';
-  let tier, title;
-  const countdownEl = document.getElementById('fastStatusCountdown');
-  if(status.tier==='fasting' && status.msLeft>0){
-    tier='mid'; title='Noch nicht essen';
-    countdownEl.style.display='block';
-    countdownEl.textContent = fmtCountdown(status.msLeft);
-  }else if((status.tier==='fasting' && status.msLeft<=0) || (status.tier==='eating' && status.msLeft>0)){
-    tier='good'; title='Ja, du darfst essen';
-    countdownEl.style.display='none';
-  }else{
-    tier='low'; title='Fenster vorbei, heute nicht mehr';
-    countdownEl.style.display='none';
-  }
-  el.className = 'ff-status '+tier;
-  document.getElementById('fastStatusTitle').textContent = title;
 }
 setInterval(()=>{
   if(fastStatusCache && fastStatusCache.tier==='fasting' && fastStatusCache.msLeft>0){
     fastStatusCache.msLeft -= 1000;
-    const countdownEl = document.getElementById('fastStatusCountdown');
-    if(countdownEl && countdownEl.style.display!=='none'){
+    const subEl = document.getElementById('fastWindowSub');
+    if(subEl){
       if(fastStatusCache.msLeft<=0) updateFastStatus();
-      else countdownEl.textContent = fmtCountdown(fastStatusCache.msLeft);
+      else subEl.textContent = fmtCountdown(fastStatusCache.msLeft)+' bis Essen erlaubt';
     }
   }
 }, 1000);
-setInterval(()=>{ if(document.getElementById('fastStatus')) updateFastStatus(); }, 60000);
+setInterval(()=>{ if(document.getElementById('fastWindowStats')) updateFastStatus(); }, 60000);
 let lastDaySplitDays = null;
 /* Hält den "live"-Balken der heutigen Zeile in der Tagesaufteilung auf dem aktuellen Stand,
    solange der Dashboard-Tab offen ist und der Tag noch nicht beendet wurde. */

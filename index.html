@@ -263,6 +263,12 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
 .modal li span.amt{font-family:'IBM Plex Mono',monospace;color:var(--ink-soft);}
 .modal-actions{display:flex;gap:.5rem;justify-content:flex-end;margin-top:.6rem;}
 .pick-row{display:flex;justify-content:space-between;align-items:center;padding:.6rem .7rem;border:1px solid var(--line);border-radius:10px;margin-bottom:.5rem;cursor:pointer;background:#fff;}
+.quick-sel-row{display:flex;align-items:center;gap:8px;padding:.5rem .6rem;border:1px solid var(--line);border-radius:10px;margin-bottom:.4rem;background:#fff;}
+.quick-sel-row .qsn{flex:1;font-size:14px;}
+.quick-sel-row input{width:56px;height:30px;font-size:13px;padding:0 6px;border:1px solid var(--line);border-radius:8px;}
+.quick-sel-row .qsu{font-size:12px;color:var(--ink-soft);}
+.quick-sel-row .qsrm{background:none;border:none;color:var(--coral);font-size:16px;cursor:pointer;line-height:1;padding:0 2px;}
+.open-btn.active{border-color:var(--olive);background:var(--olive-bg,#E4EDDD);color:var(--olive-dark);}
 .pick-row.selected{border-color:var(--olive);background:var(--mustard-bg);}
 .pick-row .pn{font-weight:500;font-size:14px;}
 .pick-row .pk{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--ink-soft);}
@@ -525,6 +531,7 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
     <p class="section-label">Zusätzlich gegessen</p>
     <div id="extraList"></div>
     <div class="pill-row">
+      <button class="open-btn" id="openQuickEatBtn" style="grid-column:1 / -1;"><span class="ic a">⚡</span> Schnell essen</button>
       <button class="open-btn" id="openExtraBtn"><span class="ic a">🍽️</span> Gericht hinzufügen</button>
       <button class="open-btn" id="openWeightBtn"><span class="ic b">⚖️</span> Gewicht <span class="sub" id="weightBtnSub"></span></button>
       <button class="open-btn" id="openStepsBtn"><span class="ic c">👟</span> Schritte <span class="sub" id="stepsBtnSub"></span></button>
@@ -546,6 +553,31 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
       <div class="field"><input type="text" id="extraSearch" placeholder="Gericht suchen …"></div>
       <ul id="extraPickList"></ul>
       <div class="modal-actions"><button class="btn" id="extraCancel">Abbrechen</button></div>
+    </div>
+  </div>
+
+  <div class="modal-bg" id="quickEatModalBg">
+    <div class="modal">
+      <h2>Schnell essen</h2>
+      <div class="field"><input type="text" id="quickSearch" placeholder="Zutat suchen …"></div>
+      <ul id="quickPickList" style="max-height:150px;overflow-y:auto;"></ul>
+      <div id="quickSelectedWrap" style="display:none;">
+        <p class="section-note" style="margin:.6rem 0 .3rem;">Ausgewählt</p>
+        <div id="quickSelectedList"></div>
+      </div>
+      <div class="stat-row" style="margin-top:.8rem;">
+        <div><p class="food-name">Vorschau</p><p class="food-time" id="quickTotalSub"></p></div>
+        <span class="stat-val" id="quickTotalKcal">0 kcal</span>
+      </div>
+      <div class="pill-row" style="grid-template-columns:1fr 1fr;margin-top:.8rem;">
+        <button class="open-btn" id="quickModeOnce">Nur jetzt erfassen</button>
+        <button class="open-btn" id="quickModeSave">Als Gericht speichern</button>
+      </div>
+      <div class="field" id="quickDishNameWrap" style="display:none;margin-top:.6rem;">
+        <input type="text" id="quickDishName" placeholder="Name für das Gericht">
+      </div>
+      <p class="section-note" id="quickError" style="display:none;color:var(--coral);"></p>
+      <div class="modal-actions"><button class="btn" id="quickCancel">Abbrechen</button><button class="btn primary" id="quickSaveBtn">Eintragen</button></div>
     </div>
   </div>
 
@@ -1011,7 +1043,8 @@ function updateFastWindowStats(status){
   const goalH = profile.fastGoalHours || 12;
   const eatingWindowH = 24 - goalH;
 
-  // Karte 1: Essensfenster - grün solange kein Verstoß vorliegt, rot sobald das Fenster überschritten ist
+  // Karte 1: Essensfenster - rot solange das Fastenziel noch nicht erreicht ist bzw. das Fenster
+  // überschritten wurde, grün sobald gegessen werden darf bzw. das Fenster noch offen ist
   const windowCard = document.getElementById('fastWindowCard');
   const valEl = document.getElementById('fastWindowVal');
   const subEl = document.getElementById('fastWindowSub');
@@ -1019,7 +1052,7 @@ function updateFastWindowStats(status){
   let windowOk = true;
   if(status.tier==='fasting' && status.msLeft>0){
     subEl.textContent = fmtCountdown(status.msLeft)+' bis Essen erlaubt';
-    windowOk = true;
+    windowOk = false;
   }else if(status.tier==='fasting'){
     subEl.textContent = 'Du darfst jetzt essen';
     windowOk = true;
@@ -2072,8 +2105,17 @@ function pantryRowHtml(p, i){
     <div class="p-card ignored" data-i="${i}">
       <div class="p-row">
         <div class="p-name-wrap"><p class="p-name">${escapeAttr(p.name)}</p></div>
-        <span style="font-size:10.5px;color:var(--ink-soft);flex:1;text-align:right;margin-right:4px;">nicht geprüft</span>
+        <span style="font-size:10.5px;color:var(--ink-soft);margin-right:4px;">nicht geprüft</span>
+        <button type="button" class="p-cart-btn" title="Zur Einkaufsliste hinzufügen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.5 3h2l2.6 12.9a2 2 0 0 0 2 1.6h8.8a2 2 0 0 0 2-1.6L22 7H6"/></svg></button>
+        <button type="button" class="p-expand-btn ${open?'open':''}" title="Nährwerte prüfen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${open?'<path d="M18 15l-6-6-6 6"/>':'<path d="M6 9l6 6 6-6"/>'}</svg></button>
         <div class="toggle"><div class="knob"></div></div>
+      </div>
+      <div class="p-detail ${open?'open':''}">
+        <div class="p-dfield"><label>Einheit</label><select class="pf-unit">${UNITS.map(u=>`<option value="${u}" ${u===p.unit?'selected':''}>${u}</option>`).join('')}</select></div>
+        <div class="p-dfield"><label>kcal${isG?'/100':'/Stk'}</label><input type="number" step="any" class="pf-kcal" value="${p.kcalPerUnit}"></div>
+        <div class="p-dfield"><label>Bal.${isG?'/100':'/Stk'}</label><input type="number" step="any" class="pf-fiber" value="${p.fiberPerUnit}"></div>
+        <div class="p-dfield"><label>Prot.${isG?'/100':'/Stk'}</label><input type="number" step="any" class="pf-protein" value="${p.proteinPerUnit}"></div>
+        <button type="button" class="p-dprompt pf-prompt" title="Nährwerte per ChatGPT schätzen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></button>
       </div>
     </div>`;
   }
@@ -2117,8 +2159,7 @@ function renderPantry(){
     if(unitEl) unitEl.addEventListener('change', e=>{ p.unit = e.target.value; savePantryItem(p).catch(err=>{ console.error(err); setStatus(err.message); }); renderPantry(); });
     const cartBtn = row.querySelector('.p-cart-btn');
     if(cartBtn) cartBtn.addEventListener('click', async ()=>{
-      const amount = p.mindestbestand;
-      if(!amount || amount<=0){ setStatus('Kein Mindestbestand gesetzt für "'+p.name+'"'); return; }
+      const amount = p.mindestbestand>0 ? p.mindestbestand : 1;
       const key = p.name.trim().toLowerCase();
       let existing = shoppingNeeds.find(s=> s.name.trim().toLowerCase()===key && s.status!=='gekauft');
       try{
@@ -2309,6 +2350,12 @@ async function loadAll(){
     try{
       const nRecs = await atList('ShoppingNeeds');
       shoppingNeeds = nRecs.map(r=>({ id:r.id, name:r.fields.Name||'', unit:r.fields.Unit||'', amount:Number(r.fields.Amount)||0, status:r.fields.Status||'offen', boughtAmount:Number(r.fields.BoughtAmount)||0 }));
+      // Aufräumen: alte "gekauft"-Karteileichen aus der Zeit vor dem Bugfix (wurden nie gelöscht, nur markiert) einmalig entfernen
+      const stalePurchased = shoppingNeeds.filter(s=> s.status==='gekauft');
+      if(stalePurchased.length){
+        for(const s of stalePurchased){ try{ await atDelete('ShoppingNeeds', s.id); }catch(e){ console.error(e); } }
+        shoppingNeeds = shoppingNeeds.filter(s=> s.status!=='gekauft');
+      }
     }catch(e){ console.warn('ShoppingNeeds-Tabelle noch nicht vorhanden – lege sie in Airtable an (Felder: Name, Amount, Unit, Status, BoughtAmount).'); shoppingNeeds = []; }
     try{
       const snRecs = await atList('Snacks');
@@ -2638,6 +2685,116 @@ document.getElementById('openExtraBtn').addEventListener('click', ()=>{
 });
 document.getElementById('extraSearch').addEventListener('input', renderExtraPickList);
 document.getElementById('extraCancel').addEventListener('click', ()=> document.getElementById('extraModalBg').classList.remove('open'));
+
+/* schnell essen: einzelne Zutaten mit Mengen zusammenstellen, Live-Vorschau, dann nur einmal erfassen ODER als Gericht speichern */
+let quickSelected = []; // {name, amount, unit}
+let quickMode = 'once';
+function defaultQuickAmount(unit){ return (unit==='g'||unit==='ml') ? 100 : 1; }
+function computeQuickTotals(){
+  let kcal=0, fiber=0, protein=0;
+  quickSelected.forEach(s=>{
+    const p = pantryItem(s.name);
+    if(!p) return;
+    const ing = { unit:s.unit, amount:s.amount };
+    kcal += nutrientContribution(ing, p.kcalPerUnit);
+    fiber += nutrientContribution(ing, p.fiberPerUnit);
+    protein += nutrientContribution(ing, p.proteinPerUnit);
+  });
+  return { kcal:Math.round(kcal), fiber:Math.round(fiber*10)/10, protein:Math.round(protein*10)/10 };
+}
+function renderQuickSelected(){
+  const wrap = document.getElementById('quickSelectedWrap');
+  const list = document.getElementById('quickSelectedList');
+  wrap.style.display = quickSelected.length ? 'block' : 'none';
+  list.innerHTML = quickSelected.map((s,i)=>
+    `<div class="quick-sel-row" data-idx="${i}">
+      <span class="qsn">${escapeAttr(s.name)}</span>
+      <input type="number" class="qs-amount" value="${s.amount}">
+      <span class="qsu">${escapeAttr(s.unit||'')}</span>
+      <button class="qsrm" data-remove="${i}" aria-label="Entfernen">✕</button>
+    </div>`
+  ).join('');
+  list.querySelectorAll('.qs-amount').forEach(inp=> inp.addEventListener('input', (e)=>{
+    const idx = Number(e.target.closest('.quick-sel-row').dataset.idx);
+    quickSelected[idx].amount = Number(e.target.value)||0;
+    updateQuickTotal();
+  }));
+  list.querySelectorAll('[data-remove]').forEach(btn=> btn.addEventListener('click', ()=>{
+    quickSelected.splice(Number(btn.dataset.remove),1);
+    renderQuickSelected();
+  }));
+  updateQuickTotal();
+}
+function updateQuickTotal(){
+  const t = computeQuickTotals();
+  document.getElementById('quickTotalKcal').textContent = t.kcal+' kcal';
+  document.getElementById('quickTotalSub').textContent = t.fiber+' g Ballaststoffe · '+t.protein+' g Protein';
+}
+function renderQuickPickList(){
+  const ul = document.getElementById('quickPickList');
+  const q = document.getElementById('quickSearch').value.trim().toLowerCase();
+  const list = [...pantry].filter(p=> p.kcalPerUnit>0 && (!q || p.name.toLowerCase().includes(q))).sort((a,b)=>a.name.localeCompare(b.name,'de'));
+  if(!list.length){ ul.innerHTML = '<li class="section-note" style="list-style:none;">Keine passenden Zutaten gefunden.</li>'; return; }
+  ul.innerHTML = list.map(p=>{
+    const per = (p.unit==='g'||p.unit==='ml') ? `${p.kcalPerUnit} kcal/100${p.unit}` : `${p.kcalPerUnit} kcal/${p.unit||'Stk'}`;
+    return `<li class="pick-row" data-name="${escapeAttr(p.name)}"><span class="pn">${escapeAttr(p.name)}</span><span class="pk">${per}</span></li>`;
+  }).join('');
+  ul.querySelectorAll('.pick-row').forEach(row=> row.addEventListener('click', ()=>{
+    const name = row.dataset.name;
+    if(quickSelected.find(s=>s.name===name)) return;
+    const p = pantryItem(name);
+    quickSelected.push({ name, amount: defaultQuickAmount(p.unit), unit: p.unit });
+    renderQuickSelected();
+  }));
+}
+function setQuickMode(mode){
+  quickMode = mode;
+  document.getElementById('quickModeOnce').classList.toggle('active', mode==='once');
+  document.getElementById('quickModeSave').classList.toggle('active', mode==='save');
+  document.getElementById('quickDishNameWrap').style.display = mode==='save' ? 'block' : 'none';
+}
+document.getElementById('openQuickEatBtn').addEventListener('click', ()=>{
+  quickSelected = [];
+  document.getElementById('quickSearch').value='';
+  document.getElementById('quickDishName').value='';
+  document.getElementById('quickError').style.display='none';
+  setQuickMode('once');
+  renderQuickPickList();
+  renderQuickSelected();
+  document.getElementById('quickEatModalBg').classList.add('open');
+});
+document.getElementById('quickSearch').addEventListener('input', renderQuickPickList);
+document.getElementById('quickCancel').addEventListener('click', ()=> document.getElementById('quickEatModalBg').classList.remove('open'));
+document.getElementById('quickModeOnce').addEventListener('click', ()=> setQuickMode('once'));
+document.getElementById('quickModeSave').addEventListener('click', ()=> setQuickMode('save'));
+document.getElementById('quickSaveBtn').addEventListener('click', async ()=>{
+  const errEl = document.getElementById('quickError');
+  errEl.style.display='none';
+  if(!quickSelected.length){ errEl.textContent='Bitte mindestens eine Zutat wählen.'; errEl.style.display='block'; return; }
+  const dishName = document.getElementById('quickDishName').value.trim();
+  if(quickMode==='save' && !dishName){ errEl.textContent='Bitte einen Namen für das Gericht eingeben.'; errEl.style.display='block'; return; }
+  const totals = computeQuickTotals();
+  const ingredients = quickSelected.map(s=> ({ name:s.name, amount:s.amount, unit:s.unit }));
+  const now = new Date();
+  const time = String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+  try{
+    if(quickMode==='save'){
+      const fields = { Name:dishName, Kcal:0, Fiber:0, Ingredients: JSON.stringify(ingredients) };
+      const rec = await atCreate('Dishes', fields);
+      dishes.push({ id:rec.id, name:dishName, kcal:0, fiber:0, ingredients });
+      const logRec = await atCreate('LogEntries', { Date: currentDate, Type:'extra', Name:dishName, Kcal:totals.kcal, Fiber:totals.fiber, Protein:totals.protein, Time:time });
+      logEntries.push({ id:logRec.id, date:currentDate, type:'extra', name:dishName, kcal:totals.kcal, fiber:totals.fiber, protein:totals.protein, time });
+      resyncPantryFromDishes();
+    }else{
+      const name = quickSelected.map(s=>s.name).join(', ');
+      const rec = await atCreate('LogEntries', { Date: currentDate, Type:'extra', Name:name, Kcal:totals.kcal, Fiber:totals.fiber, Protein:totals.protein, Time:time });
+      logEntries.push({ id:rec.id, date:currentDate, type:'extra', name, kcal:totals.kcal, fiber:totals.fiber, protein:totals.protein, time });
+    }
+    document.getElementById('quickEatModalBg').classList.remove('open');
+    render();
+    setStatus('Eingetragen');
+  }catch(e){ errEl.textContent='Fehler beim Speichern.'; errEl.style.display='block'; }
+});
 
 /* weight */
 function renderWeightBlock(){
@@ -3394,10 +3551,12 @@ function renderShopPreview(){
     const id = row.dataset.id;
     const item = shoppingNeeds.find(s=>s.id===id); if(!item) return;
     const amount = Number(row.querySelector('.bought-input').value)||0;
-    item.status = 'gekauft'; item.boughtAmount = amount;
-    try{ await atUpdate('ShoppingNeeds', item.id, { Status:'gekauft', BoughtAmount:amount }); }catch(err){ console.error(err); }
     const p = pantryItem(item.name);
     if(p){ p.bestand = Math.round((p.bestand+amount)*100)/100; try{ await savePantryItem(p); }catch(err){ console.error(err); setStatus(err.message); } }
+    // Erledigt = Zweck erfüllt (Bestand aktualisiert) -> Eintrag komplett entfernen statt nur zu markieren,
+    // sonst sammeln sich "gekauft"-Karteileichen an und erzeugen bei jedem Abgleich neue Dubletten
+    try{ if(item.id) await atDelete('ShoppingNeeds', item.id); }catch(err){ console.error(err); }
+    shoppingNeeds = shoppingNeeds.filter(s=>s.id!==id);
     renderShopPreview(); renderUpcoming(); renderDashboardBadge();
   }));
 }

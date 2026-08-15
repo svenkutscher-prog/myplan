@@ -197,6 +197,23 @@ h2.section{font-family:'Fraunces',serif;font-weight:600;font-size:18px;margin:1.
 
 /* week tab */
 .day-block{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:1rem 1.1rem;margin-bottom:1rem;}
+.ki-plan-notes{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:.8rem .9rem;margin:.7rem 0;font-size:13px;color:var(--ink-soft);line-height:1.5;}
+.ki-day-block .day-block-head{justify-content:space-between;}
+.ai-badge{font-size:11px;font-weight:600;color:var(--olive);background:rgba(122,140,88,.14);border-radius:6px;padding:2px 7px;white-space:nowrap;}
+.ki-day-apply{font-size:12px;padding:.4rem .8rem;}
+.ki-slot-new{color:var(--olive);font-style:italic;}
+.ki-day-picker{display:flex;gap:6px;flex-wrap:wrap;margin:.6rem 0;}
+.ki-day-picker button{font-family:'Inter',sans-serif;font-size:12.5px;font-weight:500;padding:.45rem .75rem;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer;}
+.ki-day-picker button.active{background:var(--olive);border-color:var(--olive);color:#fff;}
+.ver-toggle{display:flex;gap:6px;margin:.4rem 0 .7rem;}
+.ver-btn{flex:1;font-family:'Inter',sans-serif;font-size:12px;font-weight:500;padding:.35rem .5rem;border-radius:7px;border:1px solid var(--line);background:var(--card);color:var(--ink-soft);cursor:pointer;}
+.ver-btn.active{background:var(--olive);border-color:var(--olive);color:#fff;}
+.special-day-card{background:var(--card);border:1px solid var(--olive);border-radius:14px;padding:.7rem .9rem;margin-bottom:.8rem;cursor:pointer;}
+.special-day-head{display:flex;align-items:center;gap:8px;}
+.special-day-head .sd-title{font-family:'Fraunces',serif;font-weight:600;font-size:15px;flex:1;}
+.special-day-detail{margin-top:.6rem;padding-top:.6rem;border-top:1px solid var(--line);font-size:13px;color:var(--ink-soft);}
+.special-day-detail .sd-context{margin-bottom:.5rem;line-height:1.5;}
+.special-day-detail .slot-row{font-size:13px;}
 .day-block-head{display:flex;align-items:baseline;gap:8px;margin-bottom:.6rem;}
 .day-block-head .day-title{font-family:'Fraunces',serif;font-weight:600;font-size:16px;}
 .day-block-head .head-spacer{flex:1;}
@@ -454,10 +471,11 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
 <div class="wrap">
   <h1>Nouri</h1>
   <div class="tabs">
-    <div class="tab active" data-tab="today" id="todayTab">Heute</div>
+    <div class="tab active" data-tab="today" id="todayTab">Heute<span class="badge" id="specialDaysBadge" style="display:none;"></span></div>
     <div class="tab" data-tab="woche" title="Woche"><svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div>
     <div class="tab" data-tab="vorrat" title="Vorrat"><svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/></svg></div>
     <div class="tab" data-tab="einkaufen" title="Einkaufen"><svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.5 3h2l2.6 12.9a2 2 0 0 0 2 1.6h8.8a2 2 0 0 0 2-1.6L22 7H6"/></svg><span class="badge" id="dashBadge" style="display:none;"></span></div>
+    <div class="tab" data-tab="kiplan" title="KI-Plan"><svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M5.8 5.8l2.6 2.6M15.6 15.6l2.6 2.6M18.2 5.8l-2.6 2.6M8.4 15.6l-2.6 2.6"/></svg></div>
     <div class="tab" data-tab="dashboard" title="Dashboard"><svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="20" x2="6" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="18" y1="20" x2="18" y2="14"/></svg></div>
   </div>
   <div class="water-dropdown" id="waterDropdown">
@@ -471,6 +489,7 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
 
   <!-- TODAY -->
   <div class="panel active" id="panelToday">
+    <div id="specialDaysWrap"></div>
     <div class="day-lock-banner" id="dayLockBanner" style="display:none;">🏁 <span id="dayLockText"></span></div>
     <div class="gauge-card" id="gaugeCard" title="Wasser eintragen" style="cursor:pointer;">
       <svg viewBox="0 0 220 220" class="gauge-svg">
@@ -683,6 +702,21 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
     <div id="upcomingList"></div>
   </div>
 
+  <!-- KI-PLAN -->
+  <div class="panel" id="panelKiplan">
+    <h2 class="section">KI-Tagesplan <span class="section-note">Vorschlag aus deiner Gerichte-Bibliothek</span></h2>
+    <p class="section-label">Tag wählen – Claude optimiert ihn passend zu deinem Kalorien-, Ballaststoff- und Protein-Ziel. Der Vorschlag wird als eigene KI-Version gespeichert; dein Original-Wochenplan bleibt dabei unverändert und ist jederzeit über den Umschalter im Wochenplan-Tab wieder aktivierbar.</p>
+    <div class="ki-day-picker" id="kiDayPicker"></div>
+    <div class="profile-field" style="margin-top:.4rem;">
+      <label>Besonderer Tagesablauf (optional) – z.B. Termine, Fahrtzeiten, wann du unterwegs bist. Wird pro Wochentag in Airtable gespeichert (geräteübergreifend synchron).</label>
+      <textarea id="kiDayContext" rows="3" placeholder="z.B. Fotoshooting-Tag: ab 8 Uhr 2 h Autofahrt zum Termin, dann ca. 3,5 h Shooting, dann 2 h zurück" style="width:100%;font-family:'Inter',sans-serif;font-size:14px;border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:#fff;color:var(--ink);resize:vertical;"></textarea>
+    </div>
+    <button class="btn primary" id="genAiPlanBtn">🤖 Tag optimieren</button>
+    <p class="section-note" id="kiPlanStatus"></p>
+    <div id="kiPlanNotes" class="ki-plan-notes" style="display:none;"></div>
+    <div id="kiPlanDays"></div>
+  </div>
+
   <!-- DASHBOARD -->
   <div class="panel" id="panelDashboard">
     <div class="dash-header">
@@ -848,11 +882,13 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
     <div class="profile-field"><label>Wunschgewicht (kg)</label><input type="number" id="profGoalWeight" step="0.1"></div>
     <div class="profile-field"><label>Schritte-Ziel (Ø/Tag)</label><input type="number" id="profStepsGoal" step="100"></div>
     <div class="profile-field"><label>Max. Kalorien pro Tag</label><input type="number" id="profKcalMax" step="10"></div>
+    <div class="profile-field"><label>Min. Kalorien pro Tag (nur für KI-Tagesplan)</label><input type="number" id="profKcalMin" step="10"></div>
     <div class="profile-field"><label>Ballaststoffe-Ziel pro Tag (g)</label><input type="number" id="profFiberGoal" step="1"></div>
     <div class="profile-field"><label>Protein-Ziel pro Tag (g)</label><input type="number" id="profProteinGoal" step="1"></div>
     <div class="profile-field"><label>Grundumsatz (kcal)</label><input type="number" id="profBmr" step="10"></div>
     <div class="profile-field"><label>Warnschwelle Defizit (kcal)</label><input type="number" id="profDeficitWarn" step="50"></div>
     <div class="profile-field"><label>Fastenziel (Stunden ohne Essen)</label><input type="number" id="profFastGoal" step="1" min="1" max="23"></div>
+    <div class="profile-field"><label>Claude API-Key (nur lokal in diesem Browser gespeichert, für den KI-Wochenplan)</label><input type="password" id="profClaudeKey" placeholder="sk-ant-..." autocomplete="off"></div>
     <div class="modal-actions">
       <button class="btn" id="profileCancel">Abbrechen</button>
       <button class="btn primary" id="profileSave">Speichern</button>
@@ -1218,7 +1254,12 @@ function escapeAttr(s){ return String(s).replace(/&/g,'&amp;').replace(/"/g,'&qu
 
 /* in-memory state, mirrors Airtable */
 let dishes = [];      // {id, name, kcal, ingredients:[]}
-let weekPlan = {};    // wd -> [{id, time, dishName}]
+let weekPlan = {};    // wd -> [{id, time, dishName}]  -- Original-Wochenplan
+let weekPlanAI = {};  // wd -> [{id, time, dishName}]  -- KI-Version, unabhängig vom Original
+let weekVersion = {}; // wd -> 'original'|'ai' -- welche Version für diesen Tag aktiv ist
+let weekVersionRecId = {}; // wd -> Airtable-Record-Id in WeekVersion (für Update statt Create)
+let weekDayContext = {}; // wd -> "Besonderer Tagesablauf"-Text, aus WeekVersion.Context
+let weekDayNotes = {};   // wd -> Array KI-Stichpunkte, aus WeekVersion.Notes (JSON)
 let logEntries = [];  // {id, date, type, name, kcal, time}
 let weights = [];     // {id, date, kg}
 let steps = [];       // {id, date, steps, kcal}
@@ -1234,7 +1275,8 @@ let routineLog = [];   // {id, date, taskName} - ein Eintrag pro erledigter Aufg
 let bonusLog = []; // {id, date, name, kcal} - jede Einlösung, zieht dauerhaft vom Guthaben ab
 let targets = { base:1800, deficit:1400 };
 let activeTarget = 'deficit';
-let profile = { id:null, startWeight:110, goalWeight:99, stepsGoal:8000, kcalMax:1400, fiberGoal:30, proteinGoal:130, bmr:1955, deficitWarnThreshold:1000, fastGoalHours:12 };
+let profile = { id:null, startWeight:110, goalWeight:99, stepsGoal:8000, kcalMax:1400, kcalMin:1100, fiberGoal:30, proteinGoal:130, bmr:1955, deficitWarnThreshold:1000, fastGoalHours:12 };
+let claudeApiKey = localStorage.getItem('claudeApiKey') || '';
 
 let currentDate = todayStr();
 let swapWeekday = null, swapTargetSlot = null, swapSelectedDishName = null;
@@ -1254,6 +1296,7 @@ document.querySelectorAll('.tab').forEach(t=>{
     document.getElementById('panel'+t.dataset.tab.charAt(0).toUpperCase()+t.dataset.tab.slice(1)).classList.add('active');
     if(t.dataset.tab === 'dashboard') renderDashboard();
     if(t.dataset.tab === 'einkaufen') computeShoppingNeeds();
+    if(t.dataset.tab === 'kiplan'){ initKiDayPicker(); renderAiDayProposal(); }
     if(t.dataset.tab === 'vorrat'){
       resyncPantryFromDishes(); renderPantry(); renderSnackManage(); renderBonusManage();
       reloadPantryFresh().then(()=>{ renderPantry(); renderSnackManage(); renderBonusManage(); });
@@ -1457,36 +1500,41 @@ document.getElementById('openProfileBtn').addEventListener('click', ()=>{
   document.getElementById('profGoalWeight').value = profile.goalWeight;
   document.getElementById('profStepsGoal').value = profile.stepsGoal;
   document.getElementById('profKcalMax').value = profile.kcalMax;
+  document.getElementById('profKcalMin').value = profile.kcalMin;
   document.getElementById('profFiberGoal').value = profile.fiberGoal;
   document.getElementById('profProteinGoal').value = profile.proteinGoal;
   document.getElementById('profBmr').value = profile.bmr;
   document.getElementById('profDeficitWarn').value = profile.deficitWarnThreshold;
   document.getElementById('profFastGoal').value = profile.fastGoalHours;
+  document.getElementById('profClaudeKey').value = claudeApiKey;
   document.getElementById('profileModalBg').classList.add('open');
 });
 document.getElementById('profileCancel').addEventListener('click', ()=> document.getElementById('profileModalBg').classList.remove('open'));
 document.getElementById('profileSave').addEventListener('click', async ()=>{
+  claudeApiKey = document.getElementById('profClaudeKey').value.trim();
+  if(claudeApiKey) localStorage.setItem('claudeApiKey', claudeApiKey); else localStorage.removeItem('claudeApiKey');
   const startWeight = Number(document.getElementById('profStartWeight').value)||profile.startWeight;
   const goalWeight = Number(document.getElementById('profGoalWeight').value)||profile.goalWeight;
   const stepsGoal = Number(document.getElementById('profStepsGoal').value)||profile.stepsGoal;
   const kcalMax = Number(document.getElementById('profKcalMax').value)||profile.kcalMax;
+  const kcalMin = Number(document.getElementById('profKcalMin').value)||profile.kcalMin||1100;
   const fiberGoal = Number(document.getElementById('profFiberGoal').value)||profile.fiberGoal;
   const proteinGoal = Number(document.getElementById('profProteinGoal').value)||profile.proteinGoal||130;
   const bmr = Number(document.getElementById('profBmr').value)||profile.bmr||1955;
   const deficitWarnThreshold = Number(document.getElementById('profDeficitWarn').value)||profile.deficitWarnThreshold||1000;
   const fastGoalHours = Math.max(1, Math.min(23, Number(document.getElementById('profFastGoal').value)||profile.fastGoalHours||12));
-  const fields = { StartWeight: startWeight, GoalWeight: goalWeight, StepsGoal: stepsGoal, KcalMax: kcalMax, FiberGoal: fiberGoal, ProteinGoal: proteinGoal, Bmr: bmr, DeficitWarnThreshold: deficitWarnThreshold, FastGoalHours: fastGoalHours };
+  const fields = { StartWeight: startWeight, GoalWeight: goalWeight, StepsGoal: stepsGoal, KcalMax: kcalMax, KcalMin: kcalMin, FiberGoal: fiberGoal, ProteinGoal: proteinGoal, Bmr: bmr, DeficitWarnThreshold: deficitWarnThreshold, FastGoalHours: fastGoalHours };
   try{
     try{
       if(profile.id) await atUpdate('Profile', profile.id, fields);
       else{ const rec = await atCreate('Profile', fields); profile.id = rec.id; }
     }catch(fieldErr){
-      // Neuere Felder (ProteinGoal/Bmr/DeficitWarnThreshold/FastGoalHours) existieren in Airtable evtl. noch nicht -> ohne erneut versuchen, sonst geht Speichern komplett nicht
-      const { ProteinGoal, Bmr, DeficitWarnThreshold, FastGoalHours, ...fieldsWithoutNew } = fields;
+      // Neuere Felder (ProteinGoal/Bmr/DeficitWarnThreshold/FastGoalHours/KcalMin) existieren in Airtable evtl. noch nicht -> ohne erneut versuchen, sonst geht Speichern komplett nicht
+      const { ProteinGoal, Bmr, DeficitWarnThreshold, FastGoalHours, KcalMin, ...fieldsWithoutNew } = fields;
       try{
         if(profile.id) await atUpdate('Profile', profile.id, fieldsWithoutNew);
         else{ const rec = await atCreate('Profile', fieldsWithoutNew); profile.id = rec.id; }
-        setStatus('Gespeichert (Felder "ProteinGoal"/"Bmr"/"DeficitWarnThreshold"/"FastGoalHours" fehlen noch in Airtable – bitte in der Profile-Tabelle als Number-Spalten ergänzen, dann erneut speichern)');
+        setStatus('Gespeichert (Felder "ProteinGoal"/"Bmr"/"DeficitWarnThreshold"/"FastGoalHours"/"KcalMin" fehlen noch in Airtable – bitte in der Profile-Tabelle als Number-Spalten ergänzen, dann erneut speichern)');
       }catch(fieldErr2){
         // Auch die älteren Felder fehlen evtl. noch nicht (frisches Sheet) -> ohne FastGoalHours erneut versuchen
         const { FastGoalHours: _drop, ...fieldsWithoutFast } = fields;
@@ -1494,12 +1542,12 @@ document.getElementById('profileSave').addEventListener('click', async ()=>{
         else{ const rec = await atCreate('Profile', fieldsWithoutFast); profile.id = rec.id; }
         setStatus('Gespeichert (Feld "FastGoalHours" fehlt noch in Airtable – bitte in der Profile-Tabelle als Number-Spalte ergänzen, dann erneut speichern)');
       }
-      profile = { id:profile.id, startWeight, goalWeight, stepsGoal, kcalMax, fiberGoal, proteinGoal, bmr, deficitWarnThreshold, fastGoalHours };
+      profile = { id:profile.id, startWeight, goalWeight, stepsGoal, kcalMax, kcalMin, fiberGoal, proteinGoal, bmr, deficitWarnThreshold, fastGoalHours };
       document.getElementById('profileModalBg').classList.remove('open');
       renderGoalCard(); renderScoreCard(); renderToday();
       return;
     }
-    profile = { id:profile.id, startWeight, goalWeight, stepsGoal, kcalMax, fiberGoal, proteinGoal, bmr, deficitWarnThreshold, fastGoalHours };
+    profile = { id:profile.id, startWeight, goalWeight, stepsGoal, kcalMax, kcalMin, fiberGoal, proteinGoal, bmr, deficitWarnThreshold, fastGoalHours };
     setStatus('Stammdaten gespeichert');
     document.getElementById('profileModalBg').classList.remove('open');
     renderGoalCard(); renderScoreCard(); renderToday();
@@ -1933,6 +1981,24 @@ function renderRhythmChart(days){
 }
 
 function dishByName(name){ return dishes.find(d=>d.name===name); }
+/* Liefert die gerade aktive Slot-Liste für einen Wochentag: Original oder KI-Version, je nach Umschalter */
+function activeSlots(wd){ return (weekVersion[wd]==='ai') ? (weekPlanAI[wd]||[]) : (weekPlan[wd]||[]); }
+/* Speichert Mode/Context/Notes für einen Wochentag in EINEM Airtable-Record (WeekVersion) - geräteübergreifend synchron.
+   updates: {mode?, context?, notes?} - nur angegebene Felder werden geändert, Rest bleibt wie im State. */
+async function saveWeekVersionRow(wd, updates){
+  if(updates.mode!==undefined) weekVersion[wd] = updates.mode;
+  if(updates.context!==undefined) weekDayContext[wd] = updates.context;
+  if(updates.notes!==undefined) weekDayNotes[wd] = updates.notes;
+  const fields = { Weekday: wd, Mode: weekVersion[wd]||'original', Context: weekDayContext[wd]||'', Notes: JSON.stringify(weekDayNotes[wd]||[]) };
+  try{
+    if(weekVersionRecId[wd]) await atUpdate('WeekVersion', weekVersionRecId[wd], fields);
+    else{ const rec = await atCreate('WeekVersion', fields); weekVersionRecId[wd] = rec.id; }
+  }catch(e){ console.error(e); setStatus('WeekVersion-Tabelle: Felder Weekday/Mode/Context/Notes prüfen (Context/Notes als Long text) – Änderung wird nicht dauerhaft gespeichert.'); }
+}
+async function setWeekVersion(wd, mode){
+  await saveWeekVersionRow(wd, {mode});
+  render();
+}
 
 /* sign = -1 beim Verbrauch (abgehakt), +1 beim Rückgängigmachen */
 async function adjustPantryForDish(dish, sign){
@@ -2368,7 +2434,7 @@ async function loadAll(){
     try{
       const profRecs = await atList('Profile');
       if(profRecs[0]){
-        profile = { id:profRecs[0].id, startWeight:Number(profRecs[0].fields.StartWeight)||profile.startWeight, goalWeight:Number(profRecs[0].fields.GoalWeight)||profile.goalWeight, stepsGoal:Number(profRecs[0].fields.StepsGoal)||profile.stepsGoal, kcalMax:Number(profRecs[0].fields.KcalMax)||profile.kcalMax, fiberGoal:Number(profRecs[0].fields.FiberGoal)||profile.fiberGoal, proteinGoal:Number(profRecs[0].fields.ProteinGoal)||profile.proteinGoal, bmr:Number(profRecs[0].fields.Bmr)||profile.bmr, deficitWarnThreshold:Number(profRecs[0].fields.DeficitWarnThreshold)||profile.deficitWarnThreshold, fastGoalHours:Number(profRecs[0].fields.FastGoalHours)||profile.fastGoalHours };
+        profile = { id:profRecs[0].id, startWeight:Number(profRecs[0].fields.StartWeight)||profile.startWeight, goalWeight:Number(profRecs[0].fields.GoalWeight)||profile.goalWeight, stepsGoal:Number(profRecs[0].fields.StepsGoal)||profile.stepsGoal, kcalMax:Number(profRecs[0].fields.KcalMax)||profile.kcalMax, kcalMin:Number(profRecs[0].fields.KcalMin)||profile.kcalMin, fiberGoal:Number(profRecs[0].fields.FiberGoal)||profile.fiberGoal, proteinGoal:Number(profRecs[0].fields.ProteinGoal)||profile.proteinGoal, bmr:Number(profRecs[0].fields.Bmr)||profile.bmr, deficitWarnThreshold:Number(profRecs[0].fields.DeficitWarnThreshold)||profile.deficitWarnThreshold, fastGoalHours:Number(profRecs[0].fields.FastGoalHours)||profile.fastGoalHours };
       }
     }catch(e){ console.warn('Profile-Tabelle noch nicht vorhanden – lege sie in Airtable an (Felder: StartWeight, GoalWeight, StepsGoal, KcalMax, FiberGoal). Nutze bis dahin Standardwerte.'); }
     try{
@@ -2391,6 +2457,28 @@ async function loadAll(){
       const dbRecs = await atList('DayBounds');
       dayBounds = dbRecs.map(r=>({ id:r.id, date:r.fields.Date||'', startTag:r.fields.StartTag||'', endTag:r.fields.EndTag||'' }));
     }catch(e){ console.warn('DayBounds-Tabelle noch nicht vorhanden – lege sie in Airtable an (Felder: Date, StartTag, EndTag). Start/Ende-Tag funktioniert erst danach.'); dayBounds = []; }
+    weekPlanAI = {}; WEEKDAYS.forEach(wd=> weekPlanAI[wd]=[]);
+    try{
+      const wpaRecs = await atList('WeekPlanAI');
+      wpaRecs.forEach(r=>{
+        const wd = r.fields.Weekday;
+        if(weekPlanAI[wd]) weekPlanAI[wd].push({ id:r.id, time:r.fields.Time||'12:00', dishName:r.fields.DishName||'' });
+      });
+      WEEKDAYS.forEach(wd=> weekPlanAI[wd].sort((a,b)=> a.time.localeCompare(b.time)));
+    }catch(e){ console.warn('WeekPlanAI-Tabelle noch nicht vorhanden – lege sie in Airtable an (Felder: Weekday, Time, DishName).'); }
+    weekVersion = {}; weekVersionRecId = {}; weekDayContext = {}; weekDayNotes = {}; WEEKDAYS.forEach(wd=> weekVersion[wd]='original');
+    try{
+      const wvRecs = await atList('WeekVersion');
+      wvRecs.forEach(r=>{
+        const wd = r.fields.Weekday;
+        if(wd){
+          weekVersion[wd] = r.fields.Mode==='ai' ? 'ai' : 'original';
+          weekVersionRecId[wd] = r.id;
+          weekDayContext[wd] = r.fields.Context || '';
+          try{ weekDayNotes[wd] = JSON.parse(r.fields.Notes || '[]'); }catch(e){ weekDayNotes[wd] = []; }
+        }
+      });
+    }catch(e){ console.warn('WeekVersion-Tabelle noch nicht vorhanden – lege sie in Airtable an (Felder: Weekday, Mode, Context, Notes). Ohne sie bleibt immer die Original-Version aktiv.'); }
     weekPlan = {}; WEEKDAYS.forEach(wd=> weekPlan[wd]=[]);
     wpRecs.forEach(r=>{
       const wd = r.fields.Weekday;
@@ -2413,13 +2501,45 @@ async function loadAll(){
   render();
 }
 
-function render(){ renderToday(); renderWeek(); renderDishLibrary(); renderShopPreview(); renderUpcoming(); renderDashboardBadge(); renderTodayTab(); renderRoutine(); }
+function render(){ renderToday(); renderWeek(); renderDishLibrary(); renderShopPreview(); renderUpcoming(); renderDashboardBadge(); renderTodayTab(); renderRoutine(); renderSpecialDays(); }
+let specialDaysExpanded = {}; // wd -> bool
+function renderSpecialDays(){
+  const wrap = document.getElementById('specialDaysWrap');
+  const badge = document.getElementById('specialDaysBadge');
+  if(!wrap || !badge) return;
+  const specialDays = WEEKDAYS.filter(wd=> weekVersion[wd]==='ai' && (weekPlanAI[wd]||[]).length>0);
+  if(specialDays.length===0){ badge.style.display='none'; wrap.innerHTML=''; return; }
+  badge.style.display='inline-block'; badge.textContent = specialDays.length;
+  wrap.innerHTML = specialDays.map(wd=>{
+    const context = weekDayContext[wd] || '';
+    const label = context.trim() ? context.split(':')[0].trim().slice(0,40) : 'Besonderer Tag';
+    const expanded = !!specialDaysExpanded[wd];
+    const slots = weekPlanAI[wd] || [];
+    const notes = weekDayNotes[wd] || [];
+    return `<div class="special-day-card" data-wd="${wd}">
+        <div class="special-day-head">
+          <span class="sd-title">${WEEKDAY_NAMES[wd]}: ${escapeAttr(label)}</span>
+          <span>${expanded?'▲':'▼'}</span>
+        </div>
+        ${expanded?`<div class="special-day-detail">
+          ${context.trim()?`<div class="sd-context">${escapeAttr(context.trim())}</div>`:''}
+          ${notes.length?`<ul style="margin:0 0 .5rem;padding-left:1.1rem;">${notes.map(n=>`<li>${escapeAttr(n)}</li>`).join('')}</ul>`:''}
+          ${slots.map(sl=>{ const d=dishByName(sl.dishName); return `<div class="slot-row"><span class="hour-select">${sl.time}</span><span class="slot-dishname">${escapeAttr(sl.dishName)}</span><span class="slot-kcal">${d?effectiveKcal(d):0} kcal</span></div>`; }).join('')}
+        </div>`:''}
+      </div>`;
+  }).join('');
+  wrap.querySelectorAll('.special-day-card').forEach(card=> card.addEventListener('click', ()=>{
+    const wd = card.dataset.wd;
+    specialDaysExpanded[wd] = !specialDaysExpanded[wd];
+    renderSpecialDays();
+  }));
+}
 
 /* ================= TODAY ================= */
 function renderToday(){
   const wd = weekdayOf(currentDate);
 
-  const slots = weekPlan[wd] || [];
+  const slots = activeSlots(wd);
   const dayLogPlan = logEntries.filter(l=> l.date===currentDate && l.type==='plan');
   const dayLogExtra = logEntries.filter(l=> l.date===currentDate && l.type==='extra');
 
@@ -2917,10 +3037,11 @@ function renderWeek(){
   const wrap = document.getElementById('weekDays');
   wrap.innerHTML = '';
   WEEKDAYS.forEach(wd=>{
-    const editOn = !!weekEditMode[wd];
+    const isAiActive = weekVersion[wd]==='ai';
+    const editOn = !isAiActive && !!weekEditMode[wd];
     const block = document.createElement('div');
     block.className = 'day-block';
-    const slots = weekPlan[wd] || [];
+    const slots = activeSlots(wd);
     const dayTotal = slots.reduce((sum,slot)=>{ const d=dishByName(slot.dishName); return sum + (d?effectiveKcal(d):0); }, 0);
     const dayFiber = Math.round(slots.reduce((sum,slot)=>{ const d=dishByName(slot.dishName); return sum + (d?effectiveFiber(d):0); }, 0)*10)/10;
     const dayProtein = Math.round(slots.reduce((sum,slot)=>{ const d=dishByName(slot.dishName); return sum + (d?calculatedProtein(d):0); }, 0)*10)/10;
@@ -2938,9 +3059,13 @@ function renderWeek(){
         <span class="day-title">${WEEKDAY_NAMES[wd]}</span>
         <span class="head-spacer"></span>
         <div class="head-icons">
-          ${editOn?`<button class="icon-btn day-move-btn" title="Ganzen Tag tauschen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 21l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></button>`:''}
-          <button class="icon-btn day-edit-btn ${editOn?'active':''}" title="Bearbeiten"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg></button>
+          ${(editOn&&!isAiActive)?`<button class="icon-btn day-move-btn" title="Ganzen Tag tauschen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 21l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></button>`:''}
+          ${!isAiActive?`<button class="icon-btn day-edit-btn ${editOn?'active':''}" title="Bearbeiten"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg></button>`:''}
         </div>
+      </div>
+      <div class="ver-toggle">
+        <button class="ver-btn ${!isAiActive?'active':''}" data-mode="original">Original</button>
+        <button class="ver-btn ${isAiActive?'active':''}" data-mode="ai">🤖 KI</button>
       </div>
       <div class="day-metrics">
         <div class="metric-labels">
@@ -2963,9 +3088,26 @@ function renderWeek(){
         </div>
       </div>
       <div class="slots"></div>`;
+    block.querySelectorAll('.ver-btn').forEach(b=> b.addEventListener('click', ()=>{
+      if(b.dataset.mode === weekVersion[wd]) return;
+      setWeekVersion(wd, b.dataset.mode);
+    }));
     if(editOn) block.querySelector('.day-move-btn').addEventListener('click', ()=> openDayMoveModal(wd));
-    block.querySelector('.day-edit-btn').addEventListener('click', ()=>{ weekEditMode[wd] = !weekEditMode[wd]; renderWeek(); });
+    if(!isAiActive) block.querySelector('.day-edit-btn').addEventListener('click', ()=>{ weekEditMode[wd] = !weekEditMode[wd]; renderWeek(); });
     const slotsWrap = block.querySelector('.slots');
+    if(isAiActive && slots.length===0){
+      slotsWrap.innerHTML = '<div class="slot-row"><span>Keine KI-Version vorhanden – im Tab „KI-Tagesplan" generieren.</span></div>';
+      wrap.appendChild(block);
+      return;
+    }
+    if(isAiActive){
+      slotsWrap.innerHTML = slots.map(slot=>{
+        const dish = dishByName(slot.dishName);
+        return `<div class="slot-row"><span class="hour-select">${slot.time}</span><span class="slot-dishname">${escapeAttr(slot.dishName)}</span><span class="slot-kcal">${dish?effectiveKcal(dish):0} kcal</span></div>`;
+      }).join('');
+      wrap.appendChild(block);
+      return;
+    }
     slots.forEach((slot, idx)=>{
       const dish = dishByName(slot.dishName);
       const hour = slot.time.split(':')[0];
@@ -3021,6 +3163,208 @@ function renderWeek(){
     });
     wrap.appendChild(block);
   });
+}
+/* ===== KI-Tagesplan ===== */
+let kiSelectedDay = null;
+let aiDayProposal = null; // { wd, slots:[{time,dishName,isNew,...}], notes }
+
+function loadKiDayContext(wd){
+  const ta = document.getElementById('kiDayContext');
+  ta.value = weekDayContext[wd] || '';
+}
+function initKiDayPicker(){
+  const wrap = document.getElementById('kiDayPicker');
+  if(!kiSelectedDay){ const jsDay = new Date().getDay(); kiSelectedDay = WEEKDAYS[jsDay===0?6:jsDay-1]; }
+  wrap.innerHTML = WEEKDAYS.map(wd=> `<button data-wd="${wd}" class="${wd===kiSelectedDay?'active':''}">${wd}</button>`).join('');
+  wrap.querySelectorAll('button').forEach(b=> b.addEventListener('click', ()=>{ kiSelectedDay = b.dataset.wd; initKiDayPicker(); }));
+  loadKiDayContext(kiSelectedDay);
+}
+let kiContextSaveTimer = null;
+document.getElementById('kiDayContext').addEventListener('input', ()=>{
+  if(!kiSelectedDay) return;
+  const wd = kiSelectedDay;
+  const val = document.getElementById('kiDayContext').value;
+  weekDayContext[wd] = val; // sofort im State, damit z.B. die Heute-Vorschau nicht auf den Airtable-Write warten muss
+  clearTimeout(kiContextSaveTimer);
+  kiContextSaveTimer = setTimeout(()=> saveWeekVersionRow(wd, {context: val}), 800);
+});
+function buildAiDayPrompt(wd, dayContext){
+  const dishList = dishes.map(d=> `- ${d.name} (${effectiveKcal(d)} kcal, ${effectiveFiber(d)} g Ballaststoffe, ${calculatedProtein(d)} g Protein) – Zutaten: ${d.ingredients.map(i=>`${i.amount}${i.unit} ${i.name}`).join(', ')||'keine hinterlegt'}`).join('\n');
+  const pantryList = pantry.filter(p=> p.kcalPerUnit>0).map(p=> `- ${p.name} (${p.unit}) – ${p.kcalPerUnit} kcal / ${p.fiberPerUnit} g Ballaststoffe / ${p.proteinPerUnit} g Protein pro ${(p.unit==='g'||p.unit==='ml')?'100'+p.unit:p.unit}`).join('\n');
+  const currentSlots = activeSlots(wd);
+  const currentPlanText = currentSlots.length ? currentSlots.map(s=> `- ${s.time} ${s.dishName}`).join('\n') : '(noch keine Mahlzeiten geplant)';
+  const contextBlock = dayContext && dayContext.trim() ? `
+Besonderer Ablauf an diesem Tag (unbedingt bei den Essenszeiten berücksichtigen – nicht während Fahrt/Termin planen, sondern davor/danach/in Pausen):
+${dayContext.trim()}
+
+Berücksichtige bei jedem vorgeschlagenen Gericht/Snack auch, ob es sich gut unterwegs mitnehmen und ohne Kühlung/Aufwärmen essen lässt (to-go-tauglich). Wenn nötig, schlage für unterwegs eher kompakte/handliche Optionen vor (z.B. Riegel, Wrap, Nüsse) statt löffelbedürftiger Gerichte.
+` : '';
+  return `Du bist Ernährungsberater. Optimiere den Essensplan für ${WEEKDAY_NAMES[wd]} für folgende Tagesziele:
+- Kalorien: HARTER BEREICH ${profile.kcalMin}–${profile.kcalMax} kcal – die Summe aller vorgeschlagenen Gerichte muss in diesem Bereich liegen, NIE darüber und NIE darunter. Kalorien haben oberste Priorität vor den anderen Zielen, rechne beim Zusammenstellen genau nach.
+- Ballaststoffe: mind. ${profile.fiberGoal} g
+- Protein: mind. ${profile.proteinGoal} g
+- Vegetarisch
+${contextBlock}
+Aktueller Plan für diesen Tag:
+${currentPlanText}
+
+Nutze bevorzugt Gerichte aus dieser vorhandenen Bibliothek (Name muss exakt übernommen werden, wenn du ein bestehendes Gericht verwendest):
+${dishList}
+
+Du darfst auch neue, sinnvolle Gerichte vorschlagen (kennzeichne diese im JSON mit "isNew": true), WICHTIG dabei: Verwende für neue Gerichte AUSSCHLIESSLICH Zutaten aus dieser Vorratsliste (Name exakt übernehmen, Menge in der angegebenen Einheit) – erfinde KEINE neuen, unbekannten Zutaten, auch wenn dir eine Zutat für das Ziel fehlt. Wenn die Vorratsliste für ein Ziel nicht ausreicht, kombiniere vorhandene Zutaten sinnvoll oder greife auf ein bestehendes Bibliotheks-Gericht zurück, statt eine unbekannte Zutat zu erfinden:
+${pantryList || '(noch keine Vorrats-Zutaten mit Nährwerten hinterlegt)'}
+
+Gib bei neuen Gerichten "ingredients" als Array aus {name, amount, unit} an (Einheit nur g/ml/TL/EL/Stück/Dose, exakt wie in der Vorratsliste). "kcal"/"fiber"/"protein" bei neuen Gerichten brauchst du nicht selbst zu berechnen, die App rechnet sie aus den Zutaten.
+
+Antworte AUSSCHLIESSLICH mit gültigem, einzeiligem JSON in genau diesem Format, ohne weiteren Text, ohne Markdown-Codeblock. "notes" ist ein Array aus 2-4 kurzen, knappen Stichpunkten (je max. ca. 12 Wörter, kein Fließtext, keine ganzen Absätze) – falls ein besonderer Tagesablauf angegeben wurde, geht mindestens ein Stichpunkt kurz darauf ein:
+{"slots":[{"time":"08:00","dishName":"...","isNew":false}],"notes":["Kurzer Stichpunkt 1","Kurzer Stichpunkt 2"]}`;
+}
+async function callClaudeApi(prompt){
+  if(!claudeApiKey) throw new Error('Kein Claude API-Key hinterlegt (Profil ⚙️ → Claude API-Key).');
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': claudeApiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-5',
+      max_tokens: 4000,
+      thinking: { type: 'disabled' },
+      system: 'Du antwortest IMMER ausschließlich mit einem einzigen gültigen JSON-Objekt. Kein einleitender Satz, keine Erklärung davor oder danach, kein Markdown-Codeblock – die Antwort muss mit { beginnen und mit } enden.',
+      messages: [{ role:'user', content: prompt }]
+    })
+  });
+  const rawText = await res.text();
+  let data;
+  try{ data = JSON.parse(rawText); }
+  catch(e){ throw new Error('Antwort war kein gültiges JSON ('+res.status+'): '+rawText.slice(0,200)); }
+  if(!res.ok || data.type==='error'){
+    throw new Error('Claude-API-Fehler ('+res.status+'): '+(data.error?.message || rawText.slice(0,200)));
+  }
+  const textBlock = (data.content||[]).find(b=> b.type==='text');
+  if(!textBlock) throw new Error('Keine Textantwort erhalten (stop_reason: '+(data.stop_reason||'?')+'). Rohantwort: '+rawText.slice(0,300));
+  return textBlock.text;
+}
+function parseAiDayResponse(raw){
+  let cleaned = raw.trim();
+  cleaned = cleaned.replace(/^```json\s*/i,'').replace(/^```\s*/,'').replace(/```\s*$/,'').trim();
+  // Claude schreibt in "notes" manchmal einen echten Zeilenumbruch statt \n -> macht JSON ungültig ("Unterminated string").
+  // Da wir für unsere Zwecke keine mehrzeiligen Strings brauchen, ersetzen wir rohe Newlines/Tabs global durch ein Leerzeichen.
+  cleaned = cleaned.replace(/[\r\n\t]+/g, ' ');
+  let parsed;
+  try{ parsed = JSON.parse(cleaned); }
+  catch(e){
+    // Fallback: falls Claude trotz Anweisung Fließtext drumherum geschrieben hat, das JSON-Objekt herausschneiden
+    const first = cleaned.indexOf('{'), last = cleaned.lastIndexOf('}');
+    if(first!==-1 && last>first){
+      try{ parsed = JSON.parse(cleaned.slice(first, last+1)); }
+      catch(e2){ throw new Error('Konnte Antwort nicht als JSON lesen: '+e2.message+'. Rohantwort: '+cleaned.slice(0,300)); }
+    }else{
+      throw new Error('Antwort enthielt gar kein JSON-Objekt. Rohantwort: '+cleaned.slice(0,300));
+    }
+  }
+  if(!Array.isArray(parsed.slots)) throw new Error('Antwort enthält kein "slots"-Array.');
+  if(!Array.isArray(parsed.notes)) parsed.notes = parsed.notes ? [String(parsed.notes)] : [];
+  return parsed;
+}
+document.getElementById('genAiPlanBtn').addEventListener('click', async ()=>{
+  const statusEl = document.getElementById('kiPlanStatus');
+  const btn = document.getElementById('genAiPlanBtn');
+  if(!kiSelectedDay){ statusEl.textContent = 'Bitte zuerst einen Tag auswählen.'; return; }
+  btn.disabled = true;
+  statusEl.textContent = 'Frage Claude nach einem Vorschlag für '+WEEKDAY_NAMES[kiSelectedDay]+'…';
+  try{
+    const dayContext = document.getElementById('kiDayContext').value;
+    const prompt = buildAiDayPrompt(kiSelectedDay, dayContext);
+    const raw = await callClaudeApi(prompt);
+    const parsed = parseAiDayResponse(raw);
+    aiDayProposal = { wd: kiSelectedDay, slots: parsed.slots, notes: parsed.notes||[] };
+    statusEl.textContent = 'Vorschlag erstellt – prüfen und ggf. übernehmen.';
+    renderAiDayProposal();
+  }catch(err){
+    console.error(err);
+    statusEl.textContent = 'Fehler: '+err.message;
+  }finally{
+    btn.disabled = false;
+  }
+});
+function renderAiDayProposal(){
+  const wrap = document.getElementById('kiPlanDays');
+  const notesEl = document.getElementById('kiPlanNotes');
+  wrap.innerHTML = '';
+  if(!aiDayProposal){ notesEl.style.display='none'; return; }
+  notesEl.style.display = 'block';
+  notesEl.innerHTML = '🤖 KI-optimiert:<ul style="margin:.3rem 0 0;padding-left:1.1rem;">' + aiDayProposal.notes.map(n=> `<li>${escapeAttr(n)}</li>`).join('') + '</ul>';
+  const slots = aiDayProposal.slots;
+  const slotKcal = sl=> sl.isNew ? calculatedKcal({ingredients: sl.ingredients||[]}) : effectiveKcal(dishByName(sl.dishName)||{kcal:0,ingredients:[]});
+  const slotFiber = sl=> sl.isNew ? calculatedFiber({ingredients: sl.ingredients||[]}) : effectiveFiber(dishByName(sl.dishName)||{fiber:0,ingredients:[]});
+  const slotProtein = sl=> sl.isNew ? calculatedProtein({ingredients: sl.ingredients||[]}) : (dishByName(sl.dishName)?calculatedProtein(dishByName(sl.dishName)):0);
+  const dayKcal = slots.reduce((s,sl)=> s + slotKcal(sl), 0);
+  const dayFiber = Math.round(slots.reduce((s,sl)=> s + slotFiber(sl), 0)*10)/10;
+  const dayProtein = Math.round(slots.reduce((s,sl)=> s + slotProtein(sl), 0)*10)/10;
+  const outOfRangeKcal = dayKcal > profile.kcalMax || dayKcal < profile.kcalMin;
+  const block = document.createElement('div');
+  block.className = 'day-block ki-day-block';
+  block.innerHTML = `<div class="day-block-head">
+      <span class="day-title">${WEEKDAY_NAMES[aiDayProposal.wd]}</span>
+      <button class="btn primary ki-day-apply">✓ Als KI-Version speichern</button>
+    </div>
+    <div class="metric-labels">
+      <span class="${outOfRangeKcal?'over':''}">${dayKcal} kcal (Ziel ${profile.kcalMin}–${profile.kcalMax})${outOfRangeKcal?' ⚠️':''}</span><span>${dayFiber} g Ballaststoffe</span><span>${dayProtein} g Protein</span>
+    </div>
+    <div class="slots">${slots.map(sl=>{
+        return `<div class="slot-row"><span class="hour-select">${sl.time}</span><span class="slot-dishname ${sl.isNew?'ki-slot-new':''}">${escapeAttr(sl.dishName)}${sl.isNew?' <span class="ai-badge">neu</span>':''}</span><span class="slot-kcal">${slotKcal(sl)} kcal</span></div>`;
+      }).join('') || '<div class="slot-row"><span>Keine Vorschläge für diesen Tag.</span></div>'}</div>`;
+  block.querySelector('.ki-day-apply').addEventListener('click', applyAiDayProposal);
+  wrap.appendChild(block);
+}
+async function ensureDishExists(sl){
+  if(!sl.isNew) return sl.dishName;
+  let existing = dishByName(sl.dishName);
+  if(existing) return existing.name;
+  const ingredients = sl.ingredients || [];
+  const unknown = ingredients.filter(i=> !pantryItem(i.name));
+  if(unknown.length){
+    setStatus('Achtung: "'+sl.dishName+'" enthält unbekannte Zutat(en) ('+unknown.map(i=>i.name).join(', ')+') – Nährwerte dafür ggf. ungenau.');
+  }
+  // Nährwerte selbst aus den Zutaten berechnen (Vorrats-Nährwerte), statt der KI-Angabe blind zu vertrauen
+  const tempDish = { ingredients };
+  const kcal = calculatedKcal(tempDish);
+  const fiber = calculatedFiber(tempDish);
+  const fields = { Name: sl.dishName, Kcal: kcal, Fiber: fiber, Ingredients: JSON.stringify(ingredients) };
+  const rec = await atCreate('Dishes', fields);
+  dishes.push({ id:rec.id, name:sl.dishName, kcal, fiber, ingredients });
+  return sl.dishName;
+}
+async function applyAiDayProposal(){
+  if(!aiDayProposal) return;
+  const wd = aiDayProposal.wd;
+  const statusEl = document.getElementById('kiPlanStatus');
+  statusEl.textContent = 'Speichere KI-Version für '+WEEKDAY_NAMES[wd]+'…';
+  try{
+    const oldSlots = weekPlanAI[wd] || [];
+    await Promise.all(oldSlots.map(s=> atDelete('WeekPlanAI', s.id).catch(()=>{})));
+    const newSlots = [];
+    for(const sl of aiDayProposal.slots){
+      const dishName = await ensureDishExists(sl);
+      const rec = await atCreate('WeekPlanAI', { Weekday: wd, Time: sl.time, DishName: dishName });
+      newSlots.push({ id: rec.id, time: sl.time, dishName });
+    }
+    newSlots.sort((a,b)=> a.time.localeCompare(b.time));
+    weekPlanAI[wd] = newSlots;
+    resyncPantryFromDishes();
+    await saveWeekVersionRow(wd, { mode:'ai', notes: aiDayProposal.notes||[] });
+    render();
+    statusEl.textContent = WEEKDAY_NAMES[wd]+': KI-Version gespeichert und aktiv – Original bleibt unverändert (Umschalter im Wochenplan-Tab).';
+    aiDayProposal = null;
+    renderAiDayProposal();
+  }catch(err){
+    console.error(err);
+    statusEl.textContent = 'Fehler beim Übertragen: '+err.message;
+  }
 }
 document.getElementById('addSlotGlobalBtn').addEventListener('click', ()=>{
   const ul = document.getElementById('daySlotPickList');
@@ -3350,6 +3694,12 @@ document.getElementById('dishSave').addEventListener('click', async ()=>{
               slot.dishName = name;
             }
           }
+          for(const slot of (weekPlanAI[wd]||[])){
+            if(slot.dishName === oldName){
+              await atUpdate('WeekPlanAI', slot.id, { DishName: name });
+              slot.dishName = name;
+            }
+          }
         }
       }
     }else{
@@ -3374,7 +3724,7 @@ function daysUntilNeededInRange(ingName, fromDay, toDay){
   const key = ingName.trim().toLowerCase();
   for(let d=fromDay; d<=toDay; d++){
     const wd = weekdayOf(addDays(todayStr(), d));
-    const hasIng = (weekPlan[wd]||[]).some(slot=>{
+    const hasIng = activeSlots(wd).some(slot=>{
       const dish = dishByName(slot.dishName);
       return dish && dish.ingredients.some(i=> i.name.trim().toLowerCase()===key);
     });
@@ -3389,7 +3739,7 @@ function computeNeedForRange(fromDay, toDay){
   const map = new Map();
   for(let d=fromDay; d<=toDay; d++){
     const wd = weekdayOf(addDays(todayStr(), d));
-    (weekPlan[wd]||[]).forEach(slot=>{
+    activeSlots(wd).forEach(slot=>{
       const dish = dishByName(slot.dishName);
       if(!dish) return;
       dish.ingredients.forEach(ing=>{

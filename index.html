@@ -1285,7 +1285,7 @@ let profile = { id:null, startWeight:110, goalWeight:99, stepsGoal:8000, kcalMax
 let claudeApiKey = localStorage.getItem('claudeApiKey') || '';
 
 let currentDate = todayStr();
-let swapWeekday = null, swapTargetSlot = null, swapSelectedDishName = null;
+let swapWeekday = null, swapTargetSlot = null, swapSelectedDishName = null, swapTargetTable = 'WeekPlan';
 let editingDish = null; // dish object or null
 let editorIngredients = [];
 
@@ -2540,7 +2540,7 @@ function renderSpecialDays(){
           </div>
           ${context.trim()?`<div class="sd-context">${escapeAttr(context.trim())}</div>`:''}
           ${(isAiActive && notes.length)?`<ul style="margin:0 0 .5rem;padding-left:1.1rem;">${notes.map(n=>`<li>${escapeAttr(n)}</li>`).join('')}</ul>`:''}
-          ${isAiActive ? slots.map(sl=>{ const d=dishByName(sl.dishName); return `<div class="slot-row"><span class="hour-select">${sl.time}</span><span class="slot-dishname">${escapeAttr(sl.dishName)}</span><span class="slot-kcal">${d?effectiveKcal(d):0} kcal</span></div>`; }).join('') : '<div class="section-note" style="margin:0;">Original-Wochenplan ist aktiv (bearbeitbar im Wochenplan-Tab).</div>'}
+          ${isAiActive ? slots.map((sl,idx)=>{ const d=dishByName(sl.dishName); return `<div class="slot-row sd-swap-row" data-wd="${wd}" data-idx="${idx}" style="cursor:pointer;"><span class="hour-select">${sl.time}</span><span class="slot-dishname">${escapeAttr(sl.dishName)}</span><span class="slot-kcal">${d?effectiveKcal(d):0} kcal</span></div>`; }).join('') : '<div class="section-note" style="margin:0;">Original-Wochenplan ist aktiv (bearbeitbar im Wochenplan-Tab).</div>'}
         </div>`:''}
       </div>`;
   }).join('');
@@ -2554,6 +2554,12 @@ function renderSpecialDays(){
     const wd = b.dataset.wd;
     if(b.dataset.mode===weekVersion[wd]) return;
     setWeekVersion(wd, b.dataset.mode);
+  }));
+  wrap.querySelectorAll('.special-day-detail .sd-swap-row').forEach(row=> row.addEventListener('click', (e)=>{
+    e.stopPropagation();
+    const wd = row.dataset.wd;
+    const slot = (weekPlanAI[wd]||[])[Number(row.dataset.idx)];
+    if(slot) openSwapModal(wd, slot, 'WeekPlanAI');
   }));
 }
 
@@ -3123,10 +3129,14 @@ function renderWeek(){
       return;
     }
     if(isAiActive){
-      slotsWrap.innerHTML = slots.map(slot=>{
+      slotsWrap.innerHTML = slots.map((slot,idx)=>{
         const dish = dishByName(slot.dishName);
-        return `<div class="slot-row"><span class="hour-select">${slot.time}</span><span class="slot-dishname">${escapeAttr(slot.dishName)}</span><span class="slot-kcal">${dish?effectiveKcal(dish):0} kcal</span></div>`;
+        return `<div class="slot-row sd-swap-row" data-idx="${idx}" style="cursor:pointer;"><span class="hour-select">${slot.time}</span><span class="slot-dishname">${escapeAttr(slot.dishName)}</span><span class="slot-kcal">${dish?effectiveKcal(dish):0} kcal</span></div>`;
       }).join('');
+      slotsWrap.querySelectorAll('.sd-swap-row').forEach(row=> row.addEventListener('click', ()=>{
+        const slot = slots[Number(row.dataset.idx)];
+        openSwapModal(wd, slot, 'WeekPlanAI');
+      }));
       wrap.appendChild(block);
       return;
     }
@@ -3494,8 +3504,8 @@ function openDayMoveModal(wd){
 }
 document.getElementById('dayMoveCancel').addEventListener('click', ()=> document.getElementById('dayMoveModalBg').classList.remove('open'));
 
-function openSwapModal(wd, slot){
-  swapWeekday = wd; swapTargetSlot = slot; swapSelectedDishName = slot.dishName;
+function openSwapModal(wd, slot, table){
+  swapWeekday = wd; swapTargetSlot = slot; swapSelectedDishName = slot.dishName; swapTargetTable = table || 'WeekPlan';
   renderSwapList();
   document.getElementById('swapModalBg').classList.add('open');
 }
@@ -3514,9 +3524,10 @@ document.getElementById('swapCancel').addEventListener('click', ()=> document.ge
 document.getElementById('swapConfirm').addEventListener('click', async ()=>{
   if(swapTargetSlot && swapSelectedDishName){
     try{
-      await atUpdate('WeekPlan', swapTargetSlot.id, { DishName: swapSelectedDishName });
+      await atUpdate(swapTargetTable, swapTargetSlot.id, { DishName: swapSelectedDishName });
       swapTargetSlot.dishName = swapSelectedDishName;
-      renderWeek(); renderToday();
+      resyncPantryFromDishes();
+      renderWeek(); renderToday(); renderSpecialDays();
     }catch(e){ setStatus('Fehler beim Speichern'); }
   }
   document.getElementById('swapModalBg').classList.remove('open');
@@ -3527,7 +3538,7 @@ let daySwapSlotId = null;
 function openDaySwapModal(slotId){
   daySwapSlotId = slotId;
   const wd = weekdayOf(currentDate);
-  const slot = (weekPlan[wd]||[]).find(s=>s.id===slotId);
+  const slot = activeSlots(wd).find(s=>s.id===slotId);
   if(!slot) return;
   document.getElementById('daySwapLabel').textContent = `Ersetzt "${slot.dishName}" um ${slot.time} – nur für ${fmtDate(currentDate)}`;
   const existing = daySwaps.find(s=> s.date===currentDate && s.slotId===slotId);

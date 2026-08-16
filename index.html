@@ -491,7 +491,6 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
 
   <!-- TODAY -->
   <div class="panel active" id="panelToday">
-    <div id="todayVersionBar"></div>
     <div id="specialDaysWrap"></div>
     <div class="day-lock-banner" id="dayLockBanner" style="display:none;">🏁 <span id="dayLockText"></span></div>
     <div class="gauge-card" id="gaugeCard" title="Wasser eintragen" style="cursor:pointer;">
@@ -2508,56 +2507,53 @@ async function loadAll(){
   render();
 }
 
-function render(){ renderToday(); renderWeek(); renderDishLibrary(); renderShopPreview(); renderUpcoming(); renderDashboardBadge(); renderTodayTab(); renderRoutine(); renderSpecialDays(); renderTodayVersionBar(); }
-function renderTodayVersionBar(){
-  const wrap = document.getElementById('todayVersionBar');
-  if(!wrap) return;
-  const wd = weekdayOf(currentDate);
-  const isAiActive = weekVersion[wd]==='ai';
-  const context = weekDayContext[wd] || '';
-  const notes = weekDayNotes[wd] || [];
-  const hasAiData = (weekPlanAI[wd]||[]).length>0;
-  wrap.innerHTML = `<div class="ver-toggle">
-      <button class="ver-btn tv-btn ${!isAiActive?'active':''}" data-mode="original">Original</button>
-      <button class="ver-btn tv-btn ${isAiActive?'active':''}" data-mode="ai">🤖 KI${hasAiData?'':' (keine Version)'}</button>
-    </div>
-    ${context.trim()?`<div class="today-context-box">${escapeAttr(context.trim())}</div>`:''}
-    ${(isAiActive && notes.length)?`<ul class="today-notes-list">${notes.map(n=>`<li>${escapeAttr(n)}</li>`).join('')}</ul>`:''}`;
-  wrap.querySelectorAll('.tv-btn').forEach(b=> b.addEventListener('click', ()=>{
-    if(b.dataset.mode===weekVersion[wd]) return;
-    setWeekVersion(wd, b.dataset.mode);
-  }));
-}
+function render(){ renderToday(); renderWeek(); renderDishLibrary(); renderShopPreview(); renderUpcoming(); renderDashboardBadge(); renderTodayTab(); renderRoutine(); renderSpecialDays(); }
 let specialDaysExpanded = {}; // wd -> bool
 function renderSpecialDays(){
   const wrap = document.getElementById('specialDaysWrap');
   const badge = document.getElementById('specialDaysBadge');
   if(!wrap || !badge) return;
-  const specialDays = WEEKDAYS.filter(wd=> wd!==weekdayOf(currentDate) && weekVersion[wd]==='ai' && (weekPlanAI[wd]||[]).length>0);
-  if(specialDays.length===0){ badge.style.display='none'; wrap.innerHTML=''; return; }
-  badge.style.display='inline-block'; badge.textContent = specialDays.length;
-  wrap.innerHTML = specialDays.map(wd=>{
+  const todayWd = weekdayOf(currentDate);
+  if(specialDaysExpanded[todayWd]===undefined) specialDaysExpanded[todayWd] = true; // heute standardmäßig aufgeklappt
+  const otherDays = WEEKDAYS.filter(wd=> wd!==todayWd && weekVersion[wd]==='ai' && (weekPlanAI[wd]||[]).length>0);
+  badge.style.display = otherDays.length ? 'inline-block' : 'none';
+  badge.textContent = otherDays.length;
+  const displayDays = [todayWd, ...otherDays];
+  wrap.innerHTML = displayDays.map(wd=>{
+    const isToday = wd===todayWd;
+    const isAiActive = weekVersion[wd]==='ai';
+    const hasAiData = (weekPlanAI[wd]||[]).length>0;
     const context = weekDayContext[wd] || '';
-    const label = context.trim() ? context.split(':')[0].trim().slice(0,40) : 'Besonderer Tag';
+    const label = context.trim() ? context.split(':')[0].trim().slice(0,40) : (isToday ? (isAiActive?'KI-Tag':'Original') : 'Besonderer Tag');
     const expanded = !!specialDaysExpanded[wd];
     const slots = weekPlanAI[wd] || [];
     const notes = weekDayNotes[wd] || [];
     return `<div class="special-day-card" data-wd="${wd}">
         <div class="special-day-head">
-          <span class="sd-title">${WEEKDAY_NAMES[wd]}: ${escapeAttr(label)}</span>
+          <span class="sd-title">${isToday?'Heute · ':''}${WEEKDAY_NAMES[wd]}: ${escapeAttr(label)}</span>
           <span>${expanded?'▲':'▼'}</span>
         </div>
         ${expanded?`<div class="special-day-detail">
+          <div class="ver-toggle">
+            <button class="ver-btn sd-ver-btn ${!isAiActive?'active':''}" data-wd="${wd}" data-mode="original">Original essen</button>
+            <button class="ver-btn sd-ver-btn ${isAiActive?'active':''}" data-wd="${wd}" data-mode="ai">🤖 KI essen${hasAiData?'':' (keine Version)'}</button>
+          </div>
           ${context.trim()?`<div class="sd-context">${escapeAttr(context.trim())}</div>`:''}
-          ${notes.length?`<ul style="margin:0 0 .5rem;padding-left:1.1rem;">${notes.map(n=>`<li>${escapeAttr(n)}</li>`).join('')}</ul>`:''}
-          ${slots.map(sl=>{ const d=dishByName(sl.dishName); return `<div class="slot-row"><span class="hour-select">${sl.time}</span><span class="slot-dishname">${escapeAttr(sl.dishName)}</span><span class="slot-kcal">${d?effectiveKcal(d):0} kcal</span></div>`; }).join('')}
+          ${(isAiActive && notes.length)?`<ul style="margin:0 0 .5rem;padding-left:1.1rem;">${notes.map(n=>`<li>${escapeAttr(n)}</li>`).join('')}</ul>`:''}
+          ${isAiActive ? slots.map(sl=>{ const d=dishByName(sl.dishName); return `<div class="slot-row"><span class="hour-select">${sl.time}</span><span class="slot-dishname">${escapeAttr(sl.dishName)}</span><span class="slot-kcal">${d?effectiveKcal(d):0} kcal</span></div>`; }).join('') : '<div class="section-note" style="margin:0;">Original-Wochenplan ist aktiv (bearbeitbar im Wochenplan-Tab).</div>'}
         </div>`:''}
       </div>`;
   }).join('');
-  wrap.querySelectorAll('.special-day-card').forEach(card=> card.addEventListener('click', ()=>{
-    const wd = card.dataset.wd;
+  wrap.querySelectorAll('.special-day-head').forEach(head=> head.addEventListener('click', ()=>{
+    const wd = head.closest('.special-day-card').dataset.wd;
     specialDaysExpanded[wd] = !specialDaysExpanded[wd];
     renderSpecialDays();
+  }));
+  wrap.querySelectorAll('.sd-ver-btn').forEach(b=> b.addEventListener('click', (e)=>{
+    e.stopPropagation();
+    const wd = b.dataset.wd;
+    if(b.dataset.mode===weekVersion[wd]) return;
+    setWeekVersion(wd, b.dataset.mode);
   }));
 }
 

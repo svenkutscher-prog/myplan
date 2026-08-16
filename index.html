@@ -214,6 +214,8 @@ h2.section{font-family:'Fraunces',serif;font-weight:600;font-size:18px;margin:1.
 .special-day-detail{margin-top:.6rem;padding-top:.6rem;border-top:1px solid var(--line);font-size:13px;color:var(--ink-soft);}
 .special-day-detail .sd-context{margin-bottom:.5rem;line-height:1.5;}
 .special-day-detail .slot-row{font-size:13px;}
+.today-context-box{background:#fff;border:1px solid var(--line);border-radius:10px;padding:.6rem .8rem;font-size:13px;color:var(--ink-soft);line-height:1.5;margin-bottom:.6rem;}
+.today-notes-list{margin:0 0 .8rem;padding-left:1.1rem;font-size:13px;color:var(--ink-soft);}
 .day-block-head{display:flex;align-items:baseline;gap:8px;margin-bottom:.6rem;}
 .day-block-head .day-title{font-family:'Fraunces',serif;font-weight:600;font-size:16px;}
 .day-block-head .head-spacer{flex:1;}
@@ -489,6 +491,7 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
 
   <!-- TODAY -->
   <div class="panel active" id="panelToday">
+    <div id="todayVersionBar"></div>
     <div id="specialDaysWrap"></div>
     <div class="day-lock-banner" id="dayLockBanner" style="display:none;">🏁 <span id="dayLockText"></span></div>
     <div class="gauge-card" id="gaugeCard" title="Wasser eintragen" style="cursor:pointer;">
@@ -556,6 +559,10 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
       <button class="open-btn" id="openStepsBtn"><span class="ic c">👟</span> Schritte <span class="sub" id="stepsBtnSub"></span></button>
       <button class="open-btn" id="endTagBtn"><span class="ic c">🏁</span> Tag beenden <span class="sub" id="endTagBtnSub"></span></button>
     </div>
+
+    <button class="btn primary" id="aiCheckBtn" style="margin-top:1.2rem;">🤖 2-Tage-Check von deinem Personal Trainer</button>
+    <p class="section-note" id="aiCheckStatus"></p>
+    <div id="aiCheckResult" class="ki-plan-notes" style="display:none;"></div>
 
     <h2 class="section" style="margin-top:1.4rem;">Routine <span class="section-note" id="routineBadge"></span></h2>
     <div id="routineList"></div>
@@ -2501,13 +2508,32 @@ async function loadAll(){
   render();
 }
 
-function render(){ renderToday(); renderWeek(); renderDishLibrary(); renderShopPreview(); renderUpcoming(); renderDashboardBadge(); renderTodayTab(); renderRoutine(); renderSpecialDays(); }
+function render(){ renderToday(); renderWeek(); renderDishLibrary(); renderShopPreview(); renderUpcoming(); renderDashboardBadge(); renderTodayTab(); renderRoutine(); renderSpecialDays(); renderTodayVersionBar(); }
+function renderTodayVersionBar(){
+  const wrap = document.getElementById('todayVersionBar');
+  if(!wrap) return;
+  const wd = weekdayOf(currentDate);
+  const isAiActive = weekVersion[wd]==='ai';
+  const context = weekDayContext[wd] || '';
+  const notes = weekDayNotes[wd] || [];
+  const hasAiData = (weekPlanAI[wd]||[]).length>0;
+  wrap.innerHTML = `<div class="ver-toggle">
+      <button class="ver-btn tv-btn ${!isAiActive?'active':''}" data-mode="original">Original</button>
+      <button class="ver-btn tv-btn ${isAiActive?'active':''}" data-mode="ai">🤖 KI${hasAiData?'':' (keine Version)'}</button>
+    </div>
+    ${context.trim()?`<div class="today-context-box">${escapeAttr(context.trim())}</div>`:''}
+    ${(isAiActive && notes.length)?`<ul class="today-notes-list">${notes.map(n=>`<li>${escapeAttr(n)}</li>`).join('')}</ul>`:''}`;
+  wrap.querySelectorAll('.tv-btn').forEach(b=> b.addEventListener('click', ()=>{
+    if(b.dataset.mode===weekVersion[wd]) return;
+    setWeekVersion(wd, b.dataset.mode);
+  }));
+}
 let specialDaysExpanded = {}; // wd -> bool
 function renderSpecialDays(){
   const wrap = document.getElementById('specialDaysWrap');
   const badge = document.getElementById('specialDaysBadge');
   if(!wrap || !badge) return;
-  const specialDays = WEEKDAYS.filter(wd=> weekVersion[wd]==='ai' && (weekPlanAI[wd]||[]).length>0);
+  const specialDays = WEEKDAYS.filter(wd=> wd!==weekdayOf(currentDate) && weekVersion[wd]==='ai' && (weekPlanAI[wd]||[]).length>0);
   if(specialDays.length===0){ badge.style.display='none'; wrap.innerHTML=''; return; }
   badge.style.display='inline-block'; badge.textContent = specialDays.length;
   wrap.innerHTML = specialDays.map(wd=>{
@@ -3219,8 +3245,9 @@ Gib bei neuen Gerichten "ingredients" als Array aus {name, amount, unit} an (Ein
 Antworte AUSSCHLIESSLICH mit gültigem, einzeiligem JSON in genau diesem Format, ohne weiteren Text, ohne Markdown-Codeblock. "notes" ist ein Array aus 2-4 kurzen, knappen Stichpunkten (je max. ca. 12 Wörter, kein Fließtext, keine ganzen Absätze) – falls ein besonderer Tagesablauf angegeben wurde, geht mindestens ein Stichpunkt kurz darauf ein:
 {"slots":[{"time":"08:00","dishName":"...","isNew":false}],"notes":["Kurzer Stichpunkt 1","Kurzer Stichpunkt 2"]}`;
 }
-async function callClaudeApi(prompt){
+async function callClaudeApi(prompt, system){
   if(!claudeApiKey) throw new Error('Kein Claude API-Key hinterlegt (Profil ⚙️ → Claude API-Key).');
+  const defaultSystem = 'Du antwortest IMMER ausschließlich mit einem einzigen gültigen JSON-Objekt. Kein einleitender Satz, keine Erklärung davor oder danach, kein Markdown-Codeblock – die Antwort muss mit { beginnen und mit } enden.';
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -3233,7 +3260,7 @@ async function callClaudeApi(prompt){
       model: 'claude-sonnet-5',
       max_tokens: 4000,
       thinking: { type: 'disabled' },
-      system: 'Du antwortest IMMER ausschließlich mit einem einzigen gültigen JSON-Objekt. Kein einleitender Satz, keine Erklärung davor oder danach, kein Markdown-Codeblock – die Antwort muss mit { beginnen und mit } enden.',
+      system: system!==undefined ? system : defaultSystem,
       messages: [{ role:'user', content: prompt }]
     })
   });
@@ -3366,6 +3393,64 @@ async function applyAiDayProposal(){
     statusEl.textContent = 'Fehler beim Übertragen: '+err.message;
   }
 }
+
+/* ===== 2-Tage-Check (Personal Trainer) ===== */
+function fastDurationEndingOn(dateStr){
+  const meals = mealTimesForDate(dateStr);
+  if(!meals.length) return null;
+  const prevMeals = mealTimesForDate(addDays(dateStr,-1));
+  if(!prevMeals.length) return null;
+  const lastPrev = dateTimeFromDateStr(addDays(dateStr,-1), prevMeals[prevMeals.length-1]);
+  const firstCur = dateTimeFromDateStr(dateStr, meals[0]);
+  const ms = firstCur - lastPrev;
+  return ms>0 ? ms : null;
+}
+function dayNutrientSummary(dateStr){
+  const entries = logEntries.filter(l=> l.date===dateStr && (l.type==='plan'||l.type==='extra'));
+  const kcal = Math.round(entries.reduce((s,l)=> s+(l.kcal||0), 0));
+  const fiber = Math.round(entries.reduce((s,l)=> s+(l.fiber||0), 0)*10)/10;
+  const protein = Math.round(entries.reduce((s,l)=> s+(l.protein||0), 0)*10)/10;
+  const stepsEntry = steps.find(s=> s.date===dateStr);
+  const stepsVal = stepsEntry ? stepsEntry.steps : null;
+  const fastMs = fastDurationEndingOn(dateStr);
+  return { date:dateStr, kcal, fiber, protein, steps: stepsVal, fastH: fastMs!==null ? Math.round(fastMs/3600000*10)/10 : null };
+}
+function buildAiCheckPrompt(){
+  const day1 = addDays(currentDate, -1), day2 = addDays(currentDate, -2);
+  const s1 = dayNutrientSummary(day1), s2 = dayNutrientSummary(day2);
+  const fmtDay = s=> `${s.date}: ${s.kcal} kcal (Ziel ${profile.kcalMin}-${profile.kcalMax}), ${s.fiber} g Ballaststoffe (Ziel ${profile.fiberGoal}), ${s.protein} g Protein (Ziel ${profile.proteinGoal}), ${s.steps!==null?s.steps+' Schritte':'keine Schritte erfasst'} (Ziel ${profile.stepsGoal}), Fastenfenster davor: ${s.fastH!==null?s.fastH+' h':'keine Daten'} (Ziel ${profile.fastGoalHours} h)`;
+  const recentWeights = weights.slice().sort((a,b)=> a.date.localeCompare(b.date)).slice(-10);
+  const weightText = recentWeights.length ? recentWeights.map(w=> `${w.date}: ${w.kg} kg`).join('; ') : '(keine Gewichtsdaten erfasst)';
+  return `Du bist ein erfahrener, motivierender Personal Trainer und Ernährungsberater. Bewerte die letzten 2 Tage meines Klienten und gib Empfehlungen für heute.
+
+Tag 1 (vorgestern): ${fmtDay(s2)}
+Tag 2 (gestern): ${fmtDay(s1)}
+
+Gewichtsverlauf (chronologisch, letzte Einträge): ${weightText}
+
+Gehe auf folgende Kategorien ein, wo relevant: Kalorien, Ballaststoffe, Protein, Schritte, Fastenfenster/Uhrzeiten, und bewerte den Gewichtsverlauf (Trend, nicht nur letzter Wert). Schreibe wie ein Personal Trainer direkt zu seinem Klienten: persönlich, motivierend, per Du-Anrede, ehrlich aber wertschätzend, keine Bullet Points, keine Überschriften, kein JSON, kein Markdown – nur 4-5 zusammenhängende Sätze Fließtext auf Deutsch, mit konkreten Empfehlungen was heute besser laufen kann.`;
+}
+document.getElementById('aiCheckBtn').addEventListener('click', async ()=>{
+  const statusEl = document.getElementById('aiCheckStatus');
+  const resultEl = document.getElementById('aiCheckResult');
+  const btn = document.getElementById('aiCheckBtn');
+  btn.disabled = true;
+  statusEl.textContent = 'Dein Trainer schaut sich die letzten 2 Tage an…';
+  resultEl.style.display = 'none';
+  try{
+    const prompt = buildAiCheckPrompt();
+    const text = await callClaudeApi(prompt, 'Du antwortest ausschließlich mit Fließtext auf Deutsch, kein JSON, kein Markdown, keine Bullet Points, keine Überschriften.');
+    resultEl.textContent = '🤖 ' + text.trim();
+    resultEl.style.display = 'block';
+    statusEl.textContent = '';
+  }catch(err){
+    console.error(err);
+    statusEl.textContent = 'Fehler: '+err.message;
+  }finally{
+    btn.disabled = false;
+  }
+});
+
 document.getElementById('addSlotGlobalBtn').addEventListener('click', ()=>{
   const ul = document.getElementById('daySlotPickList');
   ul.innerHTML = WEEKDAYS.map(wd=> `<li data-wd="${wd}" style="cursor:pointer;"><span>${WEEKDAY_NAMES[wd]}</span><span class="amt">${(weekPlan[wd]||[]).length} Gerichte</span></li>`).join('');

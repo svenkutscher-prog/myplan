@@ -434,6 +434,8 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
 .ff-status.mid .ff-status-countdown{color:#8A5A17;}
 .fullness-badge.mid{background:var(--mustard-bg);color:#8A5A17;}
 .fullness-badge.high{background:#E4EDDD;color:var(--olive-dark);}
+.fullness-badge.low{background:var(--coral-bg);color:var(--coral);}
+.no-si-badge{display:inline-block;font-size:10px;color:var(--ink-soft);margin-left:3px;cursor:help;}
 .pantry-hint{margin:0;font-size:11px;color:var(--ink-soft);}
 .pantry-fields{display:flex;gap:8px;flex-shrink:0;}
 .pantry-field{display:flex;flex-direction:column;align-items:center;}
@@ -533,7 +535,7 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
       </div>
     </div>
 
-    <p class="section-label">Dein <span id="planKcalTotal">0</span>-kcal-Plan (<span id="planFiberTotal">0</span> g Ball., Ø <span id="planFullnessTotal">–</span> Fullness, <span id="planProteinTotal">0</span> g Prot.)</p>
+    <p class="section-label">Dein <span id="planKcalTotal">0</span>-kcal-Plan (<span id="planFiberTotal">0</span> g Ball., Ø <span id="planFullnessTotal">–</span>/10 Fullness, <span id="planProteinTotal">0</span> g Prot.)</p>
     <div class="ff-status" id="ffStatus" style="display:none;">
       <span class="dot"></span>
       <div class="ff-status-text">
@@ -665,6 +667,8 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
   <!-- VORRAT -->
   <div class="panel" id="panelVorrat">
     <p class="section-label">Bestand &amp; Mindestbestand pro Zutat – wird beim Abhaken in "Heute" automatisch verbraucht</p>
+    <button class="btn primary" id="estimateSatietyBtn" style="margin-bottom:.6rem;">🤖 Sättigungsindex per KI schätzen</button>
+    <p class="section-note" id="estimateSatietyStatus"></p>
     <div id="pantryList"></div>
 
     <h2 class="section">Neue Zutat anlegen</h2>
@@ -908,7 +912,12 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
     <div class="profile-field"><label>Min. Kalorien pro Tag (nur für KI-Tagesplan)</label><input type="number" id="profKcalMin" step="10"></div>
     <div class="profile-field"><label>Ballaststoffe-Ziel pro Tag (g)</label><input type="number" id="profFiberGoal" step="1"></div>
     <div class="profile-field"><label>Protein-Ziel pro Tag (g)</label><input type="number" id="profProteinGoal" step="1"></div>
-    <div class="profile-field"><label>Grundumsatz (kcal)</label><input type="number" id="profBmr" step="10"></div>
+    <div class="profile-field"><label>Körpergröße (cm)</label><input type="number" id="profHeight" step="1"></div>
+    <div class="profile-field"><label>Alter (Jahre)</label><input type="number" id="profAge" step="1"></div>
+    <div class="profile-field"><label>Geschlecht (für Grundumsatz-Formel)</label>
+      <select id="profSex"><option value="m">Männlich</option><option value="w">Weiblich</option></select>
+    </div>
+    <div class="profile-field"><label>Grundumsatz (kcal) – automatisch berechnet aus Gewicht/Größe/Alter/Geschlecht</label><p class="ds-val" id="profBmrDisplay" style="margin:0;font-size:22px;">–</p></div>
     <div class="profile-field"><label>Warnschwelle Defizit (kcal)</label><input type="number" id="profDeficitWarn" step="50"></div>
     <div class="profile-field"><label>Fastenziel (Stunden ohne Essen)</label><input type="number" id="profFastGoal" step="1" min="1" max="23"></div>
     <div class="profile-field"><label>Claude API-Key (nur lokal in diesem Browser gespeichert, für den KI-Wochenplan)</label><input type="password" id="profClaudeKey" placeholder="sk-ant-..." autocomplete="off"></div>
@@ -1117,7 +1126,7 @@ function updateFastWindowStats(status){
     subEl.textContent = 'Du darfst jetzt essen';
     windowOk = true;
   }else if(status.tier==='eating' && status.msLeft>0){
-    subEl.textContent = 'noch '+fmtDurationHM(status.msLeft)+' offen';
+    subEl.textContent = 'noch '+fmtDurationHM(status.msLeft)+' offen · 🍳 Küche hat max. bis '+fmtClock(status.eatUntilAt)+' Uhr geöffnet, danach gilt wieder Fasten';
     windowOk = true;
   }else{
     subEl.textContent = 'Fenster überschritten';
@@ -1138,7 +1147,8 @@ function updateFastWindowStats(status){
   }else{
     lastFastValEl.textContent = fmtDurationHM(lastFastMs);
     const metGoal = lastFastMs >= goalH*3600000;
-    lastFastSubEl.textContent = metGoal ? 'Ziel erreicht ('+goalH+' h)' : 'Ziel verfehlt ('+goalH+' h)';
+    const kcalBurned = Math.round((profile.bmr||0) * (lastFastMs/3600000/24));
+    lastFastSubEl.textContent = (metGoal ? 'Ziel erreicht ('+goalH+' h)' : 'Ziel verfehlt ('+goalH+' h)') + ' · 😴 ~'+kcalBurned.toLocaleString('de-DE')+' kcal dabei verbrannt';
     lastFastCard.classList.toggle('state-good', metGoal);
     lastFastCard.classList.toggle('state-bad', !metGoal);
   }
@@ -1301,7 +1311,15 @@ let routineLog = [];   // {id, date, taskName} - ein Eintrag pro erledigter Aufg
 let bonusLog = []; // {id, date, name, kcal} - jede Einlösung, zieht dauerhaft vom Guthaben ab
 let targets = { base:1800, deficit:1400 };
 let activeTarget = 'deficit';
-let profile = { id:null, startWeight:110, goalWeight:99, stepsGoal:8000, kcalMax:1400, kcalMin:1100, fiberGoal:30, proteinGoal:130, bmr:1955, deficitWarnThreshold:1000, fastGoalHours:12 };
+let profile = { id:null, startWeight:110, goalWeight:99, stepsGoal:8000, kcalMax:1400, kcalMin:1100, fiberGoal:30, proteinGoal:130, bmr:1955, deficitWarnThreshold:1000, fastGoalHours:12, height:175, age:35, sex:'m' };
+/* Grundumsatz nach Mifflin-St-Jeor-Formel, aus aktuellstem Gewicht (aus dem Gewichtsverlauf, sonst Startgewicht) + Größe/Alter/Geschlecht */
+function calcBmr(height, age, sex){
+  height = height||profile.height||175; age = age||profile.age||35; sex = sex||profile.sex||'m';
+  const sorted = weights.slice().sort((a,b)=> a.date.localeCompare(b.date));
+  const currentWeight = sorted.length ? sorted[sorted.length-1].kg : profile.startWeight;
+  const base = 10*currentWeight + 6.25*height - 5*age;
+  return Math.round(sex==='w' ? base-161 : base+5);
+}
 let claudeApiKey = localStorage.getItem('claudeApiKey') || '';
 
 let currentDate = todayStr();
@@ -1529,12 +1547,22 @@ document.getElementById('openProfileBtn').addEventListener('click', ()=>{
   document.getElementById('profKcalMin').value = profile.kcalMin;
   document.getElementById('profFiberGoal').value = profile.fiberGoal;
   document.getElementById('profProteinGoal').value = profile.proteinGoal;
-  document.getElementById('profBmr').value = profile.bmr;
+  document.getElementById('profBmrDisplay').textContent = profile.bmr+' kcal';
+  document.getElementById('profHeight').value = profile.height;
+  document.getElementById('profAge').value = profile.age;
+  document.getElementById('profSex').value = profile.sex;
   document.getElementById('profDeficitWarn').value = profile.deficitWarnThreshold;
   document.getElementById('profFastGoal').value = profile.fastGoalHours;
   document.getElementById('profClaudeKey').value = claudeApiKey;
   document.getElementById('profileModalBg').classList.add('open');
 });
+function refreshBmrPreview(){
+  const h = Number(document.getElementById('profHeight').value)||profile.height;
+  const a = Number(document.getElementById('profAge').value)||profile.age;
+  const s = document.getElementById('profSex').value;
+  document.getElementById('profBmrDisplay').textContent = calcBmr(h,a,s)+' kcal';
+}
+['profHeight','profAge','profSex'].forEach(id=> document.getElementById(id).addEventListener('input', refreshBmrPreview));
 document.getElementById('profileCancel').addEventListener('click', ()=> document.getElementById('profileModalBg').classList.remove('open'));
 document.getElementById('profileSave').addEventListener('click', async ()=>{
   claudeApiKey = document.getElementById('profClaudeKey').value.trim();
@@ -1546,21 +1574,24 @@ document.getElementById('profileSave').addEventListener('click', async ()=>{
   const kcalMin = Number(document.getElementById('profKcalMin').value)||profile.kcalMin||1100;
   const fiberGoal = Number(document.getElementById('profFiberGoal').value)||profile.fiberGoal;
   const proteinGoal = Number(document.getElementById('profProteinGoal').value)||profile.proteinGoal||130;
-  const bmr = Number(document.getElementById('profBmr').value)||profile.bmr||1955;
+  const height = Number(document.getElementById('profHeight').value)||profile.height||175;
+  const age = Number(document.getElementById('profAge').value)||profile.age||35;
+  const sex = document.getElementById('profSex').value==='w' ? 'w' : 'm';
+  const bmr = calcBmr(height, age, sex);
   const deficitWarnThreshold = Number(document.getElementById('profDeficitWarn').value)||profile.deficitWarnThreshold||1000;
   const fastGoalHours = Math.max(1, Math.min(23, Number(document.getElementById('profFastGoal').value)||profile.fastGoalHours||12));
-  const fields = { StartWeight: startWeight, GoalWeight: goalWeight, StepsGoal: stepsGoal, KcalMax: kcalMax, KcalMin: kcalMin, FiberGoal: fiberGoal, ProteinGoal: proteinGoal, Bmr: bmr, DeficitWarnThreshold: deficitWarnThreshold, FastGoalHours: fastGoalHours };
+  const fields = { StartWeight: startWeight, GoalWeight: goalWeight, StepsGoal: stepsGoal, KcalMax: kcalMax, KcalMin: kcalMin, FiberGoal: fiberGoal, ProteinGoal: proteinGoal, Bmr: bmr, DeficitWarnThreshold: deficitWarnThreshold, FastGoalHours: fastGoalHours, Height: height, Age: age, Sex: sex };
   try{
     try{
       if(profile.id) await atUpdate('Profile', profile.id, fields);
       else{ const rec = await atCreate('Profile', fields); profile.id = rec.id; }
     }catch(fieldErr){
-      // Neuere Felder (ProteinGoal/Bmr/DeficitWarnThreshold/FastGoalHours/KcalMin) existieren in Airtable evtl. noch nicht -> ohne erneut versuchen, sonst geht Speichern komplett nicht
-      const { ProteinGoal, Bmr, DeficitWarnThreshold, FastGoalHours, KcalMin, ...fieldsWithoutNew } = fields;
+      // Neuere Felder (ProteinGoal/Bmr/DeficitWarnThreshold/FastGoalHours/KcalMin/Height/Age/Sex) existieren in Airtable evtl. noch nicht -> ohne erneut versuchen, sonst geht Speichern komplett nicht
+      const { ProteinGoal, Bmr, DeficitWarnThreshold, FastGoalHours, KcalMin, Height, Age, Sex, ...fieldsWithoutNew } = fields;
       try{
         if(profile.id) await atUpdate('Profile', profile.id, fieldsWithoutNew);
         else{ const rec = await atCreate('Profile', fieldsWithoutNew); profile.id = rec.id; }
-        setStatus('Gespeichert (Felder "ProteinGoal"/"Bmr"/"DeficitWarnThreshold"/"FastGoalHours"/"KcalMin" fehlen noch in Airtable – bitte in der Profile-Tabelle als Number-Spalten ergänzen, dann erneut speichern)');
+        setStatus('Gespeichert (Felder "ProteinGoal"/"Bmr"/"DeficitWarnThreshold"/"FastGoalHours"/"KcalMin"/"Height"/"Age"/"Sex" fehlen noch in Airtable – bitte in der Profile-Tabelle ergänzen, dann erneut speichern)');
       }catch(fieldErr2){
         // Auch die älteren Felder fehlen evtl. noch nicht (frisches Sheet) -> ohne FastGoalHours erneut versuchen
         const { FastGoalHours: _drop, ...fieldsWithoutFast } = fields;
@@ -1568,12 +1599,12 @@ document.getElementById('profileSave').addEventListener('click', async ()=>{
         else{ const rec = await atCreate('Profile', fieldsWithoutFast); profile.id = rec.id; }
         setStatus('Gespeichert (Feld "FastGoalHours" fehlt noch in Airtable – bitte in der Profile-Tabelle als Number-Spalte ergänzen, dann erneut speichern)');
       }
-      profile = { id:profile.id, startWeight, goalWeight, stepsGoal, kcalMax, kcalMin, fiberGoal, proteinGoal, bmr, deficitWarnThreshold, fastGoalHours };
+      profile = { id:profile.id, startWeight, goalWeight, stepsGoal, kcalMax, kcalMin, fiberGoal, proteinGoal, bmr, deficitWarnThreshold, fastGoalHours, height, age, sex };
       document.getElementById('profileModalBg').classList.remove('open');
       renderGoalCard(); renderScoreCard(); renderToday();
       return;
     }
-    profile = { id:profile.id, startWeight, goalWeight, stepsGoal, kcalMax, kcalMin, fiberGoal, proteinGoal, bmr, deficitWarnThreshold, fastGoalHours };
+    profile = { id:profile.id, startWeight, goalWeight, stepsGoal, kcalMax, kcalMin, fiberGoal, proteinGoal, bmr, deficitWarnThreshold, fastGoalHours, height, age, sex };
     setStatus('Stammdaten gespeichert');
     document.getElementById('profileModalBg').classList.remove('open');
     renderGoalCard(); renderScoreCard(); renderToday();
@@ -2057,7 +2088,7 @@ async function adjustPantryForDish(dish, sign, ratio){
 function syncPantry(pRecs){
   const byName = new Map();
   pRecs.forEach(r=> byName.set((r.fields.Name||'').trim().toLowerCase(),
-    { id:r.id, name:r.fields.Name||'', unit:r.fields.Unit||'', bestand:Number(r.fields.Bestand)||0, mindestbestand:Number(r.fields.Mindestbestand)||0, ignore: !!r.fields.Ignore, kcalPerUnit:Number(r.fields.KcalPerUnit)||0, fiberPerUnit:Number(r.fields.FiberPerUnit)||0, proteinPerUnit:Number(r.fields.ProteinPerUnit)||0 }));
+    { id:r.id, name:r.fields.Name||'', unit:r.fields.Unit||'', bestand:Number(r.fields.Bestand)||0, mindestbestand:Number(r.fields.Mindestbestand)||0, ignore: !!r.fields.Ignore, kcalPerUnit:Number(r.fields.KcalPerUnit)||0, fiberPerUnit:Number(r.fields.FiberPerUnit)||0, proteinPerUnit:Number(r.fields.ProteinPerUnit)||0, satietyIndex: (r.fields.SatietyIndex!==undefined && r.fields.SatietyIndex!==null && r.fields.SatietyIndex!=='') ? Number(r.fields.SatietyIndex) : null }));
   const seen = new Set();
   const merged = [];
   dishes.forEach(d=> d.ingredients.forEach(ing=>{
@@ -2065,7 +2096,7 @@ function syncPantry(pRecs){
     if(!key || seen.has(key)) return;
     seen.add(key);
     const existing = byName.get(key);
-    merged.push(existing || { id:null, name: ing.name.trim(), unit: ing.unit||'', bestand:0, mindestbestand:0, ignore:false, kcalPerUnit:0, fiberPerUnit:0, proteinPerUnit:0 });
+    merged.push(existing || { id:null, name: ing.name.trim(), unit: ing.unit||'', bestand:0, mindestbestand:0, ignore:false, kcalPerUnit:0, fiberPerUnit:0, proteinPerUnit:0, satietyIndex:null });
   }));
   // Eigenständige Zutaten (z.B. manuell im Vorrat angelegt, in keinem Gericht als Zutat verwendet) nicht verwerfen
   byName.forEach((item, key)=>{ if(!seen.has(key)){ seen.add(key); merged.push(item); } });
@@ -2097,7 +2128,7 @@ function resyncPantryFromDishes(){
       if(ing.unit && existing.unit !== ing.unit){ existing.unit = ing.unit; savePantryItem(existing).catch(err=>{ console.error(err); setStatus(err.message); }); }
       merged.push(existing);
     }else{
-      merged.push({ id:null, name: ing.name.trim(), unit: ing.unit||'', bestand:0, mindestbestand:0, ignore:false, kcalPerUnit:0, fiberPerUnit:0, proteinPerUnit:0 });
+      merged.push({ id:null, name: ing.name.trim(), unit: ing.unit||'', bestand:0, mindestbestand:0, ignore:false, kcalPerUnit:0, fiberPerUnit:0, proteinPerUnit:0, satietyIndex:null });
     }
   }));
   // Eigenständige Zutaten (nicht in einem Gericht verwendet, z.B. manuell im Vorrat angelegt) beibehalten
@@ -2111,17 +2142,30 @@ function pantryItem(name){
 }
 async function savePantryItem(p){
   // "Ignore" ist in Airtable ein Single-Select mit der einzigen Option "checked" (kein echtes Checkbox-Feld) -> kein Boolean, sondern Text bzw. null
-  const fields = { Bestand:p.bestand, Mindestbestand:p.mindestbestand, Unit:p.unit, KcalPerUnit:p.kcalPerUnit, FiberPerUnit:p.fiberPerUnit, ProteinPerUnit:p.proteinPerUnit, Ignore: p.ignore ? 'checked' : null };
-  if(!p.id){
-    // Sperre: falls schon eine Anlage für diese Zutat läuft, darauf warten statt eine zweite zu starten
-    if(!p._creating){
-      p._creating = atCreate('Pantry', { Name:p.name, ...fields })
-        .then(rec=>{ p.id = rec.id; p._creating = null; })
-        .catch(e=>{ p._creating = null; throw e; });
+  const fields = { Bestand:p.bestand, Mindestbestand:p.mindestbestand, Unit:p.unit, KcalPerUnit:p.kcalPerUnit, FiberPerUnit:p.fiberPerUnit, ProteinPerUnit:p.proteinPerUnit, Ignore: p.ignore ? 'checked' : null, SatietyIndex: p.satietyIndex };
+  try{
+    if(!p.id){
+      if(!p._creating){
+        p._creating = atCreate('Pantry', { Name:p.name, ...fields })
+          .then(rec=>{ p.id = rec.id; p._creating = null; })
+          .catch(e=>{ p._creating = null; throw e; });
+      }
+      await p._creating;
     }
-    await p._creating;
+    if(p.id) await atUpdate('Pantry', p.id, fields);
+  }catch(e){
+    // Feld "SatietyIndex" existiert in Airtable evtl. noch nicht -> ohne erneut versuchen, sonst geht Speichern komplett nicht
+    const { SatietyIndex, ...fieldsWithoutSatiety } = fields;
+    if(!p.id){
+      if(!p._creating){
+        p._creating = atCreate('Pantry', { Name:p.name, ...fieldsWithoutSatiety })
+          .then(rec=>{ p.id = rec.id; p._creating = null; })
+          .catch(e2=>{ p._creating = null; throw e2; });
+      }
+      await p._creating;
+    }
+    if(p.id) await atUpdate('Pantry', p.id, fieldsWithoutSatiety);
   }
-  if(p.id) await atUpdate('Pantry', p.id, fields);
 }
 /* kcal/Ballaststoffe pro Einheit -> tatsächlicher Beitrag für eine gegebene Zutatmenge.
    g/ml: Wert gilt pro 100 Einheiten. Stück/Dose/TL/EL: Wert gilt pro 1 Stück/Dose/TL/EL. */
@@ -2155,8 +2199,20 @@ function effectiveFiber(dish){ return dish.fiber>0 ? dish.fiber : calculatedFibe
 /* Kein manuelles Protein-Feld am Gericht (nur an den Zutaten) -> immer berechnet */
 function effectiveProtein(dish){ return calculatedProtein(dish); }
 
-/* Fullness Score fürs GANZE GERICHT, aus der Summe aller Zutaten (gleiche Heuristik wie pro Zutat) */
+/* Fullness Score fürs GANZE GERICHT: kcal-gewichteter Durchschnitt über die Zutaten, pro Zutat bevorzugt
+   der per KI geschätzte Sättigungsindex, sonst Fallback auf die Protein/Ballaststoffe-Heuristik dieser Zutat.
+   Nur wenn GAR KEINE Zutat im Vorrat auffindbar ist (z.B. Gericht ohne Zutatenliste), Fallback auf die
+   alte Formel fürs ganze Gericht (aus Gesamt-kcal/-Protein/-Ballaststoffen). */
 function dishFullnessScore(dish){
+  let weighted = 0, base = 0;
+  (dish.ingredients||[]).forEach(ing=>{
+    const p = pantryItem(ing.name);
+    if(!p) return;
+    const kcalC = nutrientContribution(ing, p.kcalPerUnit);
+    const s = pantryFullnessRaw(p);
+    if(s!==null && kcalC>0){ weighted += s*kcalC; base += kcalC; }
+  });
+  if(base>0) return Math.max(0, Math.min(100, Math.round(weighted/base)));
   const kcal = effectiveKcal(dish);
   if(!kcal) return null;
   const protein = calculatedProtein(dish);
@@ -2179,18 +2235,42 @@ function buildFullnessTipHtml(dish, currentScore){
   if(!alternatives.length) return '';
   return `<div class="fullness-tip">
     <p class="fullness-tip-label">Bessere Alternativen (ähnliche kcal):</p>
-    ${alternatives.map(a=> `<div class="fullness-tip-row"><span>${escapeAttr(a.d.name)}</span><span>${a.k} kcal · <b>${a.score}</b> statt ${currentScore}</span></div>`).join('')}
+    ${alternatives.map(a=> `<div class="fullness-tip-row"><span>${escapeAttr(a.d.name)}</span><span>${a.k} kcal · <b>${ff10(a.score)}/10</b> statt ${ff10(currentScore)}/10</span></div>`).join('')}
   </div>`;
 }
 
 /* Eigene, vereinfachte Näherung an einen "Fullness Score" (0-100) – KEIN echter/validierter
    Satiety-Index wie in der Holt-Studie, sondern eine Heuristik: mehr Protein und Ballaststoffe
    pro 100 kcal = höherer Wert, da beides laut Forschung die Haupttreiber für Sättigung sind. */
+/* Eigene, vereinfachte Näherung an einen "Fullness Score" (0-100) – Fallback, wenn für eine Zutat
+   kein per KI geschätzter Sättigungsindex vorliegt: mehr Protein und Ballaststoffe pro 100 kcal
+   = höherer Wert, da beides laut Forschung die Haupttreiber für Sättigung sind. */
 function fullnessScore(p){
   if(!p.kcalPerUnit) return null;
   const proteinPer100kcal = (p.proteinPerUnit/p.kcalPerUnit)*100;
   const fiberPer100kcal = (p.fiberPerUnit/p.kcalPerUnit)*100;
   return Math.max(0, Math.min(100, Math.round(proteinPer100kcal*3 + fiberPer100kcal*2)));
+}
+/* Anzeige für den User: 0-10 statt der internen 0-100-Rohskala, angelehnt an die Hunger-Fullness-Scale (0-3 wenig, 4-6 mittel, 7-10 gut sättigend) */
+function ff10(score){ return score===null||score===undefined ? null : Math.max(0, Math.min(10, Math.round(score/10))); }
+function ffTier(score){ const v = ff10(score); return v===null ? '' : (v>=7?'high':v>=4?'mid':'low'); }
+/* Sättigungswert einer Zutat auf der internen 0-100-Skala: bevorzugt den per KI geschätzten
+   Sättigungsindex (Holt-Skala, Weißbrot=100 als Referenz), umgerechnet /3.23 (323=Kartoffel-Bestwert
+   aus der echten Holt-Studie -> 100, damit der beste real gemessene Wert auch 10/10 erreichen kann).
+   Fehlt der Index (noch nicht geschätzt oder KI konnte keinen liefern), Fallback auf die alte Protein/Ballaststoffe-Formel. */
+function pantryFullness100(p){
+  if(p.satietyIndex!=null && p.satietyIndex>0) return Math.max(0, Math.min(100, Math.round(p.satietyIndex/3.23)));
+  return fullnessScore(p);
+}
+/* Ungedeckelte Variante NUR für die kcal-gewichtete Mittelung über mehrere Zutaten (dishFullnessScore) –
+   Deckeln darf erst EINMAL am fertigen Gesamtergebnis passieren, sonst verzerren einzelne kleine
+   Zutaten (z.B. Gewürze) mit rechnerisch sehr hohem Wert das gewichtete Mittel künstlich nach unten. */
+function pantryFullnessRaw(p){
+  if(p.satietyIndex!=null && p.satietyIndex>0) return p.satietyIndex/3.23;
+  if(!p.kcalPerUnit) return null;
+  const proteinPer100kcal = (p.proteinPerUnit/p.kcalPerUnit)*100;
+  const fiberPer100kcal = (p.fiberPerUnit/p.kcalPerUnit)*100;
+  return proteinPer100kcal*3 + fiberPer100kcal*2;
 }
 function buildPantryPrompt(p){
   const basis = (p.unit==='g'||p.unit==='ml') ? `pro 100 ${p.unit}` : `für 1 ${p.unit||'Stück'}`;
@@ -2201,8 +2281,9 @@ function unitAbbr(u){
 }
 let pantryExpanded = {}; // { "Zutatname": true/false } rein lokal, nicht persistiert
 function pantryRowHtml(p, i){
-  const score = fullnessScore(p);
-  const scoreBadge = score===null ? '' : `<span class="fullness-badge ${score>=50?'high':score>=25?'mid':'low'}">${score} FF</span>`;
+  const score = pantryFullness100(p);
+  const scoreBadge = score===null ? '' : `<span class="fullness-badge ${ffTier(score)}">${ff10(score)}/10</span>`;
+  const noSatietyIndex = p.satietyIndex==null;
   const open = !!pantryExpanded[p.name];
   const isG = p.unit==='g'||p.unit==='ml';
   const unitLabel = unitAbbr(p.unit);
@@ -2228,7 +2309,7 @@ function pantryRowHtml(p, i){
   return `
     <div class="p-card ${p.bestand<p.mindestbestand?'low':''}" data-i="${i}">
       <div class="p-row">
-        <div class="p-name-wrap"><p class="p-name">${escapeAttr(p.name)} ${scoreBadge}</p></div>
+        <div class="p-name-wrap"><p class="p-name">${escapeAttr(p.name)} ${scoreBadge}${(noSatietyIndex && score!==null)?'<span class="no-si-badge" title="Kein KI-Sättigungsindex, nur aus Protein/Ballaststoffen geschätzt">~</span>':''}</p></div>
         <div class="p-mini"><label>Best.${unitLabel?` (${unitLabel})`:''}</label><input type="number" step="any" class="pf-bestand" value="${p.bestand}"></div>
         <div class="p-mini"><label>Min.${unitLabel?` (${unitLabel})`:''}</label><input type="number" step="any" class="pf-min" value="${p.mindestbestand}"></div>
         <button type="button" class="p-cart-btn" title="Zur Einkaufsliste hinzufügen (Menge: Mindestbestand)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.5 3h2l2.6 12.9a2 2 0 0 0 2 1.6h8.8a2 2 0 0 0 2-1.6L22 7H6"/></svg></button>
@@ -2478,7 +2559,7 @@ async function loadAll(){
     try{
       const profRecs = await atList('Profile');
       if(profRecs[0]){
-        profile = { id:profRecs[0].id, startWeight:Number(profRecs[0].fields.StartWeight)||profile.startWeight, goalWeight:Number(profRecs[0].fields.GoalWeight)||profile.goalWeight, stepsGoal:Number(profRecs[0].fields.StepsGoal)||profile.stepsGoal, kcalMax:Number(profRecs[0].fields.KcalMax)||profile.kcalMax, kcalMin:Number(profRecs[0].fields.KcalMin)||profile.kcalMin, fiberGoal:Number(profRecs[0].fields.FiberGoal)||profile.fiberGoal, proteinGoal:Number(profRecs[0].fields.ProteinGoal)||profile.proteinGoal, bmr:Number(profRecs[0].fields.Bmr)||profile.bmr, deficitWarnThreshold:Number(profRecs[0].fields.DeficitWarnThreshold)||profile.deficitWarnThreshold, fastGoalHours:Number(profRecs[0].fields.FastGoalHours)||profile.fastGoalHours };
+        profile = { id:profRecs[0].id, startWeight:Number(profRecs[0].fields.StartWeight)||profile.startWeight, goalWeight:Number(profRecs[0].fields.GoalWeight)||profile.goalWeight, stepsGoal:Number(profRecs[0].fields.StepsGoal)||profile.stepsGoal, kcalMax:Number(profRecs[0].fields.KcalMax)||profile.kcalMax, kcalMin:Number(profRecs[0].fields.KcalMin)||profile.kcalMin, fiberGoal:Number(profRecs[0].fields.FiberGoal)||profile.fiberGoal, proteinGoal:Number(profRecs[0].fields.ProteinGoal)||profile.proteinGoal, bmr:Number(profRecs[0].fields.Bmr)||profile.bmr, deficitWarnThreshold:Number(profRecs[0].fields.DeficitWarnThreshold)||profile.deficitWarnThreshold, fastGoalHours:Number(profRecs[0].fields.FastGoalHours)||profile.fastGoalHours, height:Number(profRecs[0].fields.Height)||profile.height, age:Number(profRecs[0].fields.Age)||profile.age, sex: profRecs[0].fields.Sex==='w' ? 'w' : 'm' };
       }
     }catch(e){ console.warn('Profile-Tabelle noch nicht vorhanden – lege sie in Airtable an (Felder: StartWeight, GoalWeight, StepsGoal, KcalMax, FiberGoal). Nutze bis dahin Standardwerte.'); }
     try{
@@ -2534,6 +2615,7 @@ async function loadAll(){
     logEntries = logRecs.map(r=>({ id:r.id, date:r.fields.Date, type:r.fields.Type, name:r.fields.Name, kcal:Number(r.fields.Kcal)||0, fiber:Number(r.fields.Fiber)||0, protein:Number(r.fields.Protein)||0, ml:Number(r.fields.Ml)||0, time:r.fields.Time||'', checkedAt:r.fields.CheckedAt||'', slotId:r.fields.SlotId||'' }));
     water = logEntries.filter(l=> l.type==='water').map(l=>({ id:l.id, date:l.date, ml:l.ml, time:l.time }));
     weights = wRecs.map(r=>({ id:r.id, date:r.fields.Date, kg:Number(r.fields.Kg)||0, time:r.fields.Time||'' }));
+    profile.bmr = calcBmr(); // Grundumsatz automatisch aus aktuellstem Gewicht + Größe/Alter/Geschlecht neu berechnen
     steps = sRecs.map(r=>({ id:r.id, date:r.fields.Date, steps:Number(r.fields.Steps)||0, kcal:Number(r.fields.Kcal)||0, time:r.fields.Time||'' }));
     setStatus('Verbunden');
     document.getElementById('loadingOverlay').classList.add('hidden');
@@ -2658,18 +2740,15 @@ function renderToday(){
     if(dish){ const s = dishFullnessScore(dish); const k = effectiveKcal(dish); if(s!==null){ planFullnessWeighted += s*k; planFullnessBase += k; } }
   });
   const planFullness = planFullnessBase>0 ? Math.round(planFullnessWeighted/planFullnessBase) : null;
-  document.getElementById('planFullnessTotal').textContent = planFullness===null ? '–' : planFullness;
+  document.getElementById('planFullnessTotal').textContent = planFullness===null ? '–' : ff10(planFullness);
   const ffStatusEl = document.getElementById('ffStatus');
   if(planFullness!==null){
-    const avgFF = planFullness;
-    let tier, title;
-    if(avgFF>=65){ tier='good'; title='Guter Fullness-Tag'; }
-    else if(avgFF>=40){ tier='mid'; title='Mittlerer Fullness-Tag'; }
-    else{ tier='low'; title='Eher niedriger Fullness-Tag'; }
-    ffStatusEl.className = 'ff-status '+tier;
+    const tier = ffTier(planFullness);
+    const title = tier==='high'||tier==='good' ? 'Guter Fullness-Tag' : tier==='mid' ? 'Mittlerer Fullness-Tag' : 'Eher niedriger Fullness-Tag';
+    ffStatusEl.className = 'ff-status '+(tier==='high'?'good':tier);
     ffStatusEl.style.display = 'flex';
     document.getElementById('ffStatusTitle').textContent = title;
-    document.getElementById('ffStatusSub').textContent = avgFF+' Ø geplant – '+(tier==='good'?'sättigend, kein Anpassungsbedarf':tier==='mid'?'geht so, könnte sättigender sein':'heute wenig sättigend, Anpassung sinnvoll');
+    document.getElementById('ffStatusSub').textContent = ff10(planFullness)+'/10 Ø geplant – '+(tier==='high'?'sättigend, kein Anpassungsbedarf':tier==='mid'?'geht so, könnte sättigender sein':'heute wenig sättigend, Anpassung sinnvoll');
   }else{
     ffStatusEl.style.display = 'none';
   }
@@ -2697,7 +2776,7 @@ function renderToday(){
     if(!dish) return '';
     const checked = !!logHit;
     const score = dishFullnessScore(dish);
-    const scoreBadge = score===null ? '' : `<span class="fullness-badge ${score>=50?'high':score>=25?'mid':'low'}">${score}</span>`;
+    const scoreBadge = score===null ? '' : `<span class="fullness-badge ${ffTier(score)}">${ff10(score)}/10</span>`;
     const kcalR = Math.round(effectiveKcal(dish)*ratio);
     const fiberR = Math.round(effectiveFiber(dish)*ratio*10)/10;
     const proteinR = Math.round(calculatedProtein(dish)*ratio*10)/10;
@@ -2820,10 +2899,16 @@ function renderToday(){
   const movementKcal = (steps.find(s=>s.date===currentDate)||{}).kcal || 0;
   const deficit = Math.round(profile.bmr + movementKcal - total);
   const deficitEl = document.getElementById('deficitStatus');
+  const nowHour = new Date().getHours();
   let dTier, dTitle, dSub;
   if(deficit > profile.deficitWarnThreshold){
-    dTier='low'; dTitle='Sehr großes Defizit';
-    dSub = deficit.toLocaleString('de-DE')+' kcal heute (Grundumsatz '+profile.bmr.toLocaleString('de-DE')+' + Bewegung '+movementKcal.toLocaleString('de-DE')+' − gegessen '+total.toLocaleString('de-DE')+') – auf Dauer sind oft 500–1.000 kcal leichter durchzuhalten und schonen die Muskulatur.';
+    if(nowHour >= 20){
+      dTier='mid'; dTitle='Noch reichlich Puffer übrig';
+      dSub = deficit.toLocaleString('de-DE')+' kcal Puffer heute Abend (Grundumsatz '+profile.bmr.toLocaleString('de-DE')+' + Bewegung '+movementKcal.toLocaleString('de-DE')+' − gegessen '+total.toLocaleString('de-DE')+') – falls du noch hungrig bist, ist da noch Platz.';
+    }else{
+      dTier='good'; dTitle='Noch viel Spielraum heute';
+      dSub = deficit.toLocaleString('de-DE')+' kcal Puffer bisher (Grundumsatz '+profile.bmr.toLocaleString('de-DE')+' + Bewegung '+movementKcal.toLocaleString('de-DE')+' − gegessen '+total.toLocaleString('de-DE')+').';
+    }
   }else if(deficit < 0){
     dTier='mid'; dTitle='Kalorienüberschuss';
     dSub = Math.abs(deficit).toLocaleString('de-DE')+' kcal über dem Grundumsatz + Bewegung.';
@@ -2880,7 +2965,7 @@ function renderExtraPickList(){
   if(!list.length){ ul.innerHTML = '<li class="section-note" style="list-style:none;">Keine passenden Gerichte gefunden.</li>'; return; }
   ul.innerHTML = list.map(d=>{
     const score = dishFullnessScore(d);
-    return `<li class="pick-row" data-name="${escapeAttr(d.name)}"><span class="pn">${escapeAttr(d.name)}</span><span class="pk">${effectiveKcal(d)} kcal${score!==null?` · ${score} FF`:''}</span></li>`;
+    return `<li class="pick-row" data-name="${escapeAttr(d.name)}"><span class="pn">${escapeAttr(d.name)}</span><span class="pk">${effectiveKcal(d)} kcal${score!==null?` · ${ff10(score)}/10`:''}</span></li>`;
   }).join('');
   ul.querySelectorAll('.pick-row').forEach(row=> row.addEventListener('click', async ()=>{
     const dish = dishByName(row.dataset.name);
@@ -3047,6 +3132,8 @@ document.getElementById('weightSaveBtn').addEventListener('click', async ()=>{
     const existing = weights.find(w=>w.date===date);
     if(existing){ await atUpdate('Weights', existing.id, { Kg: kg, Time: time }); existing.kg = kg; existing.time = time; }
     else{ const rec = await atCreate('Weights', { Date: date, Kg: kg, Time: time }); weights.push({ id:rec.id, date, kg, time }); }
+    profile.bmr = calcBmr(); // Grundumsatz mit neuem Gewicht neu berechnen
+    if(profile.id){ try{ await atUpdate('Profile', profile.id, { Bmr: profile.bmr }); }catch(e){} }
     document.getElementById('weightKg').value='';
     document.getElementById('weightModalBg').classList.remove('open');
     renderWeightBlock();
@@ -3169,7 +3256,7 @@ function renderWeek(){
       <div class="day-metrics">
         <div class="metric-labels">
           <span class="${over?'over':''}">${dayTotal} / ${target} kcal</span>
-          <span>${dayFF!==null?`Ø ${dayFF} FF`:'FF –'}</span>
+          <span>${dayFF!==null?`Ø ${ff10(dayFF)}/10`:'FF –'}</span>
         </div>
         <div class="split-bar">
           <div class="half left"><div class="fill fill-kcal" style="width:${kcalPct}%;"></div></div>
@@ -3352,6 +3439,62 @@ async function callClaudeApi(prompt, system){
   if(!textBlock) throw new Error('Keine Textantwort erhalten (stop_reason: '+(data.stop_reason||'?')+'). Rohantwort: '+rawText.slice(0,300));
   return textBlock.text;
 }
+/* Generischer, robuster JSON-Parser für Claude-Antworten: räumt Codeblöcke/Zeilenumbrüche weg,
+   schneidet notfalls das JSON-Objekt aus umgebendem Fließtext heraus. */
+function parseAiJson(raw){
+  let cleaned = raw.trim();
+  cleaned = cleaned.replace(/^```json\s*/i,'').replace(/^```\s*/,'').replace(/```\s*$/,'').trim();
+  cleaned = cleaned.replace(/[\r\n\t]+/g, ' ');
+  try{ return JSON.parse(cleaned); }
+  catch(e){
+    const first = cleaned.indexOf('{'), last = cleaned.lastIndexOf('}');
+    if(first!==-1 && last>first){
+      try{ return JSON.parse(cleaned.slice(first, last+1)); }
+      catch(e2){ throw new Error('Konnte Antwort nicht als JSON lesen: '+e2.message+'. Rohantwort: '+cleaned.slice(0,300)); }
+    }
+    throw new Error('Antwort enthielt kein JSON-Objekt. Rohantwort: '+cleaned.slice(0,300));
+  }
+}
+/* ===== Sättigungsindex per KI schätzen (Holt-Skala: Weißbrot=100, Kartoffeln=323 als Referenzpunkte) ===== */
+document.getElementById('estimateSatietyBtn').addEventListener('click', async ()=>{
+  const statusEl = document.getElementById('estimateSatietyStatus');
+  const btn = document.getElementById('estimateSatietyBtn');
+  const items = pantry.filter(p=> p.kcalPerUnit>0);
+  if(!items.length){ statusEl.textContent = 'Keine Zutaten mit hinterlegten kcal gefunden.'; return; }
+  btn.disabled = true;
+  statusEl.textContent = 'Claude schätzt den Sättigungsindex für '+items.length+' Zutaten…';
+  try{
+    const list = items.map(p=> `- ${p.name}: ${p.kcalPerUnit} kcal, ${p.fiberPerUnit} g Ballaststoffe, ${p.proteinPerUnit} g Protein pro ${(p.unit==='g'||p.unit==='ml')?'100'+p.unit:p.unit}`).join('\n');
+    const prompt = `Du bist Ernährungswissenschaftler. Schätze für jede der folgenden Zutaten einen Sättigungsindex nach der Holt-Skala (Susanna Holt, "A Satiety Index of common foods", 1995): Weißbrot = 100 als Referenz, alles darüber sättigt stärker, alles darunter schwächer. Bekannte Referenzwerte zur Orientierung: Kartoffeln gekocht 323, Fisch 225, Haferflocken 209, Orangen 202, Äpfel 197, Vollkornnudeln 188, Rindfleisch 176, Baked Beans 168, Linsen/Hülsenfrüchte allgemein ca. 130-170, Vollkornbrot 157, Popcorn 154, Eier 150, Käse 146, weißer Reis 138, Weißbrot 100, Eis 96, Chips 91, Joghurt 88, Erdnüsse 84, Schokoriegel 70, Croissant 47.
+
+Zutaten (mit Nährwerten als Kontext, falls hilfreich):
+${list}
+
+Schätze anhand von Lebensmittelkategorie, Wassergehalt, Ballaststoffgehalt, Proteingehalt und glykämischem Index, ähnlich wie in der Studie. Falls du für eine Zutat keine sinnvolle Schätzung abgeben kannst (z.B. bei sehr unklaren/zusammengesetzten Namen), lasse "index" weg oder setze null.
+
+Antworte AUSSCHLIESSLICH mit gültigem, einzeiligem JSON in diesem Format, keine Erklärung, kein Markdown:
+{"items":[{"name":"Kichererbsen","index":150},{"name":"Cappuccino","index":null}]}`;
+    const raw = await callClaudeApi(prompt);
+    const parsed = parseAiJson(raw);
+    if(!Array.isArray(parsed.items)) throw new Error('Antwort enthält kein "items"-Array.');
+    let updated = 0, noIndex = 0;
+    for(const entry of parsed.items){
+      const p = pantryItem(entry.name);
+      if(!p) continue;
+      const idx = (entry.index===null||entry.index===undefined) ? null : Number(entry.index);
+      p.satietyIndex = (idx && idx>0) ? idx : null;
+      if(p.satietyIndex===null) noIndex++; else updated++;
+      try{ await savePantryItem(p); }catch(e){ console.error(e); }
+    }
+    statusEl.textContent = updated+' Zutaten mit Sättigungsindex versehen, '+noIndex+' ohne verlässliche Schätzung (fallen zurück auf die alte Formel).';
+    renderPantry();
+  }catch(err){
+    console.error(err);
+    statusEl.textContent = 'Fehler: '+err.message;
+  }finally{
+    btn.disabled = false;
+  }
+});
 function parseAiDayResponse(raw){
   let cleaned = raw.trim();
   cleaned = cleaned.replace(/^```json\s*/i,'').replace(/^```\s*/,'').replace(/```\s*$/,'').trim();
@@ -3584,12 +3727,12 @@ function renderSwapList(){
   const ul = document.getElementById('swapPickList');
   ul.innerHTML = dishes.map(d=>{
     const score = dishFullnessScore(d);
-    return `<li class="pick-row ${d.name===swapSelectedDishName?'selected':''}" data-name="${escapeAttr(d.name)}"><span class="pn">${escapeAttr(d.name)}</span><span class="pk">${effectiveKcal(d)} kcal${score!==null?` · ${score} FF`:''}</span></li>`;
+    return `<li class="pick-row ${d.name===swapSelectedDishName?'selected':''}" data-name="${escapeAttr(d.name)}"><span class="pn">${escapeAttr(d.name)}</span><span class="pk">${effectiveKcal(d)} kcal${score!==null?` · ${ff10(score)}/10`:''}</span></li>`;
   }).join('');
   ul.querySelectorAll('.pick-row').forEach(row=> row.addEventListener('click', ()=>{ swapSelectedDishName=row.dataset.name; renderSwapList(); }));
   const d = dishByName(swapSelectedDishName);
   const dScore = d ? dishFullnessScore(d) : null;
-  document.getElementById('swapPreview').innerHTML = d ? `<b>${escapeAttr(d.name)}</b> · ${effectiveKcal(d)} kcal${dScore!==null?` · ${dScore} FF`:''}<br>${d.ingredients.map(i=>`${escapeAttr(i.name)} — ${i.amount}${i.unit}`).join(', ')}` : '';
+  document.getElementById('swapPreview').innerHTML = d ? `<b>${escapeAttr(d.name)}</b> · ${effectiveKcal(d)} kcal${dScore!==null?` · ${ff10(dScore)}/10`:''}<br>${d.ingredients.map(i=>`${escapeAttr(i.name)} — ${i.amount}${i.unit}`).join(', ')}` : '';
 }
 document.getElementById('swapCancel').addEventListener('click', ()=> document.getElementById('swapModalBg').classList.remove('open'));
 document.getElementById('swapConfirm').addEventListener('click', async ()=>{
@@ -3617,7 +3760,7 @@ function openDaySwapModal(slotId){
   const ul = document.getElementById('daySwapPickList');
   ul.innerHTML = dishes.map(d=>{
     const score = dishFullnessScore(d);
-    return `<li class="pick-row" data-name="${escapeAttr(d.name)}"><span class="pn">${escapeAttr(d.name)}</span><span class="pk">${effectiveKcal(d)} kcal${score!==null?` · ${score} FF`:''}</span></li>`;
+    return `<li class="pick-row" data-name="${escapeAttr(d.name)}"><span class="pn">${escapeAttr(d.name)}</span><span class="pk">${effectiveKcal(d)} kcal${score!==null?` · ${ff10(score)}/10`:''}</span></li>`;
   }).join('');
   ul.querySelectorAll('.pick-row').forEach(row=> row.addEventListener('click', async ()=>{
     const dishName = row.dataset.name;
@@ -3696,9 +3839,9 @@ document.getElementById('portionSplitRemove').addEventListener('click', async ()
 function renderDishLibrary(){
   const wrap = document.getElementById('dishLib');
   const groups = [
-    { key:'high', label:'Sehr sättigend (>80)', test:s=> s>80 },
-    { key:'mid', label:'Mittel (50–80)', test:s=> s>=50 && s<=80 },
-    { key:'low', label:'Wenig sättigend (<50)', test:s=> s<50 },
+    { key:'high', label:'Gut sättigend (7-10)', test:s=> s>=70 },
+    { key:'mid', label:'Mittel sättigend (4-6)', test:s=> s>=40 && s<70 },
+    { key:'low', label:'Wenig sättigend (0-3)', test:s=> s<40 },
   ];
   const withScore = dishes.map(d=> ({ d, score: dishFullnessScore(d) }));
   const noScore = withScore.filter(x=> x.score===null).map(x=>x.d);
@@ -3707,7 +3850,7 @@ function renderDishLibrary(){
     const items = withScore.filter(x=> x.score!==null && g.test(x.score)).sort((a,b)=> b.score-a.score);
     if(!items.length) return;
     html += `<p class="section-note" style="margin:1rem 0 .4rem;">${g.label}</p>`;
-    html += items.map(({d,score})=> `<div class="dish-lib-item"><div><span class="dl-name">${escapeAttr(d.name)}</span><span class="dl-kcal">${effectiveKcal(d)} kcal</span> <span class="fullness-badge ${g.key}">${score} Fullness</span></div>
+    html += items.map(({d,score})=> `<div class="dish-lib-item"><div><span class="dl-name">${escapeAttr(d.name)}</span><span class="dl-kcal">${effectiveKcal(d)} kcal</span> <span class="fullness-badge ${g.key}">${ff10(score)}/10</span></div>
       <div class="dl-actions"><button data-act="edit" data-id="${d.id}">Bearbeiten</button><button data-act="del" data-id="${d.id}">Löschen</button></div></div>`).join('');
   });
   if(noScore.length){

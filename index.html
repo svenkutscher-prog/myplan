@@ -203,7 +203,11 @@ h2.section{font-family:'Fraunces',serif;font-weight:600;font-size:18px;margin:1.
 .ki-day-apply{font-size:12px;padding:.4rem .8rem;}
 .ki-slot-new{color:var(--olive);font-style:italic;}
 .ki-day-picker{display:flex;gap:6px;flex-wrap:wrap;margin:.6rem 0;}
-.ki-day-picker button{font-family:'Inter',sans-serif;font-size:12.5px;font-weight:500;padding:.45rem .75rem;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer;}
+.ki-day-picker button{font-family:'Inter',sans-serif;font-size:12.5px;font-weight:500;padding:.45rem .75rem;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer;text-align:center;line-height:1.5;}
+.ki-day-date{font-size:10px;font-weight:400;opacity:.75;}
+.food-row.split-half{border-left:3px solid #6b8cae;}
+.split-badge{display:inline-block;font-size:10.5px;font-weight:600;color:#fff;background:#6b8cae;border-radius:20px;padding:1px 7px;margin-left:5px;vertical-align:middle;}
+.split-btn{color:#6b8cae;}
 .ki-day-picker button.active{background:var(--olive);border-color:var(--olive);color:#fff;}
 .ver-toggle{display:flex;gap:6px;margin:.4rem 0 .7rem;}
 .ver-btn{flex:1;font-family:'Inter',sans-serif;font-size:12px;font-weight:500;padding:.35rem .5rem;border-radius:7px;border:1px solid var(--line);background:var(--card);color:var(--ink-soft);cursor:pointer;}
@@ -880,6 +884,19 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
   </div>
 </div>
 
+<div class="modal-bg" id="portionSplitModalBg">
+  <div class="modal">
+    <h2>Portion aufteilen</h2>
+    <p class="section-label" id="portionSplitLabel"></p>
+    <div class="profile-field"><label>Uhrzeit für die 2. Hälfte</label><input type="time" id="portionSplitTime"></div>
+    <div class="modal-actions">
+      <button class="btn" id="portionSplitRemove" style="display:none;">Aufteilung aufheben</button>
+      <button class="btn" id="portionSplitCancel">Abbrechen</button>
+      <button class="btn primary" id="portionSplitConfirm">Aufteilen</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-bg" id="profileModalBg">
   <div class="modal">
     <h2>Stammdaten</h2>
@@ -1073,6 +1090,7 @@ function fmtDurationHM(ms){
   const h = Math.floor(totalMin/60), m = totalMin%60;
   return h+' h '+String(m).padStart(2,'0')+' min';
 }
+function fmtClock(d){ return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
 function fmtCountdown(ms){
   const totalSec = Math.max(0, Math.round(ms/1000));
   const h = Math.floor(totalSec/3600), m = Math.floor((totalSec%3600)/60), s = totalSec%60;
@@ -1093,7 +1111,7 @@ function updateFastWindowStats(status){
   valEl.textContent = eatingWindowH+' h';
   let windowOk = true;
   if(status.tier==='fasting' && status.msLeft>0){
-    subEl.textContent = fmtCountdown(status.msLeft)+' bis Essen erlaubt';
+    subEl.textContent = 'Fastenziel von '+goalH+'h erreichst du um '+fmtClock(status.eatAgainAt)+' Uhr ('+fmtCountdown(status.msLeft)+')';
     windowOk = false;
   }else if(status.tier==='fasting'){
     subEl.textContent = 'Du darfst jetzt essen';
@@ -1137,7 +1155,7 @@ setInterval(()=>{
     const subEl = document.getElementById('fastWindowSub');
     if(subEl){
       if(fastStatusCache.msLeft<=0) updateFastStatus();
-      else subEl.textContent = fmtCountdown(fastStatusCache.msLeft)+' bis Essen erlaubt';
+      else subEl.textContent = 'Fastenziel von '+(profile.fastGoalHours||12)+'h erreichst du um '+fmtClock(fastStatusCache.eatAgainAt)+' Uhr ('+fmtCountdown(fastStatusCache.msLeft)+')';
     }
   }
 }, 1000);
@@ -1266,6 +1284,7 @@ let weekVersion = {}; // wd -> 'original'|'ai' -- welche Version für diesen Tag
 let weekVersionRecId = {}; // wd -> Airtable-Record-Id in WeekVersion (für Update statt Create)
 let weekDayContext = {}; // wd -> "Besonderer Tagesablauf"-Text, aus WeekVersion.Context
 let weekDayNotes = {};   // wd -> Array KI-Stichpunkte, aus WeekVersion.Notes (JSON)
+let weekDayEventDate = {}; // wd -> "YYYY-MM-DD" - konkretes Datum, für das die KI-Version zuletzt erstellt wurde (einmaliges Event, nicht wöchentlich wiederkehrend)
 let logEntries = [];  // {id, date, type, name, kcal, time}
 let weights = [];     // {id, date, kg}
 let steps = [];       // {id, date, steps, kcal}
@@ -1274,6 +1293,7 @@ let pantry = [];      // {id|null, name, staple}  id null = noch nicht in Airtab
 let shoppingNeeds = []; // {id, name, unit, amount, status:'offen'|'liste'|'gekauft', boughtAmount}
 let snacks = []; // {id, name, kcal}
 let daySwaps = []; // {id, date, slotId, dishName} - Gericht nur für einen bestimmten Tag getauscht, ohne den Wochenplan zu ändern
+let portionSplits = []; // {id, date, slotId, secondTime} - Portion für einen Tag in 2 Hälften geteilt (je 50%), zweite Hälfte zu eigener Uhrzeit
 let water = []; // {id, date, ml}
 let bonusItems = []; // {id, name, kcal} - max 5, verwaltet im Vorrat-Tab
 let routineTasks = []; // {id, name} - tägliche Routine-Aufgaben, selbst angelegt im Heute-Tab
@@ -1987,31 +2007,45 @@ function renderRhythmChart(days){
 }
 
 function dishByName(name){ return dishes.find(d=>d.name===name); }
-/* Liefert die gerade aktive Slot-Liste für einen Wochentag: Original oder KI-Version, je nach Umschalter */
-function activeSlots(wd){ return (weekVersion[wd]==='ai') ? (weekPlanAI[wd]||[]) : (weekPlan[wd]||[]); }
-/* Speichert Mode/Context/Notes für einen Wochentag in EINEM Airtable-Record (WeekVersion) - geräteübergreifend synchron.
-   updates: {mode?, context?, notes?} - nur angegebene Felder werden geändert, Rest bleibt wie im State. */
+/* Nächstes Datum (>= fromDateStr) mit passendem Wochentag - für einmalige KI-Events */
+function nextOccurrenceDate(wd, fromDateStr){
+  for(let i=0;i<7;i++){ const d = addDays(fromDateStr, i); if(weekdayOf(d)===wd) return d; }
+  return fromDateStr;
+}
+/* KI-Version gilt nur als "aktiv" für ihr konkretes Ereignisdatum - einmalig, nicht wöchentlich wiederkehrend */
+function isAiActiveForDate(wd, dateStr){ return weekVersion[wd]==='ai' && weekDayEventDate[wd] && weekDayEventDate[wd]===dateStr; }
+/* Liefert die gerade aktive Slot-Liste für einen Wochentag am aktuell angezeigten Datum: Original oder KI-Version */
+function activeSlots(wd){ return isAiActiveForDate(wd, currentDate) ? (weekPlanAI[wd]||[]) : (weekPlan[wd]||[]); }
+/* Speichert Mode/Context/Notes/Date für einen Wochentag in EINEM Airtable-Record (WeekVersion) - geräteübergreifend synchron.
+   updates: {mode?, context?, notes?, eventDate?} - nur angegebene Felder werden geändert, Rest bleibt wie im State. */
 async function saveWeekVersionRow(wd, updates){
   if(updates.mode!==undefined) weekVersion[wd] = updates.mode;
   if(updates.context!==undefined) weekDayContext[wd] = updates.context;
   if(updates.notes!==undefined) weekDayNotes[wd] = updates.notes;
-  const fields = { Weekday: wd, Mode: weekVersion[wd]||'original', Context: weekDayContext[wd]||'', Notes: JSON.stringify(weekDayNotes[wd]||[]) };
+  if(updates.eventDate!==undefined) weekDayEventDate[wd] = updates.eventDate;
+  const fields = { Weekday: wd, Mode: weekVersion[wd]||'original', Context: weekDayContext[wd]||'', Notes: JSON.stringify(weekDayNotes[wd]||[]), Date: weekDayEventDate[wd]||'' };
   try{
     if(weekVersionRecId[wd]) await atUpdate('WeekVersion', weekVersionRecId[wd], fields);
     else{ const rec = await atCreate('WeekVersion', fields); weekVersionRecId[wd] = rec.id; }
-  }catch(e){ console.error(e); setStatus('WeekVersion-Tabelle: Felder Weekday/Mode/Context/Notes prüfen (Context/Notes als Long text) – Änderung wird nicht dauerhaft gespeichert.'); }
+  }catch(e){ console.error(e); setStatus('WeekVersion-Tabelle: Felder Weekday/Mode/Context/Notes/Date prüfen (Context/Notes/Date als Long text bzw. Text) – Änderung wird nicht dauerhaft gespeichert.'); }
 }
 async function setWeekVersion(wd, mode){
-  await saveWeekVersionRow(wd, {mode});
+  const updates = { mode };
+  if(mode==='ai'){
+    // bestehendes Event-Datum behalten, falls es noch in der Zukunft liegt, sonst nächstes passendes Datum ab heute setzen
+    updates.eventDate = (weekDayEventDate[wd] && weekDayEventDate[wd]>=currentDate) ? weekDayEventDate[wd] : nextOccurrenceDate(wd, currentDate);
+  }
+  await saveWeekVersionRow(wd, updates);
   render();
 }
 
 /* sign = -1 beim Verbrauch (abgehakt), +1 beim Rückgängigmachen */
-async function adjustPantryForDish(dish, sign){
+async function adjustPantryForDish(dish, sign, ratio){
+  ratio = ratio || 1;
   for(const ing of dish.ingredients){
     const p = pantryItem(ing.name);
     if(!p) continue;
-    p.bestand = Math.round(((p.bestand + sign*(Number(ing.amount)||0)) + Number.EPSILON) * 100) / 100;
+    p.bestand = Math.round(((p.bestand + sign*ratio*(Number(ing.amount)||0)) + Number.EPSILON) * 100) / 100;
     await savePantryItem(p);
   }
 }
@@ -2438,6 +2472,10 @@ async function loadAll(){
       daySwaps = dsRecs.map(r=>({ id:r.id, date:r.fields.Date||'', slotId:r.fields.SlotId||'', dishName:r.fields.DishName||'' }));
     }catch(e){ console.warn('DaySwaps-Tabelle noch nicht vorhanden – lege sie in Airtable an (Felder: Date, SlotId, DishName).'); daySwaps = []; }
     try{
+      const psRecs = await atList('PortionSplits');
+      portionSplits = psRecs.map(r=>({ id:r.id, date:r.fields.Date||'', slotId:r.fields.SlotId||'', secondTime:r.fields.SecondTime||'' }));
+    }catch(e){ console.warn('PortionSplits-Tabelle noch nicht vorhanden – lege sie in Airtable an (Felder: Date, SlotId, SecondTime).'); portionSplits = []; }
+    try{
       const profRecs = await atList('Profile');
       if(profRecs[0]){
         profile = { id:profRecs[0].id, startWeight:Number(profRecs[0].fields.StartWeight)||profile.startWeight, goalWeight:Number(profRecs[0].fields.GoalWeight)||profile.goalWeight, stepsGoal:Number(profRecs[0].fields.StepsGoal)||profile.stepsGoal, kcalMax:Number(profRecs[0].fields.KcalMax)||profile.kcalMax, kcalMin:Number(profRecs[0].fields.KcalMin)||profile.kcalMin, fiberGoal:Number(profRecs[0].fields.FiberGoal)||profile.fiberGoal, proteinGoal:Number(profRecs[0].fields.ProteinGoal)||profile.proteinGoal, bmr:Number(profRecs[0].fields.Bmr)||profile.bmr, deficitWarnThreshold:Number(profRecs[0].fields.DeficitWarnThreshold)||profile.deficitWarnThreshold, fastGoalHours:Number(profRecs[0].fields.FastGoalHours)||profile.fastGoalHours };
@@ -2472,7 +2510,7 @@ async function loadAll(){
       });
       WEEKDAYS.forEach(wd=> weekPlanAI[wd].sort((a,b)=> a.time.localeCompare(b.time)));
     }catch(e){ console.warn('WeekPlanAI-Tabelle noch nicht vorhanden – lege sie in Airtable an (Felder: Weekday, Time, DishName).'); }
-    weekVersion = {}; weekVersionRecId = {}; weekDayContext = {}; weekDayNotes = {}; WEEKDAYS.forEach(wd=> weekVersion[wd]='original');
+    weekVersion = {}; weekVersionRecId = {}; weekDayContext = {}; weekDayNotes = {}; weekDayEventDate = {}; WEEKDAYS.forEach(wd=> weekVersion[wd]='original');
     try{
       const wvRecs = await atList('WeekVersion');
       wvRecs.forEach(r=>{
@@ -2481,10 +2519,11 @@ async function loadAll(){
           weekVersion[wd] = r.fields.Mode==='ai' ? 'ai' : 'original';
           weekVersionRecId[wd] = r.id;
           weekDayContext[wd] = r.fields.Context || '';
+          weekDayEventDate[wd] = r.fields.Date || '';
           try{ weekDayNotes[wd] = JSON.parse(r.fields.Notes || '[]'); }catch(e){ weekDayNotes[wd] = []; }
         }
       });
-    }catch(e){ console.warn('WeekVersion-Tabelle noch nicht vorhanden – lege sie in Airtable an (Felder: Weekday, Mode, Context, Notes). Ohne sie bleibt immer die Original-Version aktiv.'); }
+    }catch(e){ console.warn('WeekVersion-Tabelle noch nicht vorhanden – lege sie in Airtable an (Felder: Weekday, Mode, Context, Notes, Date). Ohne sie bleibt immer die Original-Version aktiv.'); }
     weekPlan = {}; WEEKDAYS.forEach(wd=> weekPlan[wd]=[]);
     wpRecs.forEach(r=>{
       const wd = r.fields.Weekday;
@@ -2515,13 +2554,22 @@ function renderSpecialDays(){
   if(!wrap || !badge) return;
   const todayWd = weekdayOf(currentDate);
   if(specialDaysExpanded[todayWd]===undefined) specialDaysExpanded[todayWd] = true; // heute standardmäßig aufgeklappt
-  const otherDays = WEEKDAYS.filter(wd=> wd!==todayWd && weekVersion[wd]==='ai' && (weekPlanAI[wd]||[]).length>0);
+  const tomorrow = addDays(currentDate, 1);
+  const tomorrowWd = weekdayOf(tomorrow);
+  // Vorschau auf morgen nur, wenn dafür konkret ein KI-Event an genau diesem Datum geplant ist
+  const showTomorrowPreview = weekVersion[tomorrowWd]==='ai' && weekDayEventDate[tomorrowWd]===tomorrow && (weekPlanAI[tomorrowWd]||[]).length>0;
+  const otherDays = showTomorrowPreview ? [tomorrowWd] : [];
   badge.style.display = otherDays.length ? 'inline-block' : 'none';
   badge.textContent = otherDays.length;
-  const displayDays = [todayWd, ...otherDays];
+  // Heute-Karte nur zeigen, wenn für heute überhaupt eine KI-Version existiert - sonst nichts anzeigen
+  // Heute-Karte nur zeigen, wenn das KI-Event-Datum wirklich heute ist (nicht nur irgendwann mal generiert und dann veraltet)
+  const showToday = weekDayEventDate[todayWd]===currentDate && (weekPlanAI[todayWd]||[]).length>0;
+  const displayDays = [...(showToday?[todayWd]:[]), ...otherDays];
+  if(displayDays.length===0){ wrap.innerHTML=''; return; }
   wrap.innerHTML = displayDays.map(wd=>{
     const isToday = wd===todayWd;
-    const isAiActive = weekVersion[wd]==='ai';
+    // "heute" zählt nur als KI-aktiv, wenn das Event exakt auf das aktuell angezeigte Datum fällt (einmalig, nicht wöchentlich)
+    const isAiActive = isToday ? isAiActiveForDate(wd, currentDate) : (weekVersion[wd]==='ai');
     const hasAiData = (weekPlanAI[wd]||[]).length>0;
     const context = weekDayContext[wd] || '';
     const label = context.trim() ? context.split(':')[0].trim().slice(0,40) : (isToday ? (isAiActive?'KI-Tag':'Original') : 'Besonderer Tag');
@@ -2530,7 +2578,7 @@ function renderSpecialDays(){
     const notes = weekDayNotes[wd] || [];
     return `<div class="special-day-card" data-wd="${wd}">
         <div class="special-day-head">
-          <span class="sd-title">${isToday?'Heute · ':''}${WEEKDAY_NAMES[wd]}: ${escapeAttr(label)}</span>
+          <span class="sd-title">${isToday?'Heute · ':'Morgen · '}${WEEKDAY_NAMES[wd]}: ${escapeAttr(label)}</span>
           <span>${expanded?'▲':'▼'}</span>
         </div>
         ${expanded?`<div class="special-day-detail">
@@ -2626,32 +2674,47 @@ function renderToday(){
     ffStatusEl.style.display = 'none';
   }
 
-  const resolvedSlots = slots.map(slot=>{
+  const resolvedSlots = [];
+  slots.forEach(slot=>{
     const swap = daySwaps.find(s=> s.date===currentDate && s.slotId===slot.id);
     const dish = dishByName(swap ? swap.dishName : slot.dishName);
-    const logHit = dayLogPlan.find(l=> l.slotId ? l.slotId===slot.id : (dish && l.name===dish.name && l.time===slot.time));
-    return { slot, swap, dish, logHit };
+    const split = portionSplits.find(s=> s.date===currentDate && s.slotId===slot.id);
+    if(split){
+      const id1 = slot.id+'__1', id2 = slot.id+'__2';
+      const logHit1 = dayLogPlan.find(l=> l.slotId===id1);
+      const logHit2 = dayLogPlan.find(l=> l.slotId===id2);
+      resolvedSlots.push({ slot:{...slot, id:id1, time:slot.time}, swap, dish, logHit:logHit1, split, half:1, baseSlotId:slot.id, ratio:0.5 });
+      resolvedSlots.push({ slot:{...slot, id:id2, time:split.secondTime||slot.time}, swap, dish, logHit:logHit2, split, half:2, baseSlotId:slot.id, ratio:0.5 });
+    }else{
+      const logHit = dayLogPlan.find(l=> l.slotId ? l.slotId===slot.id : (dish && l.name===dish.name && l.time===slot.time));
+      resolvedSlots.push({ slot, swap, dish, logHit, split:null, baseSlotId:slot.id, ratio:1 });
+    }
   });
+  resolvedSlots.sort((a,b)=> a.slot.time.localeCompare(b.slot.time));
 
   const planList = document.getElementById('planList');
-  planList.innerHTML = resolvedSlots.map(({slot, swap, dish, logHit})=>{
+  planList.innerHTML = resolvedSlots.map(({slot, swap, dish, logHit, split, half, baseSlotId, ratio})=>{
     if(!dish) return '';
     const checked = !!logHit;
     const score = dishFullnessScore(dish);
     const scoreBadge = score===null ? '' : `<span class="fullness-badge ${score>=50?'high':score>=25?'mid':'low'}">${score}</span>`;
-    return `<div class="food-row ${checked?'checked':''}" data-slotid="${slot.id}" data-dishname="${escapeAttr(dish.name)}">
-      <div class="food-main" data-time="${slot.time}" data-kcal="${effectiveKcal(dish)}" data-fiber="${effectiveFiber(dish)}" data-protein="${calculatedProtein(dish)}" data-loghit="${logHit?logHit.id:''}">
+    const kcalR = Math.round(effectiveKcal(dish)*ratio);
+    const fiberR = Math.round(effectiveFiber(dish)*ratio*10)/10;
+    const proteinR = Math.round(calculatedProtein(dish)*ratio*10)/10;
+    return `<div class="food-row ${checked?'checked':''} ${split?'split-half':''}" data-slotid="${slot.id}" data-baseslotid="${baseSlotId}" data-dishname="${escapeAttr(dish.name)}" data-ratio="${ratio}">
+      <div class="food-main" data-time="${slot.time}" data-kcal="${kcalR}" data-fiber="${fiberR}" data-protein="${proteinR}" data-loghit="${logHit?logHit.id:''}">
         <div class="check-ico">${checked?'✓':''}</div>
-        <div><p class="food-name">${escapeAttr(dish.name)} ${scoreBadge}</p>${swap?'<p class="food-time"><span class="swap-tag">getauscht</span></p>':''}</div>
-        <span class="food-kcal">${effectiveKcal(dish)} kcal<br><span class="food-fiber">${effectiveFiber(dish)} g Ballaststoffe</span></span>
+        <div><p class="food-name">${escapeAttr(dish.name)} ${scoreBadge}${split?`<span class="split-badge">${half}/2</span>`:''}</p>${swap?'<p class="food-time"><span class="swap-tag">getauscht</span></p>':''}</div>
+        <span class="food-kcal">${kcalR} kcal<br><span class="food-fiber">${fiberR} g Ballaststoffe</span></span>
       </div>
       <button class="info-btn" title="Zutaten anzeigen">ⓘ</button>
       <div class="ing-panel">
         <div class="ing-panel-body">
-          ${dish.ingredients.length ? dish.ingredients.map(i=>`<div class="ing-row"><span>${escapeAttr(i.name)}</span><span>${i.amount} ${i.unit}</span></div>`).join('') : '<span>Keine Zutaten hinterlegt.</span>'}
+          ${dish.ingredients.length ? dish.ingredients.map(i=>`<div class="ing-row"><span>${escapeAttr(i.name)}</span><span>${Math.round(i.amount*ratio*100)/100} ${i.unit}</span></div>`).join('') : '<span>Keine Zutaten hinterlegt.</span>'}
           ${buildFullnessTipHtml(dish, score)}
         </div>
         <button class="ing-swap-btn" title="Nur heute tauschen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 21l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></button>
+        ${!checked?`<button class="ing-swap-btn split-btn" title="${split?'Aufteilung bearbeiten':'Portion aufteilen'}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="3" x2="12" y2="21"/><path d="M5 8l-3 4 3 4"/><path d="M19 8l3 4-3 4"/></svg></button>`:''}
       </div>
     </div>`;
   }).join('');
@@ -2662,40 +2725,47 @@ function renderToday(){
     panel.classList.toggle('show', !open);
     btn.classList.toggle('open', !open);
   }));
-  planList.querySelectorAll('.ing-swap-btn').forEach(btn=> btn.addEventListener('click', e=>{
+  planList.querySelectorAll('.ing-swap-btn:not(.split-btn)').forEach(btn=> btn.addEventListener('click', e=>{
     e.stopPropagation();
     const row = btn.closest('.food-row');
-    openDaySwapModal(row.dataset.slotid);
+    openDaySwapModal(row.dataset.baseslotid);
+  }));
+  planList.querySelectorAll('.split-btn').forEach(btn=> btn.addEventListener('click', e=>{
+    e.stopPropagation();
+    const row = btn.closest('.food-row');
+    openPortionSplitModal(row.dataset.baseslotid);
   }));
   planList.querySelectorAll('.food-main').forEach(row=>{
     row.addEventListener('click', async ()=>{
       row.style.opacity = '0.5';
       const logHitId = row.dataset.loghit;
-      const dish = dishByName(row.closest('.food-row').dataset.dishname);
+      const foodRow = row.closest('.food-row');
+      const dish = dishByName(foodRow.dataset.dishname);
+      const ratio = Number(foodRow.dataset.ratio)||1;
       try{
         if(logHitId){
           await atDelete('LogEntries', logHitId);
           logEntries = logEntries.filter(l=>l.id!==logHitId);
-          if(dish) await adjustPantryForDish(dish, +1); // Abhaken rückgängig -> Bestand zurückbuchen
+          if(dish) await adjustPantryForDish(dish, +1, ratio); // Abhaken rückgängig -> Bestand zurückbuchen
         }else{
           const now = new Date();
           const checkedAt = String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
-          const slotId = row.closest('.food-row').dataset.slotid;
+          const slotId = foodRow.dataset.slotid;
           let rec, savedCheckedAt = checkedAt;
           try{
-            rec = await atCreate('LogEntries', { Date: currentDate, Type:'plan', Name: row.closest('.food-row').dataset.dishname, Kcal: Number(row.dataset.kcal), Fiber: Number(row.dataset.fiber), Protein: Number(row.dataset.protein), Time: row.dataset.time, CheckedAt: checkedAt, SlotId: slotId });
+            rec = await atCreate('LogEntries', { Date: currentDate, Type:'plan', Name: foodRow.dataset.dishname, Kcal: Number(row.dataset.kcal), Fiber: Number(row.dataset.fiber), Protein: Number(row.dataset.protein), Time: row.dataset.time, CheckedAt: checkedAt, SlotId: slotId });
           }catch(fieldErr){
             // Feld "CheckedAt" oder "SlotId" existiert in Airtable evtl. noch nicht -> ohne erneut versuchen, sonst geht das Abhaken komplett nicht
             try{
-              rec = await atCreate('LogEntries', { Date: currentDate, Type:'plan', Name: row.closest('.food-row').dataset.dishname, Kcal: Number(row.dataset.kcal), Fiber: Number(row.dataset.fiber), Protein: Number(row.dataset.protein), Time: row.dataset.time, CheckedAt: checkedAt });
+              rec = await atCreate('LogEntries', { Date: currentDate, Type:'plan', Name: foodRow.dataset.dishname, Kcal: Number(row.dataset.kcal), Fiber: Number(row.dataset.fiber), Protein: Number(row.dataset.protein), Time: row.dataset.time, CheckedAt: checkedAt });
             }catch(fieldErr2){
-              rec = await atCreate('LogEntries', { Date: currentDate, Type:'plan', Name: row.closest('.food-row').dataset.dishname, Kcal: Number(row.dataset.kcal), Fiber: Number(row.dataset.fiber), Protein: Number(row.dataset.protein), Time: row.dataset.time });
+              rec = await atCreate('LogEntries', { Date: currentDate, Type:'plan', Name: foodRow.dataset.dishname, Kcal: Number(row.dataset.kcal), Fiber: Number(row.dataset.fiber), Protein: Number(row.dataset.protein), Time: row.dataset.time });
               savedCheckedAt = '';
             }
             setStatus('Gespeichert (Feld "CheckedAt" oder "SlotId" fehlt noch in Airtable – bitte ergänzen)');
           }
-          logEntries.push({ id:rec.id, date:currentDate, type:'plan', name:row.closest('.food-row').dataset.dishname, kcal:Number(row.dataset.kcal), fiber:Number(row.dataset.fiber), protein:Number(row.dataset.protein), time:row.dataset.time, checkedAt:savedCheckedAt, slotId });
-          if(dish) await adjustPantryForDish(dish, -1); // gegessen -> Bestand verbrauchen
+          logEntries.push({ id:rec.id, date:currentDate, type:'plan', name:foodRow.dataset.dishname, kcal:Number(row.dataset.kcal), fiber:Number(row.dataset.fiber), protein:Number(row.dataset.protein), time:row.dataset.time, checkedAt:savedCheckedAt, slotId });
+          if(dish) await adjustPantryForDish(dish, -1, ratio); // gegessen -> Bestand verbrauchen
         }
       }catch(e){ console.error(e); setStatus('Fehler beim Speichern'); }
       if(dish) await computeShoppingNeeds(); // Bedarf für die nächsten 7 Tage neu prüfen
@@ -3095,6 +3165,7 @@ function renderWeek(){
         <button class="ver-btn ${!isAiActive?'active':''}" data-mode="original">Original</button>
         <button class="ver-btn ${isAiActive?'active':''}" data-mode="ai">🤖 KI</button>
       </div>
+      ${isAiActive && weekDayEventDate[wd] ? `<p class="section-note" style="margin:.2rem 0 .6rem;">${weekDayEventDate[wd]===currentDate?'Aktiv für heute':(weekDayEventDate[wd]>currentDate?'Geplant für '+fmtDate(weekDayEventDate[wd])+' (noch nicht aktiv)':'War geplant für '+fmtDate(weekDayEventDate[wd])+' (abgelaufen, aktuell inaktiv)')}</p>` : ''}
       <div class="day-metrics">
         <div class="metric-labels">
           <span class="${over?'over':''}">${dayTotal} / ${target} kcal</span>
@@ -3207,7 +3278,7 @@ function loadKiDayContext(wd){
 function initKiDayPicker(){
   const wrap = document.getElementById('kiDayPicker');
   if(!kiSelectedDay){ const jsDay = new Date().getDay(); kiSelectedDay = WEEKDAYS[jsDay===0?6:jsDay-1]; }
-  wrap.innerHTML = WEEKDAYS.map(wd=> `<button data-wd="${wd}" class="${wd===kiSelectedDay?'active':''}">${wd}</button>`).join('');
+  wrap.innerHTML = WEEKDAYS.map(wd=> `<button data-wd="${wd}" class="${wd===kiSelectedDay?'active':''}">${wd}<br><span class="ki-day-date">${fmtDate(nextOccurrenceDate(wd, currentDate))}</span></button>`).join('');
   wrap.querySelectorAll('button').forEach(b=> b.addEventListener('click', ()=>{ kiSelectedDay = b.dataset.wd; initKiDayPicker(); }));
   loadKiDayContext(kiSelectedDay);
 }
@@ -3389,7 +3460,7 @@ async function applyAiDayProposal(){
     newSlots.sort((a,b)=> a.time.localeCompare(b.time));
     weekPlanAI[wd] = newSlots;
     resyncPantryFromDishes();
-    await saveWeekVersionRow(wd, { mode:'ai', notes: aiDayProposal.notes||[] });
+    await saveWeekVersionRow(wd, { mode:'ai', notes: aiDayProposal.notes||[], eventDate: nextOccurrenceDate(wd, currentDate) });
     render();
     statusEl.textContent = WEEKDAY_NAMES[wd]+': KI-Version gespeichert und aktiv – Original bleibt unverändert (Umschalter im Wochenplan-Tab).';
     aiDayProposal = null;
@@ -3573,6 +3644,52 @@ document.getElementById('daySwapReset').addEventListener('click', async ()=>{
     renderToday();
   }
   document.getElementById('daySwapModalBg').classList.remove('open');
+});
+
+let portionSplitSlotId = null;
+function openPortionSplitModal(slotId){
+  portionSplitSlotId = slotId;
+  const wd = weekdayOf(currentDate);
+  const slot = activeSlots(wd).find(s=>s.id===slotId);
+  if(!slot) return;
+  const existing = portionSplits.find(s=> s.date===currentDate && s.slotId===slotId);
+  document.getElementById('portionSplitLabel').textContent = `"${slot.dishName}" (${slot.time}) in 2 gleiche Hälften aufteilen – nur für ${fmtDate(currentDate)}`;
+  // Vorschlag: 2h nach der ursprünglichen Zeit, als zweite Portion
+  let defaultTime = existing ? existing.secondTime : null;
+  if(!defaultTime){
+    const [h,m] = slot.time.split(':').map(Number);
+    const suggested = Math.min(23, h+2);
+    defaultTime = String(suggested).padStart(2,'0')+':'+String(m).padStart(2,'0');
+  }
+  document.getElementById('portionSplitTime').value = defaultTime;
+  document.getElementById('portionSplitRemove').style.display = existing ? 'inline-flex' : 'none';
+  document.getElementById('portionSplitModalBg').classList.add('open');
+}
+document.getElementById('portionSplitCancel').addEventListener('click', ()=> document.getElementById('portionSplitModalBg').classList.remove('open'));
+document.getElementById('portionSplitConfirm').addEventListener('click', async ()=>{
+  const secondTime = document.getElementById('portionSplitTime').value;
+  if(!secondTime){ document.getElementById('portionSplitModalBg').classList.remove('open'); return; }
+  const existing = portionSplits.find(s=> s.date===currentDate && s.slotId===portionSplitSlotId);
+  try{
+    if(existing){
+      await atUpdate('PortionSplits', existing.id, { SecondTime: secondTime });
+      existing.secondTime = secondTime;
+    }else{
+      const rec = await atCreate('PortionSplits', { Date: currentDate, SlotId: portionSplitSlotId, SecondTime: secondTime });
+      portionSplits.push({ id:rec.id, date:currentDate, slotId:portionSplitSlotId, secondTime });
+    }
+    renderToday();
+  }catch(e){ console.error(e); setStatus('PortionSplits-Tabelle prüfen (Felder: Date, SlotId, SecondTime) – '+(e.message||'Fehler beim Aufteilen')); }
+  document.getElementById('portionSplitModalBg').classList.remove('open');
+});
+document.getElementById('portionSplitRemove').addEventListener('click', async ()=>{
+  const existing = portionSplits.find(s=> s.date===currentDate && s.slotId===portionSplitSlotId);
+  if(existing){
+    try{ await atDelete('PortionSplits', existing.id); }catch(e){ console.error(e); }
+    portionSplits = portionSplits.filter(s=>s.id!==existing.id);
+    renderToday();
+  }
+  document.getElementById('portionSplitModalBg').classList.remove('open');
 });
 
 /* dish library */
@@ -4085,6 +4202,16 @@ window.debugDay = function(dateStr){
 };
 console.log('%cTipp: debugDay() in der Konsole zeigt alle Uhrzeiten von gestern, debugDay("YYYY-MM-DD") für ein bestimmtes Datum.', 'color:#888;');
 
+// Pinch-to-Zoom blockieren (zusätzlich zu user-scalable=no im viewport-meta, das iOS teils ignoriert)
+document.addEventListener('gesturestart', e=> e.preventDefault());
+document.addEventListener('gesturechange', e=> e.preventDefault());
+document.addEventListener('touchmove', e=>{ if(e.touches.length>1) e.preventDefault(); }, { passive:false });
+let lastTouchEnd = 0;
+document.addEventListener('touchend', e=>{
+  const now = Date.now();
+  if(now - lastTouchEnd <= 300) e.preventDefault(); // Doppel-Tap-Zoom
+  lastTouchEnd = now;
+}, false);
 
 loadAll();
 </script>

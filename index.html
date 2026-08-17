@@ -52,6 +52,9 @@ h2.section{font-family:'Fraunces',serif;font-weight:600;font-size:18px;margin:1.
 .snack-chip.orange{background:var(--mustard-bg);border-color:var(--mustard);color:#8A5A17;}
 .snack-manage-row{display:flex;align-items:center;justify-content:space-between;padding:8px 11px;background:var(--card);border:1px solid var(--line);border-radius:10px;margin-bottom:6px;}
 .snack-manage-row button{border:none;background:none;color:var(--coral);cursor:pointer;font-size:13px;}
+.snack-fav-btn{color:var(--mustard)!important;font-size:16px!important;margin-right:6px;}
+.snack-fav-btn.active{color:var(--mustard)!important;}
+.snack-fav-btn:not(.active){color:var(--line)!important;}
 
 .kcal-box{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:1.1rem 1.25rem;margin-bottom:1.2rem;}
 .stat-card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:1.1rem 1.2rem;margin-bottom:.8rem;display:flex;gap:14px;align-items:flex-start;}
@@ -2483,8 +2486,18 @@ function renderSnackManage(){
   wrap.innerHTML = withKcal.sort((a,b)=>a.kcal-b.kcal).map(s=>`
     <div class="snack-manage-row" data-id="${s.id}">
       <span class="pantry-name">${escapeAttr(s.name)}${s.amt!==1?` <span class="pantry-hint">×${s.amt}</span>`:''} <span class="pantry-hint">${s.kcal} kcal</span></span>
-      <button class="snack-del-btn">Entfernen</button>
+      <span>
+        <button class="snack-fav-btn ${s.favorite?'active':''}" title="${s.favorite?'Favorit – erscheint im Heute-Tab':'Kein Favorit – im Heute-Tab ausgeblendet'}">${s.favorite?'★':'☆'}</button>
+        <button class="snack-del-btn">Entfernen</button>
+      </span>
     </div>`).join('');
+  wrap.querySelectorAll('.snack-fav-btn').forEach(btn=> btn.addEventListener('click', async e=>{
+    const id = e.target.closest('.snack-manage-row').dataset.id;
+    const s = snacks.find(x=>x.id===id); if(!s) return;
+    s.favorite = !s.favorite;
+    try{ await atUpdate('Snacks', id, { Favorite: s.favorite }); }catch(err){ console.error(err); setStatus('Snacks-Tabelle: Feld "Favorite" (Checkbox) fehlt noch – bitte ergänzen.'); }
+    renderSnackManage();
+  }));
   wrap.querySelectorAll('.snack-del-btn').forEach(btn=> btn.addEventListener('click', async e=>{
     const id = e.target.closest('.snack-manage-row').dataset.id;
     try{ await atDelete('Snacks', id); }catch(err){ console.error(err); }
@@ -2546,7 +2559,7 @@ async function loadAll(){
     }catch(e){ console.warn('ShoppingNeeds-Tabelle noch nicht vorhanden – lege sie in Airtable an (Felder: Name, Amount, Unit, Status, BoughtAmount).'); shoppingNeeds = []; }
     try{
       const snRecs = await atList('Snacks');
-      snacks = snRecs.map(r=>({ id:r.id, name:r.fields.Name||'', kcal:Number(r.fields.Kcal)||0, amount:Number(r.fields.Amount)||1, source: r.fields.Source==='dish' ? 'dish' : 'pantry' }));
+      snacks = snRecs.map(r=>({ id:r.id, name:r.fields.Name||'', kcal:Number(r.fields.Kcal)||0, amount:Number(r.fields.Amount)||1, source: r.fields.Source==='dish' ? 'dish' : 'pantry', favorite: !!r.fields.Favorite }));
     }catch(e){ console.warn('Snacks-Tabelle noch nicht vorhanden – lege sie in Airtable an (Felder: Name, Amount, Kcal, Source).'); snacks = []; }
     try{
       const dsRecs = await atList('DaySwaps');
@@ -2931,7 +2944,7 @@ function renderToday(){
 /* Snack-Chips: grün passt ins Budget, orange bis 100 kcal drüber, mehr wird ausgeblendet */
 function renderSnackChips(remaining){
   const wrap = document.getElementById('snackChips');
-  const resolved = snacks.map(s=>{
+  const resolved = snacks.filter(s=> s.favorite).map(s=>{
     const amt = s.amount||1;
     const src = s.source==='dish' ? dishByName(s.name) : pantryItem(s.name);
     const kcal = src ? Math.round(s.source==='dish' ? effectiveKcal(src)*amt : nutrientContribution({unit:src.unit, amount:amt}, src.kcalPerUnit)) : (s.kcal||0);
@@ -2940,7 +2953,7 @@ function renderSnackChips(remaining){
     return { id:s.id, name: s.name+(amt!==1?` ×${amt}`:''), kcal, fiber, protein };
   });
   const visible = resolved.filter(s=> s.kcal <= remaining + 100);
-  if(!visible.length){ wrap.innerHTML = '<p class="section-note">Keine Snacks passend zum Rest-Budget – im Vorrat-Tab welche anlegen.</p>'; return; }
+  if(!visible.length){ wrap.innerHTML = '<p class="section-note">Keine Favoriten-Snacks passend zum Rest-Budget – im Vorrat-Tab welche markieren (★).</p>'; return; }
   wrap.innerHTML = [...visible].sort((a,b)=>a.kcal-b.kcal).map(s=>{
     const color = s.kcal <= remaining ? 'green' : 'orange';
     return `<button class="snack-chip ${color}" data-id="${s.id}" data-name="${escapeAttr(s.name)}" data-kcal="${s.kcal}" data-fiber="${s.fiber}" data-protein="${s.protein}">${escapeAttr(s.name)} · ${s.kcal} kcal</button>`;

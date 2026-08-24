@@ -352,6 +352,13 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
 .ds-val{margin:0;font-family:'IBM Plex Mono',monospace;font-size:21px;font-weight:500;}
 .ds-sub{margin:4px 0 0;font-size:11.5px;color:var(--ink-soft);}
 .chart-label{font-size:13px;font-weight:500;color:var(--ink-soft);margin:0 0 .6rem;}
+.adherence-row{display:flex;align-items:center;gap:10px;padding:8px 2px;border-bottom:1px solid var(--line);}
+.adherence-row:last-child{border-bottom:none;}
+.adherence-wd{font-family:'Fraunces',serif;font-weight:600;font-size:13px;color:var(--ink);width:32px;flex-shrink:0;}
+.adherence-track{flex:1;height:8px;background:var(--bg);border-radius:4px;overflow:hidden;}
+.adherence-fill{height:100%;border-radius:4px;}
+.adherence-ratio{font-size:12px;font-weight:600;width:38px;text-align:right;flex-shrink:0;}
+.adherence-extra{font-size:11px;color:var(--ink-soft);width:70px;text-align:right;flex-shrink:0;}
 .chart-wrap{position:relative;width:100%;height:200px;margin-bottom:1.6rem;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:.8rem;box-sizing:border-box;}
 .rhythm-chart{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:.9rem 1rem;margin-bottom:1.6rem;}
 .rhythm-axis{display:flex;margin-bottom:6px;}
@@ -439,6 +446,23 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
 .fullness-badge.high{background:#E4EDDD;color:var(--olive-dark);}
 .fullness-badge.low{background:var(--coral-bg);color:var(--coral);}
 .no-si-badge{display:inline-block;font-size:10px;color:var(--ink-soft);margin-left:3px;cursor:help;}
+.nova-badge{display:inline-block;font-size:9.5px;font-weight:600;border-radius:20px;padding:1px 6px;margin-left:4px;vertical-align:middle;}
+.nova-badge.ok{background:#E4EDDD;color:var(--olive-dark);}
+.nova-badge.bad{background:var(--coral-bg);color:var(--coral);}
+.processed-card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:.85rem 1.1rem;margin-bottom:1rem;cursor:pointer;}
+.processed-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.6rem;}
+.processed-title{font-size:14px;font-weight:600;color:var(--ink);margin:0 0 2px;}
+.processed-note{font-size:11.5px;color:var(--ink-soft);margin:0;}
+.processed-pct{font-family:'Fraunces',serif;font-weight:600;font-size:22px;color:var(--coral);}
+.processed-pct.good{color:var(--olive);}
+.processed-bar-track{position:relative;height:8px;background:var(--bg);border-radius:4px;overflow:visible;}
+.processed-bar-fill{height:100%;width:0%;background:var(--coral);border-radius:4px;transition:width .5s ease-out;}
+.processed-bar-fill.good{background:var(--olive);}
+.processed-bar-goal{position:absolute;left:90%;top:-4px;width:1px;height:16px;background:var(--ink-soft);}
+.processed-detail{margin-top:.8rem;padding-top:.7rem;border-top:1px solid var(--line);}
+.processed-item-row{display:flex;justify-content:space-between;font-size:13px;padding:4px 0;}
+.processed-item-row.bad{color:var(--coral);}
+.processed-item-row .pi-tag{font-size:10px;font-weight:600;background:var(--coral-bg);color:var(--coral);border-radius:20px;padding:1px 6px;margin-left:6px;}
 .pantry-hint{margin:0;font-size:11px;color:var(--ink-soft);}
 .pantry-fields{display:flex;gap:8px;flex-shrink:0;}
 .pantry-field{display:flex;flex-direction:column;align-items:center;}
@@ -552,6 +576,17 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
         <p class="ff-status-title" id="deficitStatusTitle"></p>
         <p class="ff-status-sub" id="deficitStatusSub"></p>
       </div>
+    </div>
+    <div class="processed-card" id="processedCard">
+      <div class="processed-head" id="processedHead">
+        <div>
+          <p class="processed-title">Unverarbeitet-Anteil</p>
+          <p class="processed-note">Ziel: min. 90% deiner geplanten kcal heute</p>
+        </div>
+        <span class="processed-pct" id="processedPct">–</span>
+      </div>
+      <div class="processed-bar-track"><div class="processed-bar-fill" id="processedBarFill"></div><div class="processed-bar-goal"></div></div>
+      <div class="processed-detail" id="processedDetail" style="display:none;"></div>
     </div>
     <div id="planList"></div>
 
@@ -672,6 +707,8 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
     <p class="section-label">Bestand &amp; Mindestbestand pro Zutat – wird beim Abhaken in "Heute" automatisch verbraucht</p>
     <button class="btn primary" id="estimateSatietyBtn" style="margin-bottom:.6rem;">🤖 Sättigungsindex per KI schätzen</button>
     <p class="section-note" id="estimateSatietyStatus"></p>
+    <button class="btn primary" id="estimateNovaBtn" style="margin-bottom:.6rem;">🤖 Verarbeitungsgrad per KI schätzen</button>
+    <p class="section-note" id="estimateNovaStatus"></p>
     <div id="pantryList"></div>
 
     <h2 class="section">Neue Zutat anlegen</h2>
@@ -854,6 +891,9 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
     </div>
     <div id="routineGrid" class="routine-grid"></div>
 
+    <p class="chart-label" style="margin-top:1.4rem;">Plantreue, letzte 7 Tage</p>
+    <div id="adherenceList"></div>
+
     <p class="chart-label">Trinken, letzte 7 Tage</p>
     <div class="chart-wrap"><canvas id="waterChart" role="img" aria-label="Getrunkene Liter pro Tag, letzte 7 Tage"></canvas></div>
 
@@ -1032,6 +1072,12 @@ async function atUpdate(table, id, fields){
 async function atDelete(table, id){
   const res = await fetch(`${AT_URL(table)}/${id}`, { method:'DELETE', headers: AT_HEADERS });
   if(!res.ok) throw new Error('Airtable-Fehler beim Löschen in '+table);
+}
+/* LogEntries anlegen mit Source-Feld (snack/manual/quick) - fällt automatisch ohne Source zurück,
+   falls die Spalte in Airtable noch nicht existiert, damit das Loggen nie komplett fehlschlägt. */
+async function atCreateLogEntry(fields){
+  try{ return await atCreate('LogEntries', fields); }
+  catch(e){ const { Source, ...rest } = fields; return await atCreate('LogEntries', rest); }
 }
 
 const UNITS = ['g','ml','TL','EL','Stück','Dose'];
@@ -1700,6 +1746,39 @@ function renderScoreCard(){
   } else scoreEmpty('Fast');
 }
 
+/* Plantreue eines Tages: wie viele geplante Wochenplan-Gerichte wurden abgehakt, plus Anzahl Extras nach Quelle */
+function computePlanAdherence(dateStr){
+  const wd = weekdayOf(dateStr);
+  const slots = activeSlots(wd);
+  const dayLogPlan = logEntries.filter(l=> l.date===dateStr && l.type==='plan');
+  let doneCount = 0;
+  slots.forEach(slot=>{
+    const hit = dayLogPlan.find(l=> l.slotId===slot.id || l.slotId===slot.id+'__1' || l.slotId===slot.id+'__2' || (!l.slotId && l.name===slot.dishName && l.time===slot.time));
+    if(hit) doneCount++;
+  });
+  const extras = logEntries.filter(l=> l.date===dateStr && l.type==='extra');
+  const snackCount = extras.filter(l=> l.source==='snack').length;
+  const manualCount = extras.length - snackCount;
+  return { planned: slots.length, done: doneCount, snackCount, manualCount, pct: slots.length>0 ? Math.round(doneCount/slots.length*100) : null };
+}
+function renderAdherence(){
+  const wrap = document.getElementById('adherenceList');
+  if(!wrap) return;
+  const today = todayStr();
+  const days = []; for(let i=6;i>=0;i--) days.push(addDays(today,-i));
+  wrap.innerHTML = days.map(d=>{
+    const a = computePlanAdherence(d);
+    const pct = a.pct===null ? 0 : a.pct;
+    const color = a.planned===0 ? 'var(--line)' : pct>=80 ? 'var(--olive)' : pct>=40 ? 'var(--mustard)' : 'var(--coral)';
+    const ratioText = a.planned>0 ? a.done+'/'+a.planned : '–';
+    return `<div class="adherence-row">
+        <span class="adherence-wd">${weekdayOf(d)}</span>
+        <div class="adherence-track"><div class="adherence-fill" style="width:${pct}%;background:${color};"></div></div>
+        <span class="adherence-ratio" style="color:${color};">${ratioText}</span>
+        <span class="adherence-extra">${a.manualCount}E · ${a.snackCount}S</span>
+      </div>`;
+  }).join('');
+}
 function renderDashboard(){
   const muted = '#5C6B52', grid = '#D8E0CC';
   Chart.defaults.color = muted;
@@ -1708,6 +1787,7 @@ function renderDashboard(){
   renderGoalCard();
   renderScoreCard();
   renderRoutineDashboard();
+  renderAdherence();
 
   /* Kcal-Guthaben: dauerhaft aufsummiert, nur Tage mit echten Einträgen, heute zählt noch nicht */
   const ghTarget = targets[activeTarget];
@@ -2091,7 +2171,7 @@ async function adjustPantryForDish(dish, sign, ratio){
 function syncPantry(pRecs){
   const byName = new Map();
   pRecs.forEach(r=> byName.set((r.fields.Name||'').trim().toLowerCase(),
-    { id:r.id, name:r.fields.Name||'', unit:r.fields.Unit||'', bestand:Number(r.fields.Bestand)||0, mindestbestand:Number(r.fields.Mindestbestand)||0, ignore: !!r.fields.Ignore, kcalPerUnit:Number(r.fields.KcalPerUnit)||0, fiberPerUnit:Number(r.fields.FiberPerUnit)||0, proteinPerUnit:Number(r.fields.ProteinPerUnit)||0, satietyIndex: (r.fields.SatietyIndex!==undefined && r.fields.SatietyIndex!==null && r.fields.SatietyIndex!=='') ? Number(r.fields.SatietyIndex) : null }));
+    { id:r.id, name:r.fields.Name||'', unit:r.fields.Unit||'', bestand:Number(r.fields.Bestand)||0, mindestbestand:Number(r.fields.Mindestbestand)||0, ignore: !!r.fields.Ignore, kcalPerUnit:Number(r.fields.KcalPerUnit)||0, fiberPerUnit:Number(r.fields.FiberPerUnit)||0, proteinPerUnit:Number(r.fields.ProteinPerUnit)||0, satietyIndex: (r.fields.SatietyIndex!==undefined && r.fields.SatietyIndex!==null && r.fields.SatietyIndex!=='') ? Number(r.fields.SatietyIndex) : null, novaGroup: (r.fields.NovaGroup!==undefined && r.fields.NovaGroup!==null && r.fields.NovaGroup!=='') ? Number(r.fields.NovaGroup) : null }));
   const seen = new Set();
   const merged = [];
   dishes.forEach(d=> d.ingredients.forEach(ing=>{
@@ -2099,7 +2179,7 @@ function syncPantry(pRecs){
     if(!key || seen.has(key)) return;
     seen.add(key);
     const existing = byName.get(key);
-    merged.push(existing || { id:null, name: ing.name.trim(), unit: ing.unit||'', bestand:0, mindestbestand:0, ignore:false, kcalPerUnit:0, fiberPerUnit:0, proteinPerUnit:0, satietyIndex:null });
+    merged.push(existing || { id:null, name: ing.name.trim(), unit: ing.unit||'', bestand:0, mindestbestand:0, ignore:false, kcalPerUnit:0, fiberPerUnit:0, proteinPerUnit:0, satietyIndex:null, novaGroup:null });
   }));
   // Eigenständige Zutaten (z.B. manuell im Vorrat angelegt, in keinem Gericht als Zutat verwendet) nicht verwerfen
   byName.forEach((item, key)=>{ if(!seen.has(key)){ seen.add(key); merged.push(item); } });
@@ -2131,7 +2211,7 @@ function resyncPantryFromDishes(){
       if(ing.unit && existing.unit !== ing.unit){ existing.unit = ing.unit; savePantryItem(existing).catch(err=>{ console.error(err); setStatus(err.message); }); }
       merged.push(existing);
     }else{
-      merged.push({ id:null, name: ing.name.trim(), unit: ing.unit||'', bestand:0, mindestbestand:0, ignore:false, kcalPerUnit:0, fiberPerUnit:0, proteinPerUnit:0, satietyIndex:null });
+      merged.push({ id:null, name: ing.name.trim(), unit: ing.unit||'', bestand:0, mindestbestand:0, ignore:false, kcalPerUnit:0, fiberPerUnit:0, proteinPerUnit:0, satietyIndex:null, novaGroup:null });
     }
   }));
   // Eigenständige Zutaten (nicht in einem Gericht verwendet, z.B. manuell im Vorrat angelegt) beibehalten
@@ -2145,7 +2225,7 @@ function pantryItem(name){
 }
 async function savePantryItem(p){
   // "Ignore" ist in Airtable ein Single-Select mit der einzigen Option "checked" (kein echtes Checkbox-Feld) -> kein Boolean, sondern Text bzw. null
-  const fields = { Bestand:p.bestand, Mindestbestand:p.mindestbestand, Unit:p.unit, KcalPerUnit:p.kcalPerUnit, FiberPerUnit:p.fiberPerUnit, ProteinPerUnit:p.proteinPerUnit, Ignore: p.ignore ? 'checked' : null, SatietyIndex: p.satietyIndex };
+  const fields = { Bestand:p.bestand, Mindestbestand:p.mindestbestand, Unit:p.unit, KcalPerUnit:p.kcalPerUnit, FiberPerUnit:p.fiberPerUnit, ProteinPerUnit:p.proteinPerUnit, Ignore: p.ignore ? 'checked' : null, SatietyIndex: p.satietyIndex, NovaGroup: p.novaGroup };
   try{
     if(!p.id){
       if(!p._creating){
@@ -2157,17 +2237,17 @@ async function savePantryItem(p){
     }
     if(p.id) await atUpdate('Pantry', p.id, fields);
   }catch(e){
-    // Feld "SatietyIndex" existiert in Airtable evtl. noch nicht -> ohne erneut versuchen, sonst geht Speichern komplett nicht
-    const { SatietyIndex, ...fieldsWithoutSatiety } = fields;
+    // Felder "SatietyIndex"/"NovaGroup" existieren in Airtable evtl. noch nicht -> ohne erneut versuchen, sonst geht Speichern komplett nicht
+    const { SatietyIndex, NovaGroup, ...fieldsWithoutNew } = fields;
     if(!p.id){
       if(!p._creating){
-        p._creating = atCreate('Pantry', { Name:p.name, ...fieldsWithoutSatiety })
+        p._creating = atCreate('Pantry', { Name:p.name, ...fieldsWithoutNew })
           .then(rec=>{ p.id = rec.id; p._creating = null; })
           .catch(e2=>{ p._creating = null; throw e2; });
       }
       await p._creating;
     }
-    if(p.id) await atUpdate('Pantry', p.id, fieldsWithoutSatiety);
+    if(p.id) await atUpdate('Pantry', p.id, fieldsWithoutNew);
   }
 }
 /* kcal/Ballaststoffe pro Einheit -> tatsächlicher Beitrag für eine gegebene Zutatmenge.
@@ -2223,6 +2303,56 @@ function dishFullnessScore(dish){
   const proteinPer100kcal = (protein/kcal)*100;
   const fiberPer100kcal = (fiber/kcal)*100;
   return Math.max(0, Math.min(100, Math.round(proteinPer100kcal*3 + fiberPer100kcal*2)));
+}
+
+/* ===== Verarbeitungsgrad (NOVA-Klassifikation: 1=unverarbeitet/minimal, 2=verarbeitete Kochzutaten
+   wie Öl/Salz/Zucker, 3=verarbeitete Lebensmittel, 4=ultra-verarbeitet). Selbstgekocht aus unverarbeiteten
+   Zutaten zählt weiterhin als 1-2, auch wenn gekocht/gebraten wurde - entscheidend sind die ZUTATEN, nicht
+   die Zubereitung. Für den 90%-Ziel-Wert zählen NOVA 1+2 als "ok", 3+4 als "nicht ok". ===== */
+/* kcal-gewichteter Durchschnitts-NovaGroup eines Gerichts aus seinen Zutaten. null wenn keine Zutat einen Wert hat. */
+function dishNovaGroup(dish){
+  let weighted = 0, base = 0;
+  (dish.ingredients||[]).forEach(ing=>{
+    const p = pantryItem(ing.name);
+    if(!p || p.novaGroup==null) return;
+    const kcalC = nutrientContribution(ing, p.kcalPerUnit);
+    if(kcalC>0){ weighted += p.novaGroup*kcalC; base += kcalC; }
+  });
+  return base>0 ? weighted/base : null;
+}
+/* NovaGroup für einen kompletten Log-Eintrag (Gericht ODER direkt geloggte Vorrats-Zutat als Extra) */
+function entryNovaGroup(entry){
+  const dish = dishByName(entry.name);
+  if(dish) return dishNovaGroup(dish);
+  const p = pantryItem(entry.name);
+  return (p && p.novaGroup!=null) ? p.novaGroup : null;
+}
+/* Tagesauswertung: % der kcal (nur unter den klassifizierten Positionen) aus NOVA 1+2, für den GANZEN geplanten Tag
+   (alle Gerichte aus dem aktiven Wochenplan von heute, egal ob schon abgehakt) + bereits geloggte Extras.
+   So ist sofort sichtbar, ob der Tagesplan die 90% schafft, nicht erst nachdem alles gegessen wurde. */
+function computeProcessedStats(dateStr){
+  const wd = weekdayOf(dateStr);
+  const items = [];
+  activeSlots(wd).forEach(slot=>{
+    const dish = dishByName(slot.dishName);
+    if(!dish) return;
+    items.push({ name: dish.name, kcal: Math.round(effectiveKcal(dish)), group: dishNovaGroup(dish) });
+  });
+  logEntries.filter(l=> l.date===dateStr && l.type==='extra').forEach(l=>{
+    items.push({ name: l.name, kcal: l.kcal||0, group: entryNovaGroup(l) });
+  });
+  let okKcal = 0, badKcal = 0, classifiedKcal = 0, totalKcal = 0;
+  const flagged = [];
+  items.forEach(it=>{
+    totalKcal += it.kcal;
+    if(it.group==null) return;
+    classifiedKcal += it.kcal;
+    if(it.group>=2.5){ badKcal += it.kcal; flagged.push({ name:it.name, kcal:it.kcal }); }
+    else{ okKcal += it.kcal; }
+  });
+  const pct = classifiedKcal>0 ? Math.round(okKcal/classifiedKcal*100) : null;
+  flagged.sort((a,b)=> b.kcal-a.kcal);
+  return { pct, okKcal, badKcal, classifiedKcal, totalKcal, flagged, entries: items };
 }
 
 /* Zeigt bis zu 2 Gerichte mit ähnlicher kcal-Zahl (±30%), aber höherem Fullness-Score, zum Vergleich */
@@ -2287,6 +2417,7 @@ function pantryRowHtml(p, i){
   const score = pantryFullness100(p);
   const scoreBadge = score===null ? '' : `<span class="fullness-badge ${ffTier(score)}">${ff10(score)}/10</span>`;
   const noSatietyIndex = p.satietyIndex==null;
+  const novaBadge = p.novaGroup==null ? '' : `<span class="nova-badge ${p.novaGroup>=2.5?'bad':'ok'}" title="NOVA-Verarbeitungsgrad ${p.novaGroup>=3?'(verarbeitet/ultra-verarbeitet)':'(unverarbeitet/minimal)'}">N${p.novaGroup}</span>`;
   const open = !!pantryExpanded[p.name];
   const isG = p.unit==='g'||p.unit==='ml';
   const unitLabel = unitAbbr(p.unit);
@@ -2312,7 +2443,7 @@ function pantryRowHtml(p, i){
   return `
     <div class="p-card ${p.bestand<p.mindestbestand?'low':''}" data-i="${i}">
       <div class="p-row">
-        <div class="p-name-wrap"><p class="p-name">${escapeAttr(p.name)} ${scoreBadge}${(noSatietyIndex && score!==null)?'<span class="no-si-badge" title="Kein KI-Sättigungsindex, nur aus Protein/Ballaststoffen geschätzt">~</span>':''}</p></div>
+        <div class="p-name-wrap"><p class="p-name">${escapeAttr(p.name)} ${scoreBadge}${(noSatietyIndex && score!==null)?'<span class="no-si-badge" title="Kein KI-Sättigungsindex, nur aus Protein/Ballaststoffen geschätzt">~</span>':''}${novaBadge}</p></div>
         <div class="p-mini"><label>Best.${unitLabel?` (${unitLabel})`:''}</label><input type="number" step="any" class="pf-bestand" value="${p.bestand}"></div>
         <div class="p-mini"><label>Min.${unitLabel?` (${unitLabel})`:''}</label><input type="number" step="any" class="pf-min" value="${p.mindestbestand}"></div>
         <button type="button" class="p-cart-btn" title="Zur Einkaufsliste hinzufügen (Menge: Mindestbestand)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.5 3h2l2.6 12.9a2 2 0 0 0 2 1.6h8.8a2 2 0 0 0 2-1.6L22 7H6"/></svg></button>
@@ -2543,12 +2674,27 @@ async function loadAll(){
     ]);
     dishes = dishRecs.map(r=>({ id:r.id, name:r.fields.Name||'', kcal:Number(r.fields.Kcal)||0, fiber:Number(r.fields.Fiber)||0,
       ingredients: (()=>{ try{ return JSON.parse(r.fields.Ingredients||'[]'); }catch(e){ return []; } })() }));
+    // Alle weiteren, voneinander unabhängigen Tabellen gleichzeitig anfragen statt nacheinander zu warten - spart bei
+    // vielen Tabellen deutlich Ladezeit, weil die Netzwerk-Requests parallel statt sequentiell laufen.
+    const pantryP = atList('Pantry').catch(()=>null);
+    const shoppingP = atList('ShoppingNeeds').catch(()=>null);
+    const snacksP = atList('Snacks').catch(()=>null);
+    const daySwapsP = atList('DaySwaps').catch(()=>null);
+    const portionSplitsP = atList('PortionSplits').catch(()=>null);
+    const profileP = atList('Profile').catch(()=>null);
+    const bonusP = atList('Bonus').catch(()=>null);
+    const bonusLogP = atList('BonusLog').catch(()=>null);
+    const routineTasksP = atList('RoutineTasks').catch(()=>null);
+    const routineLogP = atList('RoutineLog').catch(()=>null);
+    const dayBoundsP = atList('DayBounds').catch(()=>null);
+    const weekPlanAIP = atList('WeekPlanAI').catch(()=>null);
+    const weekVersionP = atList('WeekVersion').catch(()=>null);
     let pRecs = [];
-    try{ pRecs = await atList('Pantry'); }
-    catch(e){ console.warn('Pantry-Tabelle noch nicht vorhanden – lege sie in Airtable an (Felder: Name, Bestand, Mindestbestand, Unit).'); }
+    try{ pRecs = await pantryP; if(pRecs===null) throw new Error('missing'); }
+    catch(e){ pRecs = []; console.warn('Pantry-Tabelle noch nicht vorhanden – lege sie in Airtable an (Felder: Name, Bestand, Mindestbestand, Unit).'); }
     syncPantry(pRecs);
     try{
-      const nRecs = await atList('ShoppingNeeds');
+      const nRecs = await shoppingP; if(nRecs===null) throw new Error('missing');
       shoppingNeeds = nRecs.map(r=>({ id:r.id, name:r.fields.Name||'', unit:r.fields.Unit||'', amount:Number(r.fields.Amount)||0, status:r.fields.Status||'offen', boughtAmount:Number(r.fields.BoughtAmount)||0 }));
       // Aufräumen: alte "gekauft"-Karteileichen aus der Zeit vor dem Bugfix (wurden nie gelöscht, nur markiert) einmalig entfernen
       const stalePurchased = shoppingNeeds.filter(s=> s.status==='gekauft');
@@ -2558,46 +2704,46 @@ async function loadAll(){
       }
     }catch(e){ console.warn('ShoppingNeeds-Tabelle noch nicht vorhanden – lege sie in Airtable an (Felder: Name, Amount, Unit, Status, BoughtAmount).'); shoppingNeeds = []; }
     try{
-      const snRecs = await atList('Snacks');
+      const snRecs = await snacksP; if(snRecs===null) throw new Error('missing');
       snacks = snRecs.map(r=>({ id:r.id, name:r.fields.Name||'', kcal:Number(r.fields.Kcal)||0, amount:Number(r.fields.Amount)||1, source: r.fields.Source==='dish' ? 'dish' : 'pantry', favorite: !!r.fields.Favorite }));
     }catch(e){ console.warn('Snacks-Tabelle noch nicht vorhanden – lege sie in Airtable an (Felder: Name, Amount, Kcal, Source).'); snacks = []; }
     try{
-      const dsRecs = await atList('DaySwaps');
+      const dsRecs = await daySwapsP; if(dsRecs===null) throw new Error('missing');
       daySwaps = dsRecs.map(r=>({ id:r.id, date:r.fields.Date||'', slotId:r.fields.SlotId||'', dishName:r.fields.DishName||'' }));
     }catch(e){ console.warn('DaySwaps-Tabelle noch nicht vorhanden – lege sie in Airtable an (Felder: Date, SlotId, DishName).'); daySwaps = []; }
     try{
-      const psRecs = await atList('PortionSplits');
+      const psRecs = await portionSplitsP; if(psRecs===null) throw new Error('missing');
       portionSplits = psRecs.map(r=>({ id:r.id, date:r.fields.Date||'', slotId:r.fields.SlotId||'', secondTime:r.fields.SecondTime||'' }));
     }catch(e){ console.warn('PortionSplits-Tabelle noch nicht vorhanden – lege sie in Airtable an (Felder: Date, SlotId, SecondTime).'); portionSplits = []; }
     try{
-      const profRecs = await atList('Profile');
+      const profRecs = await profileP; if(profRecs===null) throw new Error('missing');
       if(profRecs[0]){
         profile = { id:profRecs[0].id, startWeight:Number(profRecs[0].fields.StartWeight)||profile.startWeight, goalWeight:Number(profRecs[0].fields.GoalWeight)||profile.goalWeight, stepsGoal:Number(profRecs[0].fields.StepsGoal)||profile.stepsGoal, kcalMax:Number(profRecs[0].fields.KcalMax)||profile.kcalMax, kcalMin:Number(profRecs[0].fields.KcalMin)||profile.kcalMin, fiberGoal:Number(profRecs[0].fields.FiberGoal)||profile.fiberGoal, proteinGoal:Number(profRecs[0].fields.ProteinGoal)||profile.proteinGoal, bmr:Number(profRecs[0].fields.Bmr)||profile.bmr, deficitWarnThreshold:Number(profRecs[0].fields.DeficitWarnThreshold)||profile.deficitWarnThreshold, fastGoalHours:Number(profRecs[0].fields.FastGoalHours)||profile.fastGoalHours, height:Number(profRecs[0].fields.Height)||profile.height, age:Number(profRecs[0].fields.Age)||profile.age, sex: profRecs[0].fields.Sex==='w' ? 'w' : 'm' };
       }
     }catch(e){ console.warn('Profile-Tabelle noch nicht vorhanden – lege sie in Airtable an (Felder: StartWeight, GoalWeight, StepsGoal, KcalMax, FiberGoal). Nutze bis dahin Standardwerte.'); }
     try{
-      const bRecs = await atList('Bonus');
+      const bRecs = await bonusP; if(bRecs===null) throw new Error('missing');
       bonusItems = bRecs.map(r=>({ id:r.id, name:r.fields.Name||'', kcal:Number(r.fields.Kcal)||0 }));
     }catch(e){ console.warn('Bonus-Tabelle noch nicht vorhanden – lege sie in Airtable an (Felder: Name, Kcal).'); bonusItems = []; }
     try{
-      const blRecs = await atList('BonusLog');
+      const blRecs = await bonusLogP; if(blRecs===null) throw new Error('missing');
       bonusLog = blRecs.map(r=>({ id:r.id, date:r.fields.Date, name:r.fields.Name, kcal:Number(r.fields.Kcal)||0 }));
     }catch(e){ console.warn('BonusLog-Tabelle noch nicht vorhanden – lege sie in Airtable an (Felder: Date, Name, Kcal).'); bonusLog = []; }
     try{
-      const rtRecs = await atList('RoutineTasks');
+      const rtRecs = await routineTasksP; if(rtRecs===null) throw new Error('missing');
       routineTasks = rtRecs.map(r=>({ id:r.id, name:r.fields.Name||'' }));
     }catch(e){ console.warn('RoutineTasks-Tabelle noch nicht vorhanden – lege sie in Airtable an (Feld: Name).'); routineTasks = []; }
     try{
-      const rlRecs = await atList('RoutineLog');
+      const rlRecs = await routineLogP; if(rlRecs===null) throw new Error('missing');
       routineLog = rlRecs.map(r=>({ id:r.id, date:r.fields.Date||'', taskName:r.fields.TaskName||'' }));
     }catch(e){ console.warn('RoutineLog-Tabelle noch nicht vorhanden – lege sie in Airtable an (Felder: Date, TaskName).'); routineLog = []; }
     try{
-      const dbRecs = await atList('DayBounds');
+      const dbRecs = await dayBoundsP; if(dbRecs===null) throw new Error('missing');
       dayBounds = dbRecs.map(r=>({ id:r.id, date:r.fields.Date||'', startTag:r.fields.StartTag||'', endTag:r.fields.EndTag||'' }));
     }catch(e){ console.warn('DayBounds-Tabelle noch nicht vorhanden – lege sie in Airtable an (Felder: Date, StartTag, EndTag). Start/Ende-Tag funktioniert erst danach.'); dayBounds = []; }
     weekPlanAI = {}; WEEKDAYS.forEach(wd=> weekPlanAI[wd]=[]);
     try{
-      const wpaRecs = await atList('WeekPlanAI');
+      const wpaRecs = await weekPlanAIP; if(wpaRecs===null) throw new Error('missing');
       wpaRecs.forEach(r=>{
         const wd = r.fields.Weekday;
         if(weekPlanAI[wd]) weekPlanAI[wd].push({ id:r.id, time:r.fields.Time||'12:00', dishName:r.fields.DishName||'' });
@@ -2606,7 +2752,7 @@ async function loadAll(){
     }catch(e){ console.warn('WeekPlanAI-Tabelle noch nicht vorhanden – lege sie in Airtable an (Felder: Weekday, Time, DishName).'); }
     weekVersion = {}; weekVersionRecId = {}; weekDayContext = {}; weekDayNotes = {}; weekDayEventDate = {}; WEEKDAYS.forEach(wd=> weekVersion[wd]='original');
     try{
-      const wvRecs = await atList('WeekVersion');
+      const wvRecs = await weekVersionP; if(wvRecs===null) throw new Error('missing');
       wvRecs.forEach(r=>{
         const wd = r.fields.Weekday;
         if(wd){
@@ -2625,7 +2771,7 @@ async function loadAll(){
     });
     WEEKDAYS.forEach(wd=> weekPlan[wd].sort((a,b)=> a.time.localeCompare(b.time)));
     await migrateSlotTimesToHours();
-    logEntries = logRecs.map(r=>({ id:r.id, date:r.fields.Date, type:r.fields.Type, name:r.fields.Name, kcal:Number(r.fields.Kcal)||0, fiber:Number(r.fields.Fiber)||0, protein:Number(r.fields.Protein)||0, ml:Number(r.fields.Ml)||0, time:r.fields.Time||'', checkedAt:r.fields.CheckedAt||'', slotId:r.fields.SlotId||'' }));
+    logEntries = logRecs.map(r=>({ id:r.id, date:r.fields.Date, type:r.fields.Type, name:r.fields.Name, kcal:Number(r.fields.Kcal)||0, fiber:Number(r.fields.Fiber)||0, protein:Number(r.fields.Protein)||0, ml:Number(r.fields.Ml)||0, time:r.fields.Time||'', checkedAt:r.fields.CheckedAt||'', slotId:r.fields.SlotId||'', source:r.fields.Source||'' }));
     water = logEntries.filter(l=> l.type==='water').map(l=>({ id:l.id, date:l.date, ml:l.ml, time:l.time }));
     weights = wRecs.map(r=>({ id:r.id, date:r.fields.Date, kg:Number(r.fields.Kg)||0, time:r.fields.Time||'' }));
     profile.bmr = calcBmr(); // Grundumsatz automatisch aus aktuellstem Gewicht + Größe/Alter/Geschlecht neu berechnen
@@ -2707,6 +2853,34 @@ function renderSpecialDays(){
 }
 
 /* ================= TODAY ================= */
+let processedExpanded = false;
+function renderProcessedCard(){
+  const card = document.getElementById('processedCard');
+  if(!card) return;
+  const stats = computeProcessedStats(currentDate);
+  card.style.display = 'block';
+  const good = stats.pct!==null && stats.pct>=90;
+  const pctEl = document.getElementById('processedPct');
+  pctEl.textContent = stats.pct===null ? '–' : stats.pct+'%';
+  pctEl.classList.toggle('good', good);
+  const fillEl = document.getElementById('processedBarFill');
+  fillEl.classList.toggle('good', good);
+  requestAnimationFrame(()=>{ fillEl.style.width = (stats.pct||0)+'%'; });
+  const detailEl = document.getElementById('processedDetail');
+  detailEl.style.display = processedExpanded ? 'block' : 'none';
+  if(processedExpanded){
+    const rows = stats.entries.map(it=>{
+      const isBad = it.group!==null && it.group>=2.5;
+      return `<div class="processed-item-row ${isBad?'bad':''}"><span>${escapeAttr(it.name)}${isBad?'<span class="pi-tag">verarbeitet</span>':''}${it.group===null?'<span class="pi-tag" style="background:var(--line);color:var(--ink-soft);">unklassifiziert</span>':''}</span><span>${it.kcal} kcal</span></div>`;
+    }).join('');
+    detailEl.innerHTML = rows || '<p class="section-note" style="margin:0;">Für heute noch nichts geplant.</p>';
+  }
+}
+document.getElementById('processedCard').addEventListener('click', ()=>{
+  processedExpanded = !processedExpanded;
+  renderProcessedCard();
+});
+
 function renderToday(){
   const wd = weekdayOf(currentDate);
 
@@ -2932,6 +3106,7 @@ function renderToday(){
   deficitEl.className = 'ff-status '+dTier;
   document.getElementById('deficitStatusTitle').textContent = dTitle;
   document.getElementById('deficitStatusSub').textContent = dSub;
+  renderProcessedCard();
 
   renderSnackChips(remaining);
 
@@ -2963,8 +3138,8 @@ function renderSnackChips(remaining){
     const now = new Date();
     const time = String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
     try{
-      const rec = await atCreate('LogEntries', { Date: currentDate, Type:'extra', Name:name, Kcal:kcal, Fiber:fiber, Protein:protein, Time:time });
-      logEntries.push({ id:rec.id, date:currentDate, type:'extra', name, kcal, fiber, protein, time });
+      const rec = await atCreateLogEntry({ Date: currentDate, Type:'extra', Name:name, Kcal:kcal, Fiber:fiber, Protein:protein, Time:time, Source:'snack' });
+      logEntries.push({ id:rec.id, date:currentDate, type:'extra', name, kcal, fiber, protein, time, source:'snack' });
       renderToday();
     }catch(e){ setStatus('Fehler beim Speichern'); }
   }));
@@ -2987,8 +3162,8 @@ function renderExtraPickList(){
     const time = String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
     const kcal = effectiveKcal(dish), fiber = effectiveFiber(dish), protein = calculatedProtein(dish);
     try{
-      const rec = await atCreate('LogEntries', { Date: currentDate, Type:'extra', Name:dish.name, Kcal:kcal, Fiber:fiber, Protein:protein, Time:time });
-      logEntries.push({ id:rec.id, date:currentDate, type:'extra', name:dish.name, kcal, fiber, protein, time });
+      const rec = await atCreateLogEntry({ Date: currentDate, Type:'extra', Name:dish.name, Kcal:kcal, Fiber:fiber, Protein:protein, Time:time, Source:'manual' });
+      logEntries.push({ id:rec.id, date:currentDate, type:'extra', name:dish.name, kcal, fiber, protein, time, source:'manual' });
       document.getElementById('extraModalBg').classList.remove('open');
       renderToday();
     }catch(e){ setStatus('Fehler beim Speichern'); }
@@ -3098,13 +3273,13 @@ document.getElementById('quickSaveBtn').addEventListener('click', async ()=>{
       const fields = { Name:dishName, Kcal:0, Fiber:0, Ingredients: JSON.stringify(ingredients) };
       const rec = await atCreate('Dishes', fields);
       dishes.push({ id:rec.id, name:dishName, kcal:0, fiber:0, ingredients });
-      const logRec = await atCreate('LogEntries', { Date: currentDate, Type:'extra', Name:dishName, Kcal:totals.kcal, Fiber:totals.fiber, Protein:totals.protein, Time:time });
-      logEntries.push({ id:logRec.id, date:currentDate, type:'extra', name:dishName, kcal:totals.kcal, fiber:totals.fiber, protein:totals.protein, time });
+      const logRec = await atCreateLogEntry({ Date: currentDate, Type:'extra', Name:dishName, Kcal:totals.kcal, Fiber:totals.fiber, Protein:totals.protein, Time:time, Source:'quick' });
+      logEntries.push({ id:logRec.id, date:currentDate, type:'extra', name:dishName, kcal:totals.kcal, fiber:totals.fiber, protein:totals.protein, time, source:'quick' });
       resyncPantryFromDishes();
     }else{
       const name = quickSelected.map(s=>s.name).join(', ');
-      const rec = await atCreate('LogEntries', { Date: currentDate, Type:'extra', Name:name, Kcal:totals.kcal, Fiber:totals.fiber, Protein:totals.protein, Time:time });
-      logEntries.push({ id:rec.id, date:currentDate, type:'extra', name, kcal:totals.kcal, fiber:totals.fiber, protein:totals.protein, time });
+      const rec = await atCreateLogEntry({ Date: currentDate, Type:'extra', Name:name, Kcal:totals.kcal, Fiber:totals.fiber, Protein:totals.protein, Time:time, Source:'quick' });
+      logEntries.push({ id:rec.id, date:currentDate, type:'extra', name, kcal:totals.kcal, fiber:totals.fiber, protein:totals.protein, time, source:'quick' });
     }
     document.getElementById('quickEatModalBg').classList.remove('open');
     render();
@@ -3501,6 +3676,52 @@ Antworte AUSSCHLIESSLICH mit gültigem, einzeiligem JSON in diesem Format, keine
     }
     statusEl.textContent = updated+' Zutaten mit Sättigungsindex versehen, '+noIndex+' ohne verlässliche Schätzung (fallen zurück auf die alte Formel).';
     renderPantry();
+  }catch(err){
+    console.error(err);
+    statusEl.textContent = 'Fehler: '+err.message;
+  }finally{
+    btn.disabled = false;
+  }
+});
+document.getElementById('estimateNovaBtn').addEventListener('click', async ()=>{
+  const statusEl = document.getElementById('estimateNovaStatus');
+  const btn = document.getElementById('estimateNovaBtn');
+  const items = pantry.filter(p=> p.kcalPerUnit>0);
+  if(!items.length){ statusEl.textContent = 'Keine Zutaten mit hinterlegten kcal gefunden.'; return; }
+  btn.disabled = true;
+  statusEl.textContent = 'Claude schätzt den Verarbeitungsgrad für '+items.length+' Zutaten…';
+  try{
+    const list = items.map(p=> `- ${p.name}`).join('\n');
+    const prompt = `Du bist Ernährungswissenschaftler. Klassifiziere jede der folgenden Lebensmittel-Zutaten nach der NOVA-Klassifikation (Monteiro et al.) in eine der 4 Gruppen:
+1 = unverarbeitet oder minimal verarbeitet (z.B. frisches Gemüse, Obst, Fleisch, Fisch, Eier, Milch, Naturjoghurt, Haferflocken, Kartoffeln, Reis, Hülsenfrüchte, TK-Gemüse ohne Zusätze)
+2 = verarbeitete Kochzutaten (z.B. Öl, Butter, Salz, Zucker, Mehl, Essig)
+3 = verarbeitete Lebensmittel (z.B. Käse, Brot vom Bäcker, Konserven in Salzlake/Öl, geräucherter Fisch)
+4 = ultra-verarbeitet (z.B. Fertigprodukte, Softdrinks, Chips, Wurstwaren mit vielen Zusatzstoffen, Süßigkeiten, Fertig-Snackriegel, Instant-Produkte)
+
+Wichtig: Es geht NUR um die Zutat selbst, nicht um spätere Zubereitung - selbstgekochte/gebratene Gerichte aus Gruppe-1/2-Zutaten bleiben Gruppe 1/2, auch wenn gekocht wurde.
+
+Zutaten:
+${list}
+
+Falls du eine Zutat nicht einordnen kannst (z.B. unklarer Name), lasse "group" weg oder setze null.
+
+Antworte AUSSCHLIESSLICH mit gültigem, einzeiligem JSON in diesem Format, keine Erklärung, kein Markdown:
+{"items":[{"name":"Kartoffeln","group":1},{"name":"Linsenwaffeln (Aldi)","group":4}]}`;
+    const raw = await callClaudeApi(prompt);
+    const parsed = parseAiJson(raw);
+    if(!Array.isArray(parsed.items)) throw new Error('Antwort enthält kein "items"-Array.');
+    let updated = 0, noGroup = 0;
+    for(const entry of parsed.items){
+      const p = pantryItem(entry.name);
+      if(!p) continue;
+      const g = (entry.group===null||entry.group===undefined) ? null : Number(entry.group);
+      p.novaGroup = (g && g>=1 && g<=4) ? g : null;
+      if(p.novaGroup===null) noGroup++; else updated++;
+      try{ await savePantryItem(p); }catch(e){ console.error(e); }
+    }
+    statusEl.textContent = updated+' Zutaten klassifiziert, '+noGroup+' ohne verlässliche Einordnung.';
+    renderPantry();
+    render();
   }catch(err){
     console.error(err);
     statusEl.textContent = 'Fehler: '+err.message;

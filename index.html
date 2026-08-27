@@ -30,6 +30,8 @@ h2.section{font-family:'Fraunces',serif;font-weight:600;font-size:18px;margin:1.
 .water-dd-btns{display:flex;gap:6px;}
 .water-dd-btns .qbtn{flex:1;padding:.55rem;border-radius:9px;border:1px solid var(--line);background:#fff;color:var(--ink);font-size:12px;font-weight:500;cursor:pointer;}
 .water-dd-btns .qbtn:hover{background:var(--water-bg,#DCEAF0);}
+#teaBtn{border-radius:9px;border:1px solid var(--line);background:#fff;color:var(--ink);font-size:12px;font-weight:500;cursor:pointer;padding:.55rem;}
+#teaBtn.active{background:#E4EDDD;border-color:var(--olive);color:var(--olive-dark);}
 .tab{flex:1;text-align:center;padding:.7rem 0;font-size:14px;font-weight:500;color:var(--ink-soft);cursor:pointer;border-bottom:2px solid transparent;}
 .tab-icon{width:18px;height:18px;vertical-align:-4px;}
 .tab.active{color:var(--olive-dark);border-bottom-color:var(--olive);}
@@ -65,6 +67,9 @@ h2.section{font-family:'Fraunces',serif;font-weight:600;font-size:18px;margin:1.
 .gauge-legend{display:flex;justify-content:center;gap:16px;margin-top:.3rem;}
 .gauge-legend-row{display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--ink);font-family:'IBM Plex Mono',monospace;}
 .gauge-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.gauge-pace{font-family:'Inter',sans-serif;font-size:10px;font-weight:600;margin-left:auto;}
+.gauge-pace.ontrack{color:var(--olive);}
+.gauge-pace.behind{color:var(--coral);}
 .stat-icon{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 .stat-icon.kcal-icon{background:var(--coral-bg);}
 .stat-icon.fiber-icon{background:#E4EDDD;}
@@ -328,6 +333,14 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
 .field label{display:block;font-size:12.5px;color:var(--ink-soft);margin-bottom:3px;}
 .field input{width:100%;font-size:14px;border:1px solid var(--line);border-radius:8px;padding:7px 9px;background:#fff;color:var(--ink);}
 .add-ing-editor{font-family:'Inter',sans-serif;font-size:12.5px;color:var(--olive);background:transparent;border:1px dashed var(--olive);border-radius:7px;padding:4px 10px;cursor:pointer;margin:.3rem 0 .8rem;}
+.ref-list-toggle{display:flex;gap:6px;margin-bottom:.5rem;}
+.rl-btn{flex:1;font-family:'Inter',sans-serif;font-size:11.5px;font-weight:500;padding:.4rem;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer;}
+.rl-btn.active{background:var(--olive);border-color:var(--olive);color:#fff;}
+.ref-ing-list{max-height:160px;overflow-y:auto;border:1px solid var(--line);border-radius:8px;margin-bottom:.7rem;background:#fff;}
+.ref-ing-row{display:flex;justify-content:space-between;align-items:center;padding:6px 10px;font-size:12.5px;border-bottom:1px solid var(--line);cursor:pointer;}
+.ref-ing-row:last-child{border-bottom:none;}
+.ref-ing-row:hover{background:var(--bg);}
+.ref-ing-row .rir-val{color:var(--ink-soft);font-size:11.5px;}
 .placeholder{text-align:center;padding:3rem 1rem;color:var(--ink-soft);font-size:14px;}
 .dash-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:1.6rem;}
 .guthaben-card{border-radius:16px;padding:1.3rem 1.4rem;margin-bottom:1.6rem;color:#fff;background:linear-gradient(135deg, #6FA33F 0%, #C9862F 100%);box-shadow:0 6px 18px rgba(79,107,68,.25);position:relative;overflow:hidden;}
@@ -449,6 +462,10 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
 .nova-badge{display:inline-block;font-size:9.5px;font-weight:600;border-radius:20px;padding:1px 6px;margin-left:4px;vertical-align:middle;}
 .nova-badge.ok{background:#E4EDDD;color:var(--olive-dark);}
 .nova-badge.bad{background:var(--coral-bg);color:var(--coral);}
+.pantry-view-toggle{display:flex;gap:6px;margin:.2rem 0 .8rem;}
+.pvt-btn{flex:1;font-family:'Inter',sans-serif;font-size:12.5px;font-weight:500;padding:.4rem;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer;}
+.pvt-btn.active{background:var(--olive);border-color:var(--olive);color:#fff;}
+.p-nutri-inline{flex:1;font-size:12px;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .processed-card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:.85rem 1.1rem;margin-bottom:1rem;cursor:pointer;}
 .processed-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.6rem;}
 .processed-title{font-size:14px;font-weight:600;color:var(--ink);margin:0 0 2px;}
@@ -520,6 +537,7 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
       <button class="qbtn" data-ml="500">+ 500 ml</button>
       <button class="qbtn" data-ml="750">+ 750 ml</button>
     </div>
+    <button class="qbtn" id="teaBtn" style="width:100%;margin-top:6px;">🍵 Grüner Tee heute <span id="teaBtnState"></span></button>
   </div>
 
   <!-- TODAY -->
@@ -533,18 +551,17 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
         <line x1="110" y1="10" x2="110" y2="26" stroke="var(--line)" stroke-width="2"/>
         <line x1="202.4" y1="71.7" x2="187.6" y2="77.85" stroke="var(--line)" stroke-width="2"/>
         <line x1="180.7" y1="180.7" x2="169.4" y2="169.4" stroke="var(--line)" stroke-width="2"/>
-        <path d="M 46.4 173.6 A 90 90 0 1 1 173.6 173.6" fill="none" stroke="var(--coral-bg)" stroke-width="12" stroke-linecap="round"/>
-        <path id="gaugeKcalProgress" d="M 46.4 173.6 A 90 90 0 1 1 173.6 173.6" fill="none" stroke="var(--coral)" stroke-width="12" stroke-linecap="round"/>
-        <path d="M 64 156 A 65 65 0 1 1 156 156" fill="none" stroke="#E4EDDD" stroke-width="12" stroke-linecap="round"/>
-        <path id="gaugeFiberProgress" d="M 64 156 A 65 65 0 1 1 156 156" fill="none" stroke="var(--olive)" stroke-width="12" stroke-linecap="round"/>
+        <path d="M 46.4 173.6 A 90 90 0 1 1 173.6 173.6" fill="none" stroke="#E4EDDD" stroke-width="12" stroke-linecap="round"/>
+        <path id="gaugeFiberProgress" d="M 46.4 173.6 A 90 90 0 1 1 173.6 173.6" fill="none" stroke="var(--olive)" stroke-width="12" stroke-linecap="round"/>
+        <path d="M 64 156 A 65 65 0 1 1 156 156" fill="none" stroke="var(--coral-bg)" stroke-width="12" stroke-linecap="round"/>
+        <path id="gaugeProteinProgress" d="M 64 156 A 65 65 0 1 1 156 156" fill="none" stroke="var(--coral)" stroke-width="12" stroke-linecap="round"/>
         <path d="M 78.2 141.8 A 45 45 0 1 1 141.8 141.8" fill="none" stroke="var(--water-bg)" stroke-width="12" stroke-linecap="round"/>
         <path id="gaugeWaterProgress" d="M 78.2 141.8 A 45 45 0 1 1 141.8 141.8" fill="none" stroke="var(--water)" stroke-width="12" stroke-linecap="round"/>
-        <text x="110" y="118" text-anchor="middle" class="gauge-pct" id="gaugePct">0%</text>
       </svg>
       <div class="gauge-legend">
-        <div class="gauge-legend-row"><span class="gauge-dot" style="background:var(--coral);"></span><span id="gaugeKcalVal">0/1400 kcal</span></div>
-        <div class="gauge-legend-row"><span class="gauge-dot" style="background:var(--olive);"></span><span id="gaugeFiberVal">0/30 gBall</span></div>
-        <div class="gauge-legend-row"><span class="gauge-dot" style="background:var(--water);"></span><span id="gaugeWaterVal">0/0 mlWa</span></div>
+        <div class="gauge-legend-row"><span class="gauge-dot" style="background:var(--olive);"></span><span id="gaugeFiberVal">0/30 g Ballaststoffe</span></div>
+        <div class="gauge-legend-row"><span class="gauge-dot" style="background:var(--coral);"></span><span id="gaugeProteinVal">0/135 g Protein</span></div>
+        <div class="gauge-legend-row"><span class="gauge-dot" style="background:var(--water);"></span><span id="gaugeWaterVal">0/0 ml Trinken</span></div>
       </div>
     </div>
     <div id="todayContent">
@@ -562,7 +579,7 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
       </div>
     </div>
 
-    <p class="section-label">Dein <span id="planKcalTotal">0</span>-kcal-Plan (<span id="planFiberTotal">0</span> g Ball., Ø <span id="planFullnessTotal">–</span>/10 Fullness, <span id="planProteinTotal">0</span> g Prot.)</p>
+    <p class="section-label">Heute gesamt (Plan + Extras): <span id="planKcalTotal">0</span>/<span id="dayPlanKcal">0</span> kcal (<span id="planFiberTotal">0</span>/<span id="dayPlanFiber">0</span> g Ball., <span id="planProteinTotal">0</span>/<span id="dayPlanProtein">0</span> g Prot.) · Ø <span id="planFullnessTotal">–</span>/10 Fullness</p>
     <div class="ff-status" id="ffStatus" style="display:none;">
       <span class="dot"></span>
       <div class="ff-status-text">
@@ -709,6 +726,10 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
     <p class="section-note" id="estimateSatietyStatus"></p>
     <button class="btn primary" id="estimateNovaBtn" style="margin-bottom:.6rem;">🤖 Verarbeitungsgrad per KI schätzen</button>
     <p class="section-note" id="estimateNovaStatus"></p>
+    <div class="pantry-view-toggle" id="pantryViewToggle">
+      <button class="pvt-btn active" data-mode="menge">Menge</button>
+      <button class="pvt-btn" data-mode="naehrwerte">Nährwerte</button>
+    </div>
     <div id="pantryList"></div>
 
     <h2 class="section">Neue Zutat anlegen</h2>
@@ -1005,6 +1026,7 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
       <div class="fcol"><label>Kalorien (kcal)</label><input type="number" id="dishKcal"><p class="section-note" id="dishKcalCalc" style="margin:4px 0 0;"></p></div>
       <div class="fcol"><label>Ballaststoffe (g)</label><input type="number" step="any" id="dishFiber"><p class="section-note" id="dishFiberCalc" style="margin:4px 0 0;"></p></div>
     </div>
+    <p class="section-note" id="dishProteinCalc" style="margin:-8px 0 12px;"></p>
     <div class="field">
       <button type="button" id="copyPromptBtn" class="btn" style="white-space:nowrap;">📋 kcal + Ballaststoffe-Prompt erstellen</button>
       <button type="button" id="openChatGptBtn" class="btn" style="white-space:nowrap;margin-left:6px;">🔗 In ChatGPT öffnen</button>
@@ -1012,6 +1034,11 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
       <textarea id="promptOutput" style="display:none;width:100%;margin-top:6px;font-size:12.5px;font-family:'IBM Plex Mono',monospace;border:1px solid var(--line);border-radius:8px;padding:8px;background:#fff;color:var(--ink);" rows="7" readonly></textarea>
     </div>
     <label style="display:block;font-size:12.5px;color:var(--ink-soft);margin-bottom:6px;">Zutaten</label>
+    <div class="ref-list-toggle">
+      <button type="button" class="rl-btn" id="showFiberListBtn">🌾 Ballaststoff-reiche Zutaten</button>
+      <button type="button" class="rl-btn" id="showProteinListBtn">🥩 Protein-reiche Zutaten</button>
+    </div>
+    <div id="refIngList" class="ref-ing-list" style="display:none;"></div>
     <div id="dishIngredients"></div>
     <button class="add-ing-editor" id="dishAddIng">+ Zutat</button>
     <p class="section-note" id="gramSumNote" style="margin:2px 0 6px;"></p>
@@ -1410,6 +1437,24 @@ document.querySelectorAll('.water-dd-btns .qbtn').forEach(btn=> btn.addEventList
   await addWater(Number(btn.dataset.ml));
   document.getElementById('waterDropdown').classList.remove('open');
 }));
+function teaLoggedOn(dateStr){ return logEntries.some(l=> l.date===dateStr && l.type==='tea'); }
+async function toggleTea(){
+  const date = currentDate;
+  const existing = logEntries.find(l=> l.date===date && l.type==='tea');
+  try{
+    if(existing){
+      await atDelete('LogEntries', existing.id);
+      logEntries = logEntries.filter(l=>l.id!==existing.id);
+    }else{
+      const now = new Date();
+      const time = String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+      const rec = await atCreate('LogEntries', { Date: date, Type:'tea', Name:'Grüner Tee', Time: time });
+      logEntries.push({ id:rec.id, date, type:'tea', name:'Grüner Tee', kcal:0, fiber:0, protein:0, ml:0, time, checkedAt:'', slotId:'' });
+    }
+  }catch(e){ setStatus('Fehler beim Speichern (Tee)'); }
+  renderTodayTab(); renderToday();
+}
+document.getElementById('teaBtn').addEventListener('click', ()=> toggleTea());
 
 /* Trinkziel: ~32.5 ml pro kg Körpergewicht, auf Basis des letzten Gewichtseintrags */
 function waterGoalMl(){
@@ -1435,6 +1480,9 @@ function renderTodayTab(){
   const total = waterDayTotal(date);
   const goal = waterGoalMl();
   document.getElementById('waterDdLabel').textContent = (total/1000).toLocaleString('de-DE',{minimumFractionDigits:1})+' / '+(goal/1000).toLocaleString('de-DE',{minimumFractionDigits:1})+' L heute';
+  const teaOn = teaLoggedOn(currentDate);
+  document.getElementById('teaBtnState').textContent = teaOn ? '✓' : '';
+  document.getElementById('teaBtn').classList.toggle('active', teaOn);
 }
 
 /* ================= ROUTINE ================= */
@@ -2413,6 +2461,7 @@ function unitAbbr(u){
   return u==='Stück' ? 'Stk' : (u||'');
 }
 let pantryExpanded = {}; // { "Zutatname": true/false } rein lokal, nicht persistiert
+let pantryViewMode = 'menge'; // 'menge' | 'naehrwerte'
 function pantryRowHtml(p, i){
   const score = pantryFullness100(p);
   const scoreBadge = score===null ? '' : `<span class="fullness-badge ${ffTier(score)}">${ff10(score)}/10</span>`;
@@ -2421,12 +2470,13 @@ function pantryRowHtml(p, i){
   const open = !!pantryExpanded[p.name];
   const isG = p.unit==='g'||p.unit==='ml';
   const unitLabel = unitAbbr(p.unit);
+  const nutriInline = `<span class="p-nutri-inline">${p.kcalPerUnit} kcal${isG?'/100'+p.unit:''} · ${p.fiberPerUnit}g Ball. · ${p.proteinPerUnit}g Prot.</span>`;
   if(p.ignore){
     return `
     <div class="p-card ignored" data-i="${i}">
       <div class="p-row">
         <div class="p-name-wrap"><p class="p-name">${escapeAttr(p.name)}</p></div>
-        <span style="font-size:10.5px;color:var(--ink-soft);margin-right:4px;">nicht geprüft</span>
+        ${pantryViewMode==='naehrwerte' ? nutriInline : '<span style="font-size:10.5px;color:var(--ink-soft);margin-right:4px;">nicht geprüft</span>'}
         <button type="button" class="p-cart-btn" title="Zur Einkaufsliste hinzufügen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.5 3h2l2.6 12.9a2 2 0 0 0 2 1.6h8.8a2 2 0 0 0 2-1.6L22 7H6"/></svg></button>
         <button type="button" class="p-expand-btn ${open?'open':''}" title="Nährwerte prüfen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${open?'<path d="M18 15l-6-6-6 6"/>':'<path d="M6 9l6 6 6-6"/>'}</svg></button>
         <div class="toggle"><div class="knob"></div></div>
@@ -2440,12 +2490,14 @@ function pantryRowHtml(p, i){
       </div>
     </div>`;
   }
+  const mengeFields = `
+        <div class="p-mini"><label>Best.${unitLabel?` (${unitLabel})`:''}</label><input type="number" step="any" class="pf-bestand" value="${p.bestand}"></div>
+        <div class="p-mini"><label>Min.${unitLabel?` (${unitLabel})`:''}</label><input type="number" step="any" class="pf-min" value="${p.mindestbestand}"></div>`;
   return `
     <div class="p-card ${p.bestand<p.mindestbestand?'low':''}" data-i="${i}">
       <div class="p-row">
         <div class="p-name-wrap"><p class="p-name">${escapeAttr(p.name)} ${scoreBadge}${(noSatietyIndex && score!==null)?'<span class="no-si-badge" title="Kein KI-Sättigungsindex, nur aus Protein/Ballaststoffen geschätzt">~</span>':''}${novaBadge}</p></div>
-        <div class="p-mini"><label>Best.${unitLabel?` (${unitLabel})`:''}</label><input type="number" step="any" class="pf-bestand" value="${p.bestand}"></div>
-        <div class="p-mini"><label>Min.${unitLabel?` (${unitLabel})`:''}</label><input type="number" step="any" class="pf-min" value="${p.mindestbestand}"></div>
+        ${pantryViewMode==='naehrwerte' ? nutriInline : mengeFields}
         <button type="button" class="p-cart-btn" title="Zur Einkaufsliste hinzufügen (Menge: Mindestbestand)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.5 3h2l2.6 12.9a2 2 0 0 0 2 1.6h8.8a2 2 0 0 0 2-1.6L22 7H6"/></svg></button>
         <button type="button" class="p-expand-btn ${open?'open':''}" title="Nährwerte"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${open?'<path d="M18 15l-6-6-6 6"/>':'<path d="M6 9l6 6 6-6"/>'}</svg></button>
       </div>
@@ -2459,8 +2511,15 @@ function pantryRowHtml(p, i){
       </div>
     </div>`;
 }
+document.getElementById('pantryViewToggle').addEventListener('click', e=>{
+  const btn = e.target.closest('.pvt-btn');
+  if(!btn) return;
+  pantryViewMode = btn.dataset.mode;
+  renderPantry();
+});
 function renderPantry(){
   document.getElementById('newIngUnit').innerHTML = UNITS.map(u=>`<option value="${u}">${u}</option>`).join('');
+  document.querySelectorAll('.pvt-btn').forEach(b=> b.classList.toggle('active', b.dataset.mode===pantryViewMode));
   const wrap = document.getElementById('pantryList');
   if(!pantry.length){ wrap.innerHTML = '<p class="section-note">Noch keine Zutaten – lege zuerst ein paar Gerichte an.</p>'; return; }
   const active = pantry.map((p,i)=>({p,i})).filter(x=>!x.p.ignore);
@@ -2902,40 +2961,36 @@ function renderToday(){
   });
   const dayFullness = dayFullnessBase>0 ? Math.round(dayFullnessWeighted/dayFullnessBase) : null;
 
-  const planKcalTotal = slots.reduce((sum,slot)=>{
-    const swap = daySwaps.find(s=> s.date===currentDate && s.slotId===slot.id);
-    const dish = dishByName(swap ? swap.dishName : slot.dishName);
-    return sum + (dish ? effectiveKcal(dish) : 0);
-  }, 0);
-  const planFiberTotal = Math.round(slots.reduce((sum,slot)=>{
-    const swap = daySwaps.find(s=> s.date===currentDate && s.slotId===slot.id);
-    const dish = dishByName(swap ? swap.dishName : slot.dishName);
-    return sum + (dish ? effectiveFiber(dish) : 0);
-  }, 0)*10)/10;
-  const planProteinTotal = Math.round(slots.reduce((sum,slot)=>{
-    const swap = daySwaps.find(s=> s.date===currentDate && s.slotId===slot.id);
-    const dish = dishByName(swap ? swap.dishName : slot.dishName);
-    return sum + (dish ? effectiveProtein(dish) : 0);
-  }, 0)*10)/10;
+  let planKcalTotal = 0, planFiberTotalRaw = 0, planProteinTotalRaw = 0;
+  [...dayLogPlan, ...dayLogExtra].forEach(l=>{
+    planKcalTotal += l.kcal||0;
+    planFiberTotalRaw += l.fiber||0;
+    planProteinTotalRaw += l.protein||0;
+  });
+  const planFiberTotal = Math.round(planFiberTotalRaw*10)/10;
+  const planProteinTotal = Math.round(planProteinTotalRaw*10)/10;
   document.getElementById('planKcalTotal').textContent = planKcalTotal;
   document.getElementById('planFiberTotal').textContent = planFiberTotal.toLocaleString('de-DE',{minimumFractionDigits:1,maximumFractionDigits:1});
   document.getElementById('planProteinTotal').textContent = planProteinTotal.toLocaleString('de-DE',{minimumFractionDigits:1,maximumFractionDigits:1});
-  let planFullnessWeighted = 0, planFullnessBase = 0;
+  document.getElementById('planFullnessTotal').textContent = dayFullness===null ? '–' : ff10(dayFullness);
+  // Was laut Wochenplan für heute vorgesehen ist (unabhängig davon, ob schon abgehakt) - zum Vergleich neben "wirklich gegessen"
+  let dayPlanKcal = 0, dayPlanFiber = 0, dayPlanProtein = 0;
   slots.forEach(slot=>{
     const swap = daySwaps.find(s=> s.date===currentDate && s.slotId===slot.id);
     const dish = dishByName(swap ? swap.dishName : slot.dishName);
-    if(dish){ const s = dishFullnessScore(dish); const k = effectiveKcal(dish); if(s!==null){ planFullnessWeighted += s*k; planFullnessBase += k; } }
+    if(dish){ dayPlanKcal += effectiveKcal(dish); dayPlanFiber += effectiveFiber(dish); dayPlanProtein += effectiveProtein(dish); }
   });
-  const planFullness = planFullnessBase>0 ? Math.round(planFullnessWeighted/planFullnessBase) : null;
-  document.getElementById('planFullnessTotal').textContent = planFullness===null ? '–' : ff10(planFullness);
+  document.getElementById('dayPlanKcal').textContent = Math.round(dayPlanKcal);
+  document.getElementById('dayPlanFiber').textContent = (Math.round(dayPlanFiber*10)/10).toLocaleString('de-DE',{minimumFractionDigits:1,maximumFractionDigits:1});
+  document.getElementById('dayPlanProtein').textContent = (Math.round(dayPlanProtein*10)/10).toLocaleString('de-DE',{minimumFractionDigits:1,maximumFractionDigits:1});
   const ffStatusEl = document.getElementById('ffStatus');
-  if(planFullness!==null){
-    const tier = ffTier(planFullness);
+  if(dayFullness!==null){
+    const tier = ffTier(dayFullness);
     const title = tier==='high'||tier==='good' ? 'Guter Fullness-Tag' : tier==='mid' ? 'Mittlerer Fullness-Tag' : 'Eher niedriger Fullness-Tag';
     ffStatusEl.className = 'ff-status '+(tier==='high'?'good':tier);
     ffStatusEl.style.display = 'flex';
     document.getElementById('ffStatusTitle').textContent = title;
-    document.getElementById('ffStatusSub').textContent = ff10(planFullness)+'/10 Ø geplant – '+(tier==='high'?'sättigend, kein Anpassungsbedarf':tier==='mid'?'geht so, könnte sättigender sein':'heute wenig sättigend, Anpassung sinnvoll');
+    document.getElementById('ffStatusSub').textContent = ff10(dayFullness)+'/10 – '+(tier==='high'?'sättigend, kein Anpassungsbedarf':tier==='mid'?'geht so, könnte sättigender sein':'heute wenig sättigend, Anpassung sinnvoll');
   }else{
     ffStatusEl.style.display = 'none';
   }
@@ -3055,17 +3110,19 @@ function renderToday(){
     renderToday();
   }));
 
-  let total = 0, totalFiber = 0;
+  let total = 0, totalFiber = 0, totalProtein = 0;
   resolvedSlots.forEach(({slot, dish})=>{
     const hit = dayLogPlan.find(l=> l.slotId ? l.slotId===slot.id : (dish && l.name===dish.name && l.time===slot.time));
-    if(hit){ total += hit.kcal; totalFiber += hit.fiber||0; }
+    if(hit){ total += hit.kcal; totalFiber += hit.fiber||0; totalProtein += hit.protein||0; }
   });
-  dayLogExtra.forEach(e=>{ total += e.kcal; totalFiber += e.fiber||0; });
+  dayLogExtra.forEach(e=>{ total += e.kcal; totalFiber += e.fiber||0; totalProtein += e.protein||0; });
   const target = targets[activeTarget];
   const remaining = target-total;
-  const fiberTarget = 30;
+  const fiberTarget = profile.fiberGoal;
+  const proteinTarget = profile.proteinGoal;
   const waterTotal = waterDayTotal(currentDate);
   const waterTarget = waterGoalMl();
+  const teaOn = teaLoggedOn(currentDate);
 
   function setGaugeArc(id, fraction){
     const path = document.getElementById(id);
@@ -3073,15 +3130,12 @@ function renderToday(){
     path.style.strokeDasharray = len;
     path.style.strokeDashoffset = len * (1 - Math.max(0, Math.min(1, fraction)));
   }
-  setGaugeArc('gaugeKcalProgress', target>0 ? total/target : 0);
   setGaugeArc('gaugeFiberProgress', fiberTarget>0 ? totalFiber/fiberTarget : 0);
+  setGaugeArc('gaugeProteinProgress', proteinTarget>0 ? totalProtein/proteinTarget : 0);
   setGaugeArc('gaugeWaterProgress', waterTarget>0 ? waterTotal/waterTarget : 0);
-
-  const waterPct = waterTarget>0 ? Math.round((waterTotal/waterTarget)*100) : 0;
-  document.getElementById('gaugePct').textContent = waterPct+'%';
-  document.getElementById('gaugeKcalVal').textContent = total+'/'+target+' kcal';
-  document.getElementById('gaugeFiberVal').textContent = Math.round(totalFiber*10)/10+'/'+fiberTarget+' gBall';
-  document.getElementById('gaugeWaterVal').textContent = waterTotal+'/'+waterTarget+' mlWa';
+  document.getElementById('gaugeFiberVal').textContent = Math.round(totalFiber*10)/10+'/'+fiberTarget+' g Ballaststoffe';
+  document.getElementById('gaugeProteinVal').textContent = Math.round(totalProtein*10)/10+'/'+proteinTarget+' g Protein';
+  document.getElementById('gaugeWaterVal').textContent = waterTotal+'/'+waterTarget+' ml Trinken'+(teaOn?' · 🍵':'');
 
   const movementKcal = (steps.find(s=>s.date===currentDate)||{}).kcal || 0;
   const deficit = Math.round(profile.bmr + movementKcal - total);
@@ -4084,12 +4138,12 @@ function renderDishLibrary(){
     const items = withScore.filter(x=> x.score!==null && g.test(x.score)).sort((a,b)=> b.score-a.score);
     if(!items.length) return;
     html += `<p class="section-note" style="margin:1rem 0 .4rem;">${g.label}</p>`;
-    html += items.map(({d,score})=> `<div class="dish-lib-item"><div><span class="dl-name">${escapeAttr(d.name)}</span><span class="dl-kcal">${effectiveKcal(d)} kcal</span> <span class="fullness-badge ${g.key}">${ff10(score)}/10</span></div>
+    html += items.map(({d,score})=> `<div class="dish-lib-item"><div><span class="dl-name">${escapeAttr(d.name)}</span><span class="dl-kcal">${effectiveKcal(d)} kcal · ${Math.round(calculatedProtein(d)*10)/10}g Prot · ${Math.round(effectiveFiber(d)*10)/10}g Ball</span> <span class="fullness-badge ${g.key}">${ff10(score)}/10</span></div>
       <div class="dl-actions"><button data-act="edit" data-id="${d.id}">Bearbeiten</button><button data-act="del" data-id="${d.id}">Löschen</button></div></div>`).join('');
   });
   if(noScore.length){
     html += `<p class="section-note" style="margin:1rem 0 .4rem;">Ohne Score (kcal-Wert fehlt in der Pantry)</p>`;
-    html += noScore.map(d=> `<div class="dish-lib-item"><div><span class="dl-name">${escapeAttr(d.name)}</span><span class="dl-kcal">${effectiveKcal(d)} kcal</span></div>
+    html += noScore.map(d=> `<div class="dish-lib-item"><div><span class="dl-name">${escapeAttr(d.name)}</span><span class="dl-kcal">${effectiveKcal(d)} kcal · ${Math.round(calculatedProtein(d)*10)/10}g Prot · ${Math.round(effectiveFiber(d)*10)/10}g Ball</span></div>
       <div class="dl-actions"><button data-act="edit" data-id="${d.id}">Bearbeiten</button><button data-act="del" data-id="${d.id}">Löschen</button></div></div>`).join('');
   }
   wrap.innerHTML = html;
@@ -4138,6 +4192,8 @@ function openDishEditor(dish){
   editingDish = dish;
   const d = dish || { name:'', kcal:0, fiber:0, ingredients:[] };
   document.getElementById('dishModalTitle').textContent = dish ? 'Gericht bearbeiten' : 'Neues Gericht';
+  refListMode = null;
+  renderRefIngList();
   document.getElementById('dishName').value = d.name;
   document.getElementById('dishKcal').value = d.kcal;
   document.getElementById('dishFiber').value = d.fiber;
@@ -4190,6 +4246,28 @@ function setupIngredientAutocomplete(input, suggestBox, onPick){
     pick(items[Number(el.dataset.i)]);
   });
 }
+let refListMode = null; // 'fiber' | 'protein' | null
+function renderRefIngList(){
+  const wrap = document.getElementById('refIngList');
+  document.getElementById('showFiberListBtn').classList.toggle('active', refListMode==='fiber');
+  document.getElementById('showProteinListBtn').classList.toggle('active', refListMode==='protein');
+  if(!refListMode){ wrap.style.display = 'none'; return; }
+  wrap.style.display = 'block';
+  const sorted = pantry.filter(p=> p.kcalPerUnit>0).slice().sort((a,b)=>
+    refListMode==='fiber' ? b.fiberPerUnit-a.fiberPerUnit : b.proteinPerUnit-a.proteinPerUnit
+  ).slice(0,20);
+  const isG = p=> p.unit==='g'||p.unit==='ml';
+  wrap.innerHTML = sorted.map(p=>{
+    const val = refListMode==='fiber' ? p.fiberPerUnit : p.proteinPerUnit;
+    return `<div class="ref-ing-row" data-name="${escapeAttr(p.name)}" data-unit="${p.unit}"><span>${escapeAttr(p.name)}</span><span class="rir-val">${val} g${isG(p)?'/100'+p.unit:'/Stk'}</span></div>`;
+  }).join('') || '<div class="ref-ing-row"><span>Keine Zutaten mit Nährwerten im Vorrat.</span></div>';
+  wrap.querySelectorAll('.ref-ing-row[data-name]').forEach(row=> row.addEventListener('click', ()=>{
+    editorIngredients.push({ name: row.dataset.name, amount: row.dataset.unit==='g'||row.dataset.unit==='ml' ? 100 : 1, unit: row.dataset.unit });
+    renderEditorIngredients();
+  }));
+}
+document.getElementById('showFiberListBtn').addEventListener('click', ()=>{ refListMode = refListMode==='fiber' ? null : 'fiber'; renderRefIngList(); });
+document.getElementById('showProteinListBtn').addEventListener('click', ()=>{ refListMode = refListMode==='protein' ? null : 'protein'; renderRefIngList(); });
 function renderEditorIngredients(){
   const wrap = document.getElementById('dishIngredients');
   wrap.innerHTML = '';
@@ -4229,11 +4307,12 @@ function kcalFromGramIngredients(){
 }
 function updateDishCalcHint(){
   const tempDish = { ingredients: editorIngredients.filter(i=>i.name.trim()) };
-  const ck = calculatedKcal(tempDish), cf = calculatedFiber(tempDish);
+  const ck = calculatedKcal(tempDish), cf = calculatedFiber(tempDish), cp = calculatedProtein(tempDish);
   const manualKcal = Number(document.getElementById('dishKcal').value)||0;
   const manualFiber = Number(document.getElementById('dishFiber').value)||0;
   document.getElementById('dishKcalCalc').textContent = `berechnet: ${ck} kcal${manualKcal>0?' (dein Wert wird verwendet)':' (wird verwendet, da kein eigener Wert gesetzt)'}`;
   document.getElementById('dishFiberCalc').textContent = `berechnet: ${cf} g${manualFiber>0?' (dein Wert wird verwendet)':' (wird verwendet, da kein eigener Wert gesetzt)'}`;
+  document.getElementById('dishProteinCalc').textContent = `Protein (immer aus Zutaten berechnet): ${cp} g`;
 
   const over = ck > GRAM_TARGET;
   const noteEl = document.getElementById('gramSumNote');

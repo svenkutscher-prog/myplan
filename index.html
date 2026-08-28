@@ -117,6 +117,7 @@ h2.section{font-family:'Fraunces',serif;font-weight:600;font-size:18px;margin:1.
 
 .section-label{font-size:13px;font-weight:500;color:var(--ink-soft);margin:0 0 .6rem;}
 .food-row{display:flex;flex-wrap:wrap;align-items:stretch;background:var(--card);border:1px solid var(--line);border-radius:10px;margin-bottom:6px;overflow:hidden;}
+.food-row.locked .food-main{opacity:.45;}
 .food-row.checked{background:var(--mustard-bg);border-color:var(--olive);}
 .food-row.early{border-color:var(--coral);border-width:1.5px;}
 .early-note{margin:2px 0 0;font-size:10.5px;color:var(--coral);font-weight:500;}
@@ -973,6 +974,19 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
   </div>
 </div>
 
+<div class="modal-bg" id="eatLockModalBg">
+  <div class="modal">
+    <h2>Essensfenster ist zu</h2>
+    <p class="section-label" id="eatLockLabel"></p>
+    <div class="profile-field"><label>Uhrzeit (für Nachtrag)</label><input type="time" id="eatLockTime"></div>
+    <div class="modal-actions" style="flex-direction:column;gap:8px;">
+      <button class="btn primary" id="eatLockNachtrag" style="width:100%;">Nachtrag speichern</button>
+      <button class="btn" id="eatLockNow" style="width:100%;color:var(--coral);border-color:var(--coral);">Ich esse jetzt wirklich</button>
+      <button class="btn" id="eatLockCancel" style="width:100%;">Abbrechen</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-bg" id="portionSplitModalBg">
   <div class="modal">
     <h2>Portion aufteilen</h2>
@@ -1205,6 +1219,7 @@ function fmtCountdown(ms){
   const h = Math.floor(totalSec/3600), m = Math.floor((totalSec%3600)/60), s = totalSec%60;
   return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
 }
+let canEatNow = true;
 let fastStatusCache = null;
 function updateFastWindowStats(status){
   const wrap = document.getElementById('fastWindowStats');
@@ -1234,6 +1249,7 @@ function updateFastWindowStats(status){
   }
   windowCard.classList.toggle('state-good', windowOk);
   windowCard.classList.toggle('state-bad', !windowOk);
+  canEatNow = windowOk;
 
   // Karte 2: Letztes Fastenfenster - grün wenn das Fastenziel aus den Stammdaten erreicht wurde, sonst rot
   const lastFastCard = document.getElementById('lastFastCard');
@@ -3151,7 +3167,7 @@ function renderToday(){
     const fiberR = Math.round(effectiveFiber(dish)*ratio*10)/10;
     const proteinR = Math.round(calculatedProtein(dish)*ratio*10)/10;
     const fatR = Math.round(effectiveFat(dish)*ratio*10)/10;
-    return `<div class="food-row ${checked?'checked':''} ${split?'split-half':''}" data-slotid="${slot.id}" data-baseslotid="${baseSlotId}" data-dishname="${escapeAttr(dish.name)}" data-ratio="${ratio}">
+    return `<div class="food-row ${checked?'checked':''} ${split?'split-half':''} ${(!checked && !canEatNow)?'locked':''}" data-slotid="${slot.id}" data-baseslotid="${baseSlotId}" data-dishname="${escapeAttr(dish.name)}" data-ratio="${ratio}">
       <div class="food-main" data-time="${slot.time}" data-kcal="${kcalR}" data-fiber="${fiberR}" data-protein="${proteinR}" data-fat="${fatR}" data-loghit="${logHit?logHit.id:''}">
         <div class="check-ico">${checked?'✓':''}</div>
         <div><p class="food-name">${escapeAttr(dish.name)} ${scoreBadge}${split?`<span class="split-badge">${half}/2</span>`:''}</p>${swap?'<p class="food-time"><span class="swap-tag">getauscht</span></p>':''}</div>
@@ -3185,11 +3201,44 @@ function renderToday(){
     const row = btn.closest('.food-row');
     openPortionSplitModal(row.dataset.baseslotid);
   }));
+  let eatLockPending = null;
   planList.querySelectorAll('.food-main').forEach(row=>{
     row.addEventListener('click', async ()=>{
+      const foodRow = row.closest('.food-row');
+      const logHitId = row.dataset.loghit;
+      if(!logHitId && foodRow.classList.contains('locked')){
+        eatLockPending = { row, foodRow };
+        document.getElementById('eatLockLabel').textContent = `"${foodRow.dataset.dishname}" jetzt trotzdem eintragen?`;
+        const now = new Date();
+        document.getElementById('eatLockTime').value = String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+        document.getElementById('eatLockModalBg').classList.add('open');
+        return;
+      }
+      await performFoodCheckoff(row, foodRow, null);
+    });
+  });
+  document.getElementById('eatLockCancel').addEventListener('click', ()=>{
+    eatLockPending = null;
+    document.getElementById('eatLockModalBg').classList.remove('open');
+  });
+  document.getElementById('eatLockNachtrag').addEventListener('click', async ()=>{
+    if(!eatLockPending) return;
+    const time = document.getElementById('eatLockTime').value;
+    const { row, foodRow } = eatLockPending;
+    eatLockPending = null;
+    document.getElementById('eatLockModalBg').classList.remove('open');
+    await performFoodCheckoff(row, foodRow, time||null);
+  });
+  document.getElementById('eatLockNow').addEventListener('click', async ()=>{
+    if(!eatLockPending) return;
+    const { row, foodRow } = eatLockPending;
+    eatLockPending = null;
+    document.getElementById('eatLockModalBg').classList.remove('open');
+    await performFoodCheckoff(row, foodRow, null);
+  });
+  async function performFoodCheckoff(row, foodRow, overrideTime){
       row.style.opacity = '0.5';
       const logHitId = row.dataset.loghit;
-      const foodRow = row.closest('.food-row');
       const dish = dishByName(foodRow.dataset.dishname);
       const ratio = Number(foodRow.dataset.ratio)||1;
       try{
@@ -3199,7 +3248,7 @@ function renderToday(){
           if(dish) await adjustPantryForDish(dish, +1, ratio); // Abhaken rückgängig -> Bestand zurückbuchen
         }else{
           const now = new Date();
-          const checkedAt = String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+          const checkedAt = overrideTime || (String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0'));
           const slotId = foodRow.dataset.slotid;
           let rec, savedCheckedAt = checkedAt;
           try{
@@ -3220,8 +3269,7 @@ function renderToday(){
       }catch(e){ console.error(e); setStatus('Fehler beim Speichern'); }
       if(dish) await computeShoppingNeeds(); // Bedarf für die nächsten 7 Tage neu prüfen
       renderToday();
-    });
-  });
+  }
 
   const extraList = document.getElementById('extraList');
   extraList.innerHTML = dayLogExtra.map(e=>`

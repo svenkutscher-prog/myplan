@@ -37,6 +37,7 @@ h2.section{font-family:'Fraunces',serif;font-weight:600;font-size:18px;margin:1.
 .tab.active{color:var(--olive-dark);border-bottom-color:var(--olive);}
 .tab.disabled{color:var(--line);cursor:default;}
 .panel{display:none;}
+#panelToday{position:relative;}
 .panel.active{display:block;}
 
 
@@ -248,6 +249,13 @@ h2.section{font-family:'Fraunces',serif;font-weight:600;font-size:18px;margin:1.
 .fill-ff{background:var(--mustard);}
 .fill-fiber{background:var(--olive);}
 .fill-protein{background:var(--plum);}
+.fill-fat{background:var(--mustard);}
+.day-goal-badge{font-size:11px;font-weight:600;background:var(--mustard-bg);color:#8A5A17;border-radius:20px;padding:2px 9px;margin-left:auto;margin-right:6px;}
+.day-goal-chips{display:flex;flex-wrap:wrap;gap:6px;margin:.3rem 0 .5rem;}
+.day-goal-chip{font-size:10.5px;border-radius:20px;padding:2px 8px;}
+.day-goal-chip.ok{background:#E4EDDD;color:var(--olive-dark);}
+.day-goal-chip.bad{background:var(--coral-bg);color:var(--coral);}
+.day-lever{background:var(--coral-bg);border-radius:10px;padding:7px 10px;margin-bottom:.5rem;font-size:12px;color:#993C1D;}
 .slot-row{display:flex;align-items:center;gap:.45rem;padding:8px 0;border-bottom:1px solid var(--line);}
 .slot-row:last-of-type{border-bottom:none;}
 .slot-row input[type=time]{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1px solid var(--line);border-radius:6px;padding:3px 4px;background:#fff;width:58px;color:var(--ink-soft);}
@@ -441,6 +449,13 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
 .p-dprompt svg{width:13px;height:13px;}
 .ff-status{display:flex;align-items:center;gap:10px;padding:10px 13px;border-radius:12px;margin-bottom:1rem;border:1px solid transparent;}
 .protein-gap-card{background:var(--water-bg);border:1px solid var(--water);border-radius:12px;padding:10px 13px;margin-bottom:1rem;}
+.macro-card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 13px;margin-bottom:1rem;}
+.macro-title{font-size:13.5px;font-weight:600;color:var(--ink);margin:0 0 8px;}
+.macro-row{display:flex;justify-content:space-between;font-size:12.5px;color:var(--ink);margin-bottom:3px;}
+.macro-track{height:7px;background:var(--bg);border-radius:4px;overflow:hidden;margin-bottom:10px;}
+.macro-fill{height:100%;width:0%;border-radius:4px;transition:width .5s ease-out;}
+.macro-check{font-size:11.5px;color:var(--ink-soft);margin:2px 0 0;}
+.macro-clickable{cursor:pointer;}
 .protein-gap-title{font-size:13.5px;font-weight:600;color:var(--ink);margin:0 0 6px;}
 .protein-gap-row{display:flex;justify-content:space-between;font-size:13px;padding:3px 0;color:var(--ink);}
 .protein-gap-row span:last-child{color:var(--ink-soft);white-space:nowrap;margin-left:8px;}
@@ -548,26 +563,6 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
   <div class="panel active" id="panelToday">
     <div id="specialDaysWrap"></div>
     <div class="day-lock-banner" id="dayLockBanner" style="display:none;">🏁 <span id="dayLockText"></span></div>
-    <div class="gauge-card" id="gaugeCard" title="Wasser eintragen" style="cursor:pointer;">
-      <svg viewBox="0 0 220 220" class="gauge-svg">
-        <line x1="39.3" y1="180.7" x2="50.6" y2="169.4" stroke="var(--line)" stroke-width="2"/>
-        <line x1="17.6" y1="71.7" x2="32.4" y2="77.85" stroke="var(--line)" stroke-width="2"/>
-        <line x1="110" y1="10" x2="110" y2="26" stroke="var(--line)" stroke-width="2"/>
-        <line x1="202.4" y1="71.7" x2="187.6" y2="77.85" stroke="var(--line)" stroke-width="2"/>
-        <line x1="180.7" y1="180.7" x2="169.4" y2="169.4" stroke="var(--line)" stroke-width="2"/>
-        <path d="M 46.4 173.6 A 90 90 0 1 1 173.6 173.6" fill="none" stroke="#E4EDDD" stroke-width="12" stroke-linecap="round"/>
-        <path id="gaugeFiberProgress" d="M 46.4 173.6 A 90 90 0 1 1 173.6 173.6" fill="none" stroke="var(--olive)" stroke-width="12" stroke-linecap="round"/>
-        <path d="M 64 156 A 65 65 0 1 1 156 156" fill="none" stroke="var(--coral-bg)" stroke-width="12" stroke-linecap="round"/>
-        <path id="gaugeProteinProgress" d="M 64 156 A 65 65 0 1 1 156 156" fill="none" stroke="var(--coral)" stroke-width="12" stroke-linecap="round"/>
-        <path d="M 78.2 141.8 A 45 45 0 1 1 141.8 141.8" fill="none" stroke="var(--water-bg)" stroke-width="12" stroke-linecap="round"/>
-        <path id="gaugeWaterProgress" d="M 78.2 141.8 A 45 45 0 1 1 141.8 141.8" fill="none" stroke="var(--water)" stroke-width="12" stroke-linecap="round"/>
-      </svg>
-      <div class="gauge-legend">
-        <div class="gauge-legend-row"><span class="gauge-dot" style="background:var(--olive);"></span><span id="gaugeFiberVal">0/30 g Ballaststoffe</span></div>
-        <div class="gauge-legend-row"><span class="gauge-dot" style="background:var(--coral);"></span><span id="gaugeProteinVal">0/135 g Protein</span></div>
-        <div class="gauge-legend-row"><span class="gauge-dot" style="background:var(--water);"></span><span id="gaugeWaterVal">0/0 ml Trinken</span></div>
-      </div>
-    </div>
     <div id="todayContent">
 
     <div class="dash-stats" id="fastWindowStats" style="display:none;">
@@ -584,16 +579,19 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
     </div>
 
     <p class="section-label">Heute gesamt (Plan + Extras): <span id="planKcalTotal">0</span>/<span id="dayPlanKcal">0</span> kcal (<span id="planFiberTotal">0</span>/<span id="dayPlanFiber">0</span> g Ball., <span id="planProteinTotal">0</span>/<span id="dayPlanProtein">0</span> g Prot.) · Ø <span id="planFullnessTotal">–</span>/10 Fullness</p>
-    <div class="protein-gap-card" id="proteinGapCard" style="display:none;">
-      <p class="protein-gap-title" id="proteinGapTitle"></p>
-      <div id="proteinGapList"></div>
-    </div>
-    <div class="ff-status good" id="deficitStatus">
-      <span class="dot"></span>
-      <div class="ff-status-text">
-        <p class="ff-status-title" id="deficitStatusTitle"></p>
-        <p class="ff-status-sub" id="deficitStatusSub"></p>
-      </div>
+    <div class="macro-card" id="macroCard">
+      <p class="macro-title">Makro-Ziele heute</p>
+      <div class="macro-row"><span>Protein</span><span id="macroProteinVal">0/0 g</span></div>
+      <div class="macro-track"><div class="macro-fill" id="macroProteinFill" style="background:var(--coral);"></div></div>
+      <div class="macro-row"><span>Fett (gut, 20%)</span><span id="macroFatVal">0/0 g</span></div>
+      <div class="macro-track"><div class="macro-fill" id="macroFatFill" style="background:var(--mustard);"></div></div>
+      <div class="macro-row"><span>Kohlenhydrate (Rest)</span><span id="macroCarbVal">0/0 g</span></div>
+      <div class="macro-track"><div class="macro-fill" id="macroCarbFill" style="background:var(--olive);"></div></div>
+      <div class="macro-row"><span>Ballaststoffe</span><span id="macroFiberVal">0/0 g</span></div>
+      <div class="macro-track"><div class="macro-fill" id="macroFiberFill" style="background:#7A8C58;"></div></div>
+      <div class="macro-row macro-clickable" id="macroWaterRow" title="Trinken eintragen"><span>Trinken 🍵</span><span id="macroWaterVal">0/0 ml</span></div>
+      <div class="macro-track macro-clickable" id="macroWaterTrack" title="Trinken eintragen"><div class="macro-fill" id="macroWaterFill" style="background:var(--water);"></div></div>
+      <p class="macro-check" id="macroProteinCheck"></p>
     </div>
     <div class="processed-card" id="processedCard">
       <div class="processed-head" id="processedHead">
@@ -613,6 +611,19 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
 
     <p class="section-label">Zusätzlich gegessen</p>
     <div id="extraList"></div>
+
+    <div class="protein-gap-card" id="proteinGapCard" style="display:none;">
+      <p class="protein-gap-title" id="proteinGapTitle"></p>
+      <div id="proteinGapList"></div>
+    </div>
+    <div class="ff-status good" id="deficitStatus">
+      <span class="dot"></span>
+      <div class="ff-status-text">
+        <p class="ff-status-title" id="deficitStatusTitle"></p>
+        <p class="ff-status-sub" id="deficitStatusSub"></p>
+      </div>
+    </div>
+
     <div class="pill-row">
       <button class="open-btn" id="openQuickEatBtn" style="grid-column:1 / -1;"><span class="ic a">⚡</span> Schnell essen</button>
       <button class="open-btn" id="openExtraBtn"><span class="ic a">🍽️</span> Gericht hinzufügen</button>
@@ -727,6 +738,8 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
     <p class="section-note" id="estimateSatietyStatus"></p>
     <button class="btn primary" id="estimateNovaBtn" style="margin-bottom:.6rem;">🤖 Verarbeitungsgrad per KI schätzen</button>
     <p class="section-note" id="estimateNovaStatus"></p>
+    <button class="btn primary" id="estimateFatBtn" style="margin-bottom:.6rem;">🤖 Fettwerte per KI schätzen</button>
+    <p class="section-note" id="estimateFatStatus"></p>
     <div class="pantry-view-toggle" id="pantryViewToggle">
       <button class="pvt-btn active" data-mode="menge">Menge</button>
       <button class="pvt-btn" data-mode="naehrwerte">Nährwerte</button>
@@ -781,7 +794,7 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
   <!-- KI-PLAN -->
   <div class="panel" id="panelKiplan">
     <h2 class="section">KI-Tagesplan <span class="section-note">Vorschlag aus deiner Gerichte-Bibliothek</span></h2>
-    <p class="section-label">Tag wählen – Claude optimiert ihn passend zu deinem Kalorien-, Ballaststoff- und Protein-Ziel. Der Vorschlag wird als eigene KI-Version gespeichert; dein Original-Wochenplan bleibt dabei unverändert und ist jederzeit über den Umschalter im Wochenplan-Tab wieder aktivierbar.</p>
+    <p class="section-label">Tag wählen – Claude optimiert ihn passend zu deinem Kalorien-, Ballaststoff-, Protein- und Fett-Ziel sowie mind. 90% unverarbeiteten Zutaten. Der Vorschlag wird als eigene KI-Version gespeichert; dein Original-Wochenplan bleibt dabei unverändert und ist jederzeit über den Umschalter im Wochenplan-Tab wieder aktivierbar.</p>
     <div class="ki-day-picker" id="kiDayPicker"></div>
     <div class="profile-field" style="margin-top:.4rem;">
       <label>Besonderer Tagesablauf (optional) – z.B. Termine, Fahrtzeiten, wann du unterwegs bist. Wird pro Wochentag in Airtable gespeichert (geräteübergreifend synchron).</label>
@@ -976,7 +989,7 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
     <div class="profile-field"><label>Max. Kalorien pro Tag</label><input type="number" id="profKcalMax" step="10"></div>
     <div class="profile-field"><label>Min. Kalorien pro Tag (nur für KI-Tagesplan)</label><input type="number" id="profKcalMin" step="10"></div>
     <div class="profile-field"><label>Ballaststoffe-Ziel pro Tag (g)</label><input type="number" id="profFiberGoal" step="1"></div>
-    <div class="profile-field"><label>Protein-Ziel pro Tag (g)</label><input type="number" id="profProteinGoal" step="1"></div>
+    <div class="profile-field"><label>Protein-Ziel pro Tag (g) – automatisch berechnet aus Gewicht × 1,6g</label><p class="ds-val" id="profProteinGoalDisplay" style="margin:0;font-size:22px;">–</p></div>
     <div class="profile-field"><label>Körpergröße (cm)</label><input type="number" id="profHeight" step="1"></div>
     <div class="profile-field"><label>Alter (Jahre)</label><input type="number" id="profAge" step="1"></div>
     <div class="profile-field"><label>Geschlecht (für Grundumsatz-Formel)</label>
@@ -1397,6 +1410,12 @@ function calcBmr(height, age, sex){
   const base = 10*currentWeight + 6.25*height - 5*age;
   return Math.round(sex==='w' ? base-161 : base+5);
 }
+/* Protein-Ziel: Gewicht × 1,6g (etablierte Empfehlung für Sportler/Kraftsport, 1,2-2,0g/kg), aus aktuellstem Gewicht */
+function calcProteinGoal(){
+  const sorted = weights.slice().sort((a,b)=> a.date.localeCompare(b.date));
+  const currentWeight = sorted.length ? sorted[sorted.length-1].kg : profile.startWeight;
+  return Math.round(currentWeight*1.6*10)/10;
+}
 let claudeApiKey = localStorage.getItem('claudeApiKey') || '';
 
 let currentDate = todayStr();
@@ -1425,14 +1444,24 @@ document.querySelectorAll('.tab').forEach(t=>{
   });
 });
 
-const gaugeCardEl = document.getElementById('gaugeCard');
-gaugeCardEl.addEventListener('click', e=>{
+const macroWaterRowEl = document.getElementById('macroWaterRow');
+const macroWaterTrackEl = document.getElementById('macroWaterTrack');
+function openWaterDropdown(e){
   e.stopPropagation();
-  document.getElementById('waterDropdown').classList.toggle('open');
-});
+  const dd = document.getElementById('waterDropdown');
+  const willOpen = !dd.classList.contains('open');
+  if(willOpen){
+    const rect = macroWaterTrackEl.getBoundingClientRect();
+    const panelRect = document.getElementById('panelToday').getBoundingClientRect();
+    dd.style.top = (rect.bottom - panelRect.top + 8) + 'px';
+  }
+  dd.classList.toggle('open');
+}
+macroWaterRowEl.addEventListener('click', openWaterDropdown);
+macroWaterTrackEl.addEventListener('click', openWaterDropdown);
 document.addEventListener('click', e=>{
   const dd = document.getElementById('waterDropdown');
-  if(dd.classList.contains('open') && !dd.contains(e.target) && !gaugeCardEl.contains(e.target)) dd.classList.remove('open');
+  if(dd.classList.contains('open') && !dd.contains(e.target) && !macroWaterRowEl.contains(e.target) && !macroWaterTrackEl.contains(e.target)) dd.classList.remove('open');
 });
 document.querySelectorAll('.water-dd-btns .qbtn').forEach(btn=> btn.addEventListener('click', async ()=>{
   await addWater(Number(btn.dataset.ml));
@@ -1644,7 +1673,7 @@ document.getElementById('openProfileBtn').addEventListener('click', ()=>{
   document.getElementById('profKcalMax').value = profile.kcalMax;
   document.getElementById('profKcalMin').value = profile.kcalMin;
   document.getElementById('profFiberGoal').value = profile.fiberGoal;
-  document.getElementById('profProteinGoal').value = profile.proteinGoal;
+  document.getElementById('profProteinGoalDisplay').textContent = profile.proteinGoal+' g';
   document.getElementById('profBmrDisplay').textContent = profile.bmr+' kcal';
   document.getElementById('profHeight').value = profile.height;
   document.getElementById('profAge').value = profile.age;
@@ -1671,7 +1700,7 @@ document.getElementById('profileSave').addEventListener('click', async ()=>{
   const kcalMax = Number(document.getElementById('profKcalMax').value)||profile.kcalMax;
   const kcalMin = Number(document.getElementById('profKcalMin').value)||profile.kcalMin||1100;
   const fiberGoal = Number(document.getElementById('profFiberGoal').value)||profile.fiberGoal;
-  const proteinGoal = Number(document.getElementById('profProteinGoal').value)||profile.proteinGoal||130;
+  const proteinGoal = calcProteinGoal();
   const height = Number(document.getElementById('profHeight').value)||profile.height||175;
   const age = Number(document.getElementById('profAge').value)||profile.age||35;
   const sex = document.getElementById('profSex').value==='w' ? 'w' : 'm';
@@ -2220,7 +2249,7 @@ async function adjustPantryForDish(dish, sign, ratio){
 function syncPantry(pRecs){
   const byName = new Map();
   pRecs.forEach(r=> byName.set((r.fields.Name||'').trim().toLowerCase(),
-    { id:r.id, name:r.fields.Name||'', unit:r.fields.Unit||'', bestand:Number(r.fields.Bestand)||0, mindestbestand:Number(r.fields.Mindestbestand)||0, ignore: !!r.fields.Ignore, kcalPerUnit:Number(r.fields.KcalPerUnit)||0, fiberPerUnit:Number(r.fields.FiberPerUnit)||0, proteinPerUnit:Number(r.fields.ProteinPerUnit)||0, satietyIndex: (r.fields.SatietyIndex!==undefined && r.fields.SatietyIndex!==null && r.fields.SatietyIndex!=='') ? Number(r.fields.SatietyIndex) : null, novaGroup: (r.fields.NovaGroup!==undefined && r.fields.NovaGroup!==null && r.fields.NovaGroup!=='') ? Number(r.fields.NovaGroup) : null }));
+    { id:r.id, name:r.fields.Name||'', unit:r.fields.Unit||'', bestand:Number(r.fields.Bestand)||0, mindestbestand:Number(r.fields.Mindestbestand)||0, ignore: !!r.fields.Ignore, kcalPerUnit:Number(r.fields.KcalPerUnit)||0, fiberPerUnit:Number(r.fields.FiberPerUnit)||0, proteinPerUnit:Number(r.fields.ProteinPerUnit)||0, fatPerUnit:Number(r.fields.FatPerUnit)||0, satietyIndex: (r.fields.SatietyIndex!==undefined && r.fields.SatietyIndex!==null && r.fields.SatietyIndex!=='') ? Number(r.fields.SatietyIndex) : null, novaGroup: (r.fields.NovaGroup!==undefined && r.fields.NovaGroup!==null && r.fields.NovaGroup!=='') ? Number(r.fields.NovaGroup) : null }));
   const seen = new Set();
   const merged = [];
   dishes.forEach(d=> d.ingredients.forEach(ing=>{
@@ -2228,7 +2257,7 @@ function syncPantry(pRecs){
     if(!key || seen.has(key)) return;
     seen.add(key);
     const existing = byName.get(key);
-    merged.push(existing || { id:null, name: ing.name.trim(), unit: ing.unit||'', bestand:0, mindestbestand:0, ignore:false, kcalPerUnit:0, fiberPerUnit:0, proteinPerUnit:0, satietyIndex:null, novaGroup:null });
+    merged.push(existing || { id:null, name: ing.name.trim(), unit: ing.unit||'', bestand:0, mindestbestand:0, ignore:false, kcalPerUnit:0, fiberPerUnit:0, proteinPerUnit:0, fatPerUnit:0, satietyIndex:null, novaGroup:null });
   }));
   // Eigenständige Zutaten (z.B. manuell im Vorrat angelegt, in keinem Gericht als Zutat verwendet) nicht verwerfen
   byName.forEach((item, key)=>{ if(!seen.has(key)){ seen.add(key); merged.push(item); } });
@@ -2260,7 +2289,7 @@ function resyncPantryFromDishes(){
       if(ing.unit && existing.unit !== ing.unit){ existing.unit = ing.unit; savePantryItem(existing).catch(err=>{ console.error(err); setStatus(err.message); }); }
       merged.push(existing);
     }else{
-      merged.push({ id:null, name: ing.name.trim(), unit: ing.unit||'', bestand:0, mindestbestand:0, ignore:false, kcalPerUnit:0, fiberPerUnit:0, proteinPerUnit:0, satietyIndex:null, novaGroup:null });
+      merged.push({ id:null, name: ing.name.trim(), unit: ing.unit||'', bestand:0, mindestbestand:0, ignore:false, kcalPerUnit:0, fiberPerUnit:0, proteinPerUnit:0, fatPerUnit:0, satietyIndex:null, novaGroup:null });
     }
   }));
   // Eigenständige Zutaten (nicht in einem Gericht verwendet, z.B. manuell im Vorrat angelegt) beibehalten
@@ -2282,7 +2311,7 @@ function pantryItem(name){
 }
 async function savePantryItem(p){
   // "Ignore" ist in Airtable ein Single-Select mit der einzigen Option "checked" (kein echtes Checkbox-Feld) -> kein Boolean, sondern Text bzw. null
-  const fields = { Bestand:p.bestand, Mindestbestand:p.mindestbestand, Unit:p.unit, KcalPerUnit:p.kcalPerUnit, FiberPerUnit:p.fiberPerUnit, ProteinPerUnit:p.proteinPerUnit, Ignore: p.ignore ? 'checked' : null, SatietyIndex: p.satietyIndex, NovaGroup: p.novaGroup };
+  const fields = { Bestand:p.bestand, Mindestbestand:p.mindestbestand, Unit:p.unit, KcalPerUnit:p.kcalPerUnit, FiberPerUnit:p.fiberPerUnit, ProteinPerUnit:p.proteinPerUnit, FatPerUnit:p.fatPerUnit, Ignore: p.ignore ? 'checked' : null, SatietyIndex: p.satietyIndex, NovaGroup: p.novaGroup };
   try{
     if(!p.id){
       if(!p._creating){
@@ -2294,8 +2323,8 @@ async function savePantryItem(p){
     }
     if(p.id) await atUpdate('Pantry', p.id, fields);
   }catch(e){
-    // Felder "SatietyIndex"/"NovaGroup" existieren in Airtable evtl. noch nicht -> ohne erneut versuchen, sonst geht Speichern komplett nicht
-    const { SatietyIndex, NovaGroup, ...fieldsWithoutNew } = fields;
+    // Felder "SatietyIndex"/"NovaGroup"/"FatPerUnit" existieren in Airtable evtl. noch nicht -> ohne erneut versuchen, sonst geht Speichern komplett nicht
+    const { SatietyIndex, NovaGroup, FatPerUnit, ...fieldsWithoutNew } = fields;
     if(!p.id){
       if(!p._creating){
         p._creating = atCreate('Pantry', { Name:p.name, ...fieldsWithoutNew })
@@ -2333,11 +2362,18 @@ function calculatedProtein(dish){
     return sum + (p ? nutrientContribution(ing, p.proteinPerUnit) : 0);
   },0)*10)/10;
 }
+function calculatedFat(dish){
+  return Math.round(dish.ingredients.reduce((sum,ing)=>{
+    const p = pantryItem(ing.name);
+    return sum + (p ? nutrientContribution(ing, p.fatPerUnit) : 0);
+  },0)*10)/10;
+}
 /* Manueller Wert hat Vorrang, berechneter Wert ist der Fallback */
 function effectiveKcal(dish){ return dish.kcal>0 ? dish.kcal : calculatedKcal(dish); }
 function effectiveFiber(dish){ return dish.fiber>0 ? dish.fiber : calculatedFiber(dish); }
-/* Kein manuelles Protein-Feld am Gericht (nur an den Zutaten) -> immer berechnet */
+/* Kein manuelles Protein-/Fett-Feld am Gericht (nur an den Zutaten) -> immer berechnet */
 function effectiveProtein(dish){ return calculatedProtein(dish); }
+function effectiveFat(dish){ return calculatedFat(dish); }
 
 /* Fullness Score fürs GANZE GERICHT: kcal-gewichteter Durchschnitt über die Zutaten, pro Zutat bevorzugt
    der per KI geschätzte Sättigungsindex, sonst Fallback auf die Protein/Ballaststoffe-Heuristik dieser Zutat.
@@ -2839,10 +2875,11 @@ async function loadAll(){
     });
     WEEKDAYS.forEach(wd=> weekPlan[wd].sort((a,b)=> a.time.localeCompare(b.time)));
     await migrateSlotTimesToHours();
-    logEntries = logRecs.map(r=>({ id:r.id, date:r.fields.Date, type:r.fields.Type, name:r.fields.Name, kcal:Number(r.fields.Kcal)||0, fiber:Number(r.fields.Fiber)||0, protein:Number(r.fields.Protein)||0, ml:Number(r.fields.Ml)||0, time:r.fields.Time||'', checkedAt:r.fields.CheckedAt||'', slotId:r.fields.SlotId||'', source:r.fields.Source||'' }));
+    logEntries = logRecs.map(r=>({ id:r.id, date:r.fields.Date, type:r.fields.Type, name:r.fields.Name, kcal:Number(r.fields.Kcal)||0, fiber:Number(r.fields.Fiber)||0, protein:Number(r.fields.Protein)||0, fat:Number(r.fields.Fat)||0, ml:Number(r.fields.Ml)||0, time:r.fields.Time||'', checkedAt:r.fields.CheckedAt||'', slotId:r.fields.SlotId||'', source:r.fields.Source||'' }));
     water = logEntries.filter(l=> l.type==='water').map(l=>({ id:l.id, date:l.date, ml:l.ml, time:l.time }));
     weights = wRecs.map(r=>({ id:r.id, date:r.fields.Date, kg:Number(r.fields.Kg)||0, time:r.fields.Time||'' }));
     profile.bmr = calcBmr(); // Grundumsatz automatisch aus aktuellstem Gewicht + Größe/Alter/Geschlecht neu berechnen
+    profile.proteinGoal = calcProteinGoal(); // Protein-Ziel automatisch aus aktuellstem Gewicht (×1,6g) neu berechnen
     steps = sRecs.map(r=>({ id:r.id, date:r.fields.Date, steps:Number(r.fields.Steps)||0, kcal:Number(r.fields.Kcal)||0, time:r.fields.Time||'' }));
     setStatus('Verbunden');
     document.getElementById('loadingOverlay').classList.add('hidden');
@@ -2952,6 +2989,41 @@ document.getElementById('processedCard').addEventListener('click', ()=>{
 /* Protein-Lücke: zeigt Vorrats-Zutaten mit der besten Protein-pro-kcal-Dichte, mit genau der Menge,
    die die Lücke schließt - aber gedeckelt aufs verbleibende kcal-Budget (Stammdaten kcalMax), damit
    der Vorschlag nie über die Tagesgrenze schießt. */
+/* Makro-Ziele: Protein aus Gewicht×1,6g (Stammdaten-Ziel), Fett als 20% der Ziel-kcal (gute Fette,
+   AMDR-konform 20-35%), Kohlenhydrate = rechnerischer Rest. Zusätzlich eine reine Kontrollzahl:
+   wie viel % der HEUTE GEGESSENEN kcal kamen tatsächlich aus Protein, verglichen mit einem
+   Richtwert von ~40% (kein hartes Ziel, nur Gegenrechnung ob die Verteilung passt). */
+function renderMacroCard(eatenKcal, eatenProtein, eatenFat, eatenFiber){
+  const card = document.getElementById('macroCard');
+  if(!card) return;
+  const proteinTarget = profile.proteinGoal;
+  const fatTarget = Math.round((profile.kcalMax*0.20)/9*10)/10;
+  const carbTarget = Math.max(0, Math.round((profile.kcalMax - proteinTarget*4 - fatTarget*9)/4*10)/10);
+  const eatenCarbs = Math.max(0, Math.round((eatenKcal - eatenProtein*4 - eatenFat*9)/4*10)/10);
+  const fiberTarget = profile.fiberGoal;
+  const waterTotal = waterDayTotal(currentDate);
+  const waterTarget = waterGoalMl();
+  const teaOn = teaLoggedOn(currentDate);
+
+  document.getElementById('macroProteinVal').textContent = (Math.round(eatenProtein*10)/10)+'/'+proteinTarget+' g';
+  document.getElementById('macroFatVal').textContent = (Math.round(eatenFat*10)/10)+'/'+fatTarget+' g';
+  document.getElementById('macroCarbVal').textContent = eatenCarbs+'/'+carbTarget+' g';
+  document.getElementById('macroFiberVal').textContent = (Math.round(eatenFiber*10)/10)+'/'+fiberTarget+' g';
+  document.getElementById('macroWaterVal').textContent = waterTotal+'/'+waterTarget+' ml'+(teaOn?' · 🍵✓':'');
+  document.getElementById('macroProteinFill').style.width = Math.max(0, Math.min(100, proteinTarget>0?(eatenProtein/proteinTarget*100):0))+'%';
+  document.getElementById('macroFatFill').style.width = Math.max(0, Math.min(100, fatTarget>0?(eatenFat/fatTarget*100):0))+'%';
+  document.getElementById('macroCarbFill').style.width = Math.max(0, Math.min(100, carbTarget>0?(eatenCarbs/carbTarget*100):0))+'%';
+  document.getElementById('macroFiberFill').style.width = Math.max(0, Math.min(100, fiberTarget>0?(eatenFiber/fiberTarget*100):0))+'%';
+  document.getElementById('macroWaterFill').style.width = Math.max(0, Math.min(100, waterTarget>0?(waterTotal/waterTarget*100):0))+'%';
+
+  const checkEl = document.getElementById('macroProteinCheck');
+  if(eatenKcal>0){
+    const proteinKcalShare = Math.round((eatenProtein*4/eatenKcal)*100);
+    checkEl.textContent = 'Protein macht aktuell '+proteinKcalShare+'% deiner gegessenen kcal aus (Richtwert ~40%)';
+  }else{
+    checkEl.textContent = '';
+  }
+}
 function renderProteinGapCard(eatenProtein, eatenKcal){
   const wrap = document.getElementById('proteinGapCard');
   if(!wrap) return;
@@ -2967,7 +3039,7 @@ function renderProteinGapCard(eatenProtein, eatenKcal){
     .slice(0,4);
   if(!candidates.length){ wrap.style.display = 'none'; return; }
   wrap.style.display = 'block';
-  titleEl.textContent = 'Noch '+(Math.round(gap*10)/10)+' g Protein bis zum Ziel ('+profile.proteinGoal+'g) – Rest-Budget: '+Math.round(kcalRemaining)+' kcal';
+  titleEl.textContent = 'Auch mit deinem ganzen Tagesplan fehlen noch '+(Math.round(gap*10)/10)+' g Protein zum Ziel ('+profile.proteinGoal+'g) – Rest-Budget danach: '+Math.round(kcalRemaining)+' kcal';
   listEl.innerHTML = candidates.map(p=>{
     const unitsNeeded = gap / p.proteinPerUnit;
     const kcalForFullGap = unitsNeeded * p.kcalPerUnit;
@@ -2999,11 +3071,12 @@ function renderToday(){
   });
   const dayFullness = dayFullnessBase>0 ? Math.round(dayFullnessWeighted/dayFullnessBase) : null;
 
-  let planKcalTotal = 0, planFiberTotalRaw = 0, planProteinTotalRaw = 0;
+  let planKcalTotal = 0, planFiberTotalRaw = 0, planProteinTotalRaw = 0, planFatTotalRaw = 0;
   [...dayLogPlan, ...dayLogExtra].forEach(l=>{
     planKcalTotal += l.kcal||0;
     planFiberTotalRaw += l.fiber||0;
     planProteinTotalRaw += l.protein||0;
+    planFatTotalRaw += l.fat||0;
   });
   const planFiberTotal = Math.round(planFiberTotalRaw*10)/10;
   const planProteinTotal = Math.round(planProteinTotalRaw*10)/10;
@@ -3011,6 +3084,7 @@ function renderToday(){
   document.getElementById('planFiberTotal').textContent = planFiberTotal.toLocaleString('de-DE',{minimumFractionDigits:1,maximumFractionDigits:1});
   document.getElementById('planProteinTotal').textContent = planProteinTotal.toLocaleString('de-DE',{minimumFractionDigits:1,maximumFractionDigits:1});
   document.getElementById('planFullnessTotal').textContent = dayFullness===null ? '–' : ff10(dayFullness);
+  renderMacroCard(planKcalTotal, planProteinTotalRaw, planFatTotalRaw, planFiberTotalRaw);
   // Was laut Wochenplan für heute vorgesehen ist (unabhängig davon, ob schon abgehakt) - zum Vergleich neben "wirklich gegessen"
   let dayPlanKcal = 0, dayPlanFiber = 0, dayPlanProtein = 0;
   slots.forEach(slot=>{
@@ -3021,7 +3095,8 @@ function renderToday(){
   document.getElementById('dayPlanKcal').textContent = Math.round(dayPlanKcal);
   document.getElementById('dayPlanFiber').textContent = (Math.round(dayPlanFiber*10)/10).toLocaleString('de-DE',{minimumFractionDigits:1,maximumFractionDigits:1});
   document.getElementById('dayPlanProtein').textContent = (Math.round(dayPlanProtein*10)/10).toLocaleString('de-DE',{minimumFractionDigits:1,maximumFractionDigits:1});
-  renderProteinGapCard(planProteinTotalRaw, planKcalTotal);
+  // Protein-Tipp: nur zeigen, wenn selbst der GANZE geplante Tag (nicht nur bisher Gegessenes) das Protein-Ziel verfehlt
+  renderProteinGapCard(dayPlanProtein, dayPlanKcal);
 
   const resolvedSlots = [];
   slots.forEach(slot=>{
@@ -3050,11 +3125,12 @@ function renderToday(){
     const kcalR = Math.round(effectiveKcal(dish)*ratio);
     const fiberR = Math.round(effectiveFiber(dish)*ratio*10)/10;
     const proteinR = Math.round(calculatedProtein(dish)*ratio*10)/10;
+    const fatR = Math.round(effectiveFat(dish)*ratio*10)/10;
     return `<div class="food-row ${checked?'checked':''} ${split?'split-half':''}" data-slotid="${slot.id}" data-baseslotid="${baseSlotId}" data-dishname="${escapeAttr(dish.name)}" data-ratio="${ratio}">
-      <div class="food-main" data-time="${slot.time}" data-kcal="${kcalR}" data-fiber="${fiberR}" data-protein="${proteinR}" data-loghit="${logHit?logHit.id:''}">
+      <div class="food-main" data-time="${slot.time}" data-kcal="${kcalR}" data-fiber="${fiberR}" data-protein="${proteinR}" data-fat="${fatR}" data-loghit="${logHit?logHit.id:''}">
         <div class="check-ico">${checked?'✓':''}</div>
         <div><p class="food-name">${escapeAttr(dish.name)} ${scoreBadge}${split?`<span class="split-badge">${half}/2</span>`:''}</p>${swap?'<p class="food-time"><span class="swap-tag">getauscht</span></p>':''}</div>
-        <span class="food-kcal">${kcalR} kcal<br><span class="food-fiber">${fiberR} g Ballaststoffe</span></span>
+        <span class="food-kcal">${kcalR} kcal<br><span class="food-fiber">${fiberR}g Ball. · ${proteinR}g Prot.</span></span>
       </div>
       <button class="info-btn" title="Zutaten anzeigen">ⓘ</button>
       <div class="ing-panel">
@@ -3102,18 +3178,18 @@ function renderToday(){
           const slotId = foodRow.dataset.slotid;
           let rec, savedCheckedAt = checkedAt;
           try{
-            rec = await atCreate('LogEntries', { Date: currentDate, Type:'plan', Name: foodRow.dataset.dishname, Kcal: Number(row.dataset.kcal), Fiber: Number(row.dataset.fiber), Protein: Number(row.dataset.protein), Time: row.dataset.time, CheckedAt: checkedAt, SlotId: slotId });
+            rec = await atCreate('LogEntries', { Date: currentDate, Type:'plan', Name: foodRow.dataset.dishname, Kcal: Number(row.dataset.kcal), Fiber: Number(row.dataset.fiber), Protein: Number(row.dataset.protein), Fat: Number(row.dataset.fat), Time: row.dataset.time, CheckedAt: checkedAt, SlotId: slotId });
           }catch(fieldErr){
-            // Feld "CheckedAt" oder "SlotId" existiert in Airtable evtl. noch nicht -> ohne erneut versuchen, sonst geht das Abhaken komplett nicht
+            // Feld "CheckedAt"/"SlotId"/"Fat" existiert in Airtable evtl. noch nicht -> ohne erneut versuchen, sonst geht das Abhaken komplett nicht
             try{
               rec = await atCreate('LogEntries', { Date: currentDate, Type:'plan', Name: foodRow.dataset.dishname, Kcal: Number(row.dataset.kcal), Fiber: Number(row.dataset.fiber), Protein: Number(row.dataset.protein), Time: row.dataset.time, CheckedAt: checkedAt });
             }catch(fieldErr2){
               rec = await atCreate('LogEntries', { Date: currentDate, Type:'plan', Name: foodRow.dataset.dishname, Kcal: Number(row.dataset.kcal), Fiber: Number(row.dataset.fiber), Protein: Number(row.dataset.protein), Time: row.dataset.time });
               savedCheckedAt = '';
             }
-            setStatus('Gespeichert (Feld "CheckedAt" oder "SlotId" fehlt noch in Airtable – bitte ergänzen)');
+            setStatus('Gespeichert (Feld "CheckedAt"/"SlotId"/"Fat" fehlt noch in Airtable – bitte ergänzen)');
           }
-          logEntries.push({ id:rec.id, date:currentDate, type:'plan', name:foodRow.dataset.dishname, kcal:Number(row.dataset.kcal), fiber:Number(row.dataset.fiber), protein:Number(row.dataset.protein), time:row.dataset.time, checkedAt:savedCheckedAt, slotId });
+          logEntries.push({ id:rec.id, date:currentDate, type:'plan', name:foodRow.dataset.dishname, kcal:Number(row.dataset.kcal), fiber:Number(row.dataset.fiber), protein:Number(row.dataset.protein), fat:Number(row.dataset.fat), time:row.dataset.time, checkedAt:savedCheckedAt, slotId });
           if(dish) await adjustPantryForDish(dish, -1, ratio); // gegessen -> Bestand verbrauchen
         }
       }catch(e){ console.error(e); setStatus('Fehler beim Speichern'); }
@@ -3146,24 +3222,6 @@ function renderToday(){
   dayLogExtra.forEach(e=>{ total += e.kcal; totalFiber += e.fiber||0; totalProtein += e.protein||0; });
   const target = targets[activeTarget];
   const remaining = target-total;
-  const fiberTarget = profile.fiberGoal;
-  const proteinTarget = profile.proteinGoal;
-  const waterTotal = waterDayTotal(currentDate);
-  const waterTarget = waterGoalMl();
-  const teaOn = teaLoggedOn(currentDate);
-
-  function setGaugeArc(id, fraction){
-    const path = document.getElementById(id);
-    const len = path.getTotalLength();
-    path.style.strokeDasharray = len;
-    path.style.strokeDashoffset = len * (1 - Math.max(0, Math.min(1, fraction)));
-  }
-  setGaugeArc('gaugeFiberProgress', fiberTarget>0 ? totalFiber/fiberTarget : 0);
-  setGaugeArc('gaugeProteinProgress', proteinTarget>0 ? totalProtein/proteinTarget : 0);
-  setGaugeArc('gaugeWaterProgress', waterTarget>0 ? waterTotal/waterTarget : 0);
-  document.getElementById('gaugeFiberVal').textContent = Math.round(totalFiber*10)/10+'/'+fiberTarget+' g Ballaststoffe';
-  document.getElementById('gaugeProteinVal').textContent = Math.round(totalProtein*10)/10+'/'+proteinTarget+' g Protein';
-  document.getElementById('gaugeWaterVal').textContent = waterTotal+'/'+waterTarget+' ml Trinken'+(teaOn?' · 🍵':'');
 
   const movementKcal = (steps.find(s=>s.date===currentDate)||{}).kcal || 0;
   const deficit = Math.round(profile.bmr + movementKcal - total);
@@ -3207,21 +3265,22 @@ function renderSnackChips(remaining){
     const kcal = src ? Math.round(s.source==='dish' ? effectiveKcal(src)*amt : nutrientContribution({unit:src.unit, amount:amt}, src.kcalPerUnit)) : (s.kcal||0);
     const fiber = src ? Math.round((s.source==='dish' ? effectiveFiber(src)*amt : nutrientContribution({unit:src.unit, amount:amt}, src.fiberPerUnit))*10)/10 : 0;
     const protein = src ? Math.round((s.source==='dish' ? calculatedProtein(src)*amt : nutrientContribution({unit:src.unit, amount:amt}, src.proteinPerUnit))*10)/10 : 0;
-    return { id:s.id, name: s.name+snackAmountLabel(amt, src ? src.unit : ''), kcal, fiber, protein };
+    const fat = src ? Math.round((s.source==='dish' ? effectiveFat(src)*amt : nutrientContribution({unit:src.unit, amount:amt}, src.fatPerUnit))*10)/10 : 0;
+    return { id:s.id, name: s.name+snackAmountLabel(amt, src ? src.unit : ''), kcal, fiber, protein, fat };
   });
   const visible = resolved.filter(s=> s.kcal <= remaining + 100);
   if(!visible.length){ wrap.innerHTML = '<p class="section-note">Keine Favoriten-Snacks passend zum Rest-Budget – im Vorrat-Tab welche markieren (★).</p>'; return; }
   wrap.innerHTML = [...visible].sort((a,b)=>a.kcal-b.kcal).map(s=>{
     const color = s.kcal <= remaining ? 'green' : 'orange';
-    return `<button class="snack-chip ${color}" data-id="${s.id}" data-name="${escapeAttr(s.name)}" data-kcal="${s.kcal}" data-fiber="${s.fiber}" data-protein="${s.protein}">${escapeAttr(s.name)} · ${s.kcal} kcal</button>`;
+    return `<button class="snack-chip ${color}" data-id="${s.id}" data-name="${escapeAttr(s.name)}" data-kcal="${s.kcal}" data-fiber="${s.fiber}" data-protein="${s.protein}" data-fat="${s.fat}">${escapeAttr(s.name)} · ${s.kcal} kcal</button>`;
   }).join('');
   wrap.querySelectorAll('.snack-chip').forEach(btn=> btn.addEventListener('click', async ()=>{
-    const name = btn.dataset.name, kcal = Number(btn.dataset.kcal), fiber = Number(btn.dataset.fiber), protein = Number(btn.dataset.protein);
+    const name = btn.dataset.name, kcal = Number(btn.dataset.kcal), fiber = Number(btn.dataset.fiber), protein = Number(btn.dataset.protein), fat = Number(btn.dataset.fat);
     const now = new Date();
     const time = String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
     try{
-      const rec = await atCreateLogEntry({ Date: currentDate, Type:'extra', Name:name, Kcal:kcal, Fiber:fiber, Protein:protein, Time:time, Source:'snack' });
-      logEntries.push({ id:rec.id, date:currentDate, type:'extra', name, kcal, fiber, protein, time, source:'snack' });
+      const rec = await atCreateLogEntry({ Date: currentDate, Type:'extra', Name:name, Kcal:kcal, Fiber:fiber, Protein:protein, Fat:fat, Time:time, Source:'snack' });
+      logEntries.push({ id:rec.id, date:currentDate, type:'extra', name, kcal, fiber, protein, fat, time, source:'snack' });
       renderToday();
     }catch(e){ setStatus('Fehler beim Speichern'); }
   }));
@@ -3242,10 +3301,10 @@ function renderExtraPickList(){
     if(!dish) return;
     const now = new Date();
     const time = String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
-    const kcal = effectiveKcal(dish), fiber = effectiveFiber(dish), protein = calculatedProtein(dish);
+    const kcal = effectiveKcal(dish), fiber = effectiveFiber(dish), protein = calculatedProtein(dish), fat = effectiveFat(dish);
     try{
-      const rec = await atCreateLogEntry({ Date: currentDate, Type:'extra', Name:dish.name, Kcal:kcal, Fiber:fiber, Protein:protein, Time:time, Source:'manual' });
-      logEntries.push({ id:rec.id, date:currentDate, type:'extra', name:dish.name, kcal, fiber, protein, time, source:'manual' });
+      const rec = await atCreateLogEntry({ Date: currentDate, Type:'extra', Name:dish.name, Kcal:kcal, Fiber:fiber, Protein:protein, Fat:fat, Time:time, Source:'manual' });
+      logEntries.push({ id:rec.id, date:currentDate, type:'extra', name:dish.name, kcal, fiber, protein, fat, time, source:'manual' });
       document.getElementById('extraModalBg').classList.remove('open');
       renderToday();
     }catch(e){ setStatus('Fehler beim Speichern'); }
@@ -3264,7 +3323,7 @@ let quickSelected = []; // {name, amount, unit}
 let quickMode = 'once';
 function defaultQuickAmount(unit){ return (unit==='g'||unit==='ml') ? 100 : 1; }
 function computeQuickTotals(){
-  let kcal=0, fiber=0, protein=0;
+  let kcal=0, fiber=0, protein=0, fat=0;
   quickSelected.forEach(s=>{
     const p = pantryItem(s.name);
     if(!p) return;
@@ -3272,8 +3331,9 @@ function computeQuickTotals(){
     kcal += nutrientContribution(ing, p.kcalPerUnit);
     fiber += nutrientContribution(ing, p.fiberPerUnit);
     protein += nutrientContribution(ing, p.proteinPerUnit);
+    fat += nutrientContribution(ing, p.fatPerUnit);
   });
-  return { kcal:Math.round(kcal), fiber:Math.round(fiber*10)/10, protein:Math.round(protein*10)/10 };
+  return { kcal:Math.round(kcal), fiber:Math.round(fiber*10)/10, protein:Math.round(protein*10)/10, fat:Math.round(fat*10)/10 };
 }
 function renderQuickSelected(){
   const wrap = document.getElementById('quickSelectedWrap');
@@ -3355,13 +3415,13 @@ document.getElementById('quickSaveBtn').addEventListener('click', async ()=>{
       const fields = { Name:dishName, Kcal:0, Fiber:0, Ingredients: JSON.stringify(ingredients) };
       const rec = await atCreate('Dishes', fields);
       dishes.push({ id:rec.id, name:dishName, kcal:0, fiber:0, ingredients });
-      const logRec = await atCreateLogEntry({ Date: currentDate, Type:'extra', Name:dishName, Kcal:totals.kcal, Fiber:totals.fiber, Protein:totals.protein, Time:time, Source:'quick' });
-      logEntries.push({ id:logRec.id, date:currentDate, type:'extra', name:dishName, kcal:totals.kcal, fiber:totals.fiber, protein:totals.protein, time, source:'quick' });
+      const logRec = await atCreateLogEntry({ Date: currentDate, Type:'extra', Name:dishName, Kcal:totals.kcal, Fiber:totals.fiber, Protein:totals.protein, Fat:totals.fat, Time:time, Source:'quick' });
+      logEntries.push({ id:logRec.id, date:currentDate, type:'extra', name:dishName, kcal:totals.kcal, fiber:totals.fiber, protein:totals.protein, fat:totals.fat, time, source:'quick' });
       resyncPantryFromDishes();
     }else{
       const name = quickSelected.map(s=>s.name).join(', ');
-      const rec = await atCreateLogEntry({ Date: currentDate, Type:'extra', Name:name, Kcal:totals.kcal, Fiber:totals.fiber, Protein:totals.protein, Time:time, Source:'quick' });
-      logEntries.push({ id:rec.id, date:currentDate, type:'extra', name, kcal:totals.kcal, fiber:totals.fiber, protein:totals.protein, time, source:'quick' });
+      const rec = await atCreateLogEntry({ Date: currentDate, Type:'extra', Name:name, Kcal:totals.kcal, Fiber:totals.fiber, Protein:totals.protein, Fat:totals.fat, Time:time, Source:'quick' });
+      logEntries.push({ id:rec.id, date:currentDate, type:'extra', name, kcal:totals.kcal, fiber:totals.fiber, protein:totals.protein, fat:totals.fat, time, source:'quick' });
     }
     document.getElementById('quickEatModalBg').classList.remove('open');
     render();
@@ -3403,7 +3463,8 @@ document.getElementById('weightSaveBtn').addEventListener('click', async ()=>{
     if(existing){ await atUpdate('Weights', existing.id, { Kg: kg, Time: time }); existing.kg = kg; existing.time = time; }
     else{ const rec = await atCreate('Weights', { Date: date, Kg: kg, Time: time }); weights.push({ id:rec.id, date, kg, time }); }
     profile.bmr = calcBmr(); // Grundumsatz mit neuem Gewicht neu berechnen
-    if(profile.id){ try{ await atUpdate('Profile', profile.id, { Bmr: profile.bmr }); }catch(e){} }
+    profile.proteinGoal = calcProteinGoal(); // Protein-Ziel mit neuem Gewicht neu berechnen
+    if(profile.id){ try{ await atUpdate('Profile', profile.id, { Bmr: profile.bmr, ProteinGoal: profile.proteinGoal }); }catch(e){} }
     document.getElementById('weightKg').value='';
     document.getElementById('weightModalBg').classList.remove('open');
     renderWeightBlock();
@@ -3488,6 +3549,46 @@ async function migrateSlotTimesToHours(){
   if(updates.length){ await Promise.all(updates); WEEKDAYS.forEach(wd=> weekPlan[wd].sort((a,b)=> a.time.localeCompare(b.time))); }
 }
 
+/* Tages-Check für den Wochenplan: wie viele Ziele (Protein/Ballaststoffe/Fett/Unverarbeitet) erreicht der
+   Tag, und - für jedes verfehlte Ziel - welches Gericht der schwächste Kandidat ist (größter Hebel). */
+function computeDayGoalCheck(slots){
+  const dishesInDay = slots.map(slot=> dishByName(slot.dishName)).filter(Boolean);
+  const dayProtein = Math.round(dishesInDay.reduce((s,d)=> s+calculatedProtein(d), 0)*10)/10;
+  const dayFiber = Math.round(dishesInDay.reduce((s,d)=> s+effectiveFiber(d), 0)*10)/10;
+  const dayFat = Math.round(dishesInDay.reduce((s,d)=> s+effectiveFat(d), 0)*10)/10;
+  const fatTarget = Math.round((profile.kcalMax*0.20)/9*10)/10;
+  let processedOk=0, processedBad=0, processedClassified=0;
+  dishesInDay.forEach(d=>{
+    const kcal = effectiveKcal(d);
+    const g = dishNovaGroup(d);
+    if(g==null) return;
+    processedClassified += kcal;
+    if(g>=2.5) processedBad+=kcal; else processedOk+=kcal;
+  });
+  const processedPct = processedClassified>0 ? Math.round(processedOk/processedClassified*100) : null;
+
+  const checks = [
+    { key:'protein', label:'Protein', ok: dayProtein>=profile.proteinGoal, weakest: ()=> {
+        const withDensity = dishesInDay.map(d=> ({d, density: effectiveKcal(d)>0 ? calculatedProtein(d)/effectiveKcal(d) : 0}));
+        withDensity.sort((a,b)=> a.density-b.density);
+        const w = withDensity[0];
+        return w ? `${w.d.name} liefert nur ${calculatedProtein(w.d)}g Protein bei ${effectiveKcal(w.d)} kcal – gegen etwas Proteinreicheres tauschen` : null;
+      } },
+    { key:'fat', label:'Fett', ok: dayFat>=fatTarget, weakest: ()=>
+        `Dein Fett-Ziel ist noch offen (${dayFat}/${fatTarget}g). Ergänze bei einer Mahlzeit eine Quelle gesunder Fette, z.B. Nüsse, Samen oder etwas Olivenöl.`
+      },
+    { key:'processed', label:'Unverarbeitet', ok: processedPct===null ? true : processedPct>=90, skip: processedPct===null, weakest: ()=> {
+        const withGroup = dishesInDay.map(d=> ({d, g: dishNovaGroup(d)})).filter(x=> x.g!=null);
+        withGroup.sort((a,b)=> b.g-a.g);
+        const w = withGroup[0];
+        return (w && w.g>=2.5) ? `${w.d.name} ist verarbeitet (N${w.g}) – nach einer unverarbeiteten Alternative suchen` : null;
+      } },
+  ];
+  const active = checks.filter(c=> !c.skip);
+  const goalsMet = active.filter(c=> c.ok).length;
+  const failedLevers = active.filter(c=> !c.ok).map(c=> c.weakest()).filter(Boolean);
+  return { dayProtein, dayFiber, dayFat, fatTarget, checks: active, goalsMet, goalsTotal: active.length, failedLevers };
+}
 function renderWeek(){
   const wrap = document.getElementById('weekDays');
   wrap.innerHTML = '';
@@ -3498,8 +3599,10 @@ function renderWeek(){
     block.className = 'day-block';
     const slots = activeSlots(wd);
     const dayTotal = slots.reduce((sum,slot)=>{ const d=dishByName(slot.dishName); return sum + (d?effectiveKcal(d):0); }, 0);
-    const dayFiber = Math.round(slots.reduce((sum,slot)=>{ const d=dishByName(slot.dishName); return sum + (d?effectiveFiber(d):0); }, 0)*10)/10;
-    const dayProtein = Math.round(slots.reduce((sum,slot)=>{ const d=dishByName(slot.dishName); return sum + (d?calculatedProtein(d):0); }, 0)*10)/10;
+    const goalCheck = computeDayGoalCheck(slots);
+    const dayFiber = goalCheck.dayFiber;
+    const dayProtein = goalCheck.dayProtein;
+    const dayFat = goalCheck.dayFat;
     let dayFFWeighted = 0, dayFFBase = 0;
     slots.forEach(slot=>{ const d=dishByName(slot.dishName); if(d){ const s=dishFullnessScore(d); const k=effectiveKcal(d); if(s!==null){ dayFFWeighted+=s*k; dayFFBase+=k; } } });
     const dayFF = dayFFBase>0 ? Math.round(dayFFWeighted/dayFFBase) : null;
@@ -3508,11 +3611,11 @@ function renderWeek(){
     const proteinShort = dayProtein < profile.proteinGoal;
     const kcalPct = Math.max(0, Math.min(100, Math.round(dayTotal/target*100)));
     const ffPct = dayFF!==null ? Math.max(0, Math.min(100, dayFF)) : 0;
-    const fiberPct = Math.max(0, Math.min(100, Math.round(dayFiber/profile.fiberGoal*100)));
+    const fatPct = Math.max(0, Math.min(100, Math.round(dayFat/goalCheck.fatTarget*100)));
     const proteinPct = Math.max(0, Math.min(100, Math.round(dayProtein/profile.proteinGoal*100)));
     block.innerHTML = `<div class="day-block-head">
         <span class="day-title">${WEEKDAY_NAMES[wd]}</span>
-        <span class="head-spacer"></span>
+        <span class="day-goal-badge">${goalCheck.goalsMet} von ${goalCheck.goalsTotal} Zielen</span>
         <div class="head-icons">
           ${(editOn&&!isAiActive)?`<button class="icon-btn day-move-btn" title="Ganzen Tag tauschen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 21l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></button>`:''}
           ${!isAiActive?`<button class="icon-btn day-edit-btn ${editOn?'active':''}" title="Bearbeiten"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg></button>`:''}
@@ -3523,6 +3626,8 @@ function renderWeek(){
         <button class="ver-btn ${isAiActive?'active':''}" data-mode="ai">🤖 KI</button>
       </div>
       ${isAiActive && weekDayEventDate[wd] ? `<p class="section-note" style="margin:.2rem 0 .6rem;">${weekDayEventDate[wd]===currentDate?'Aktiv für heute':(weekDayEventDate[wd]>currentDate?'Geplant für '+fmtDate(weekDayEventDate[wd])+' (noch nicht aktiv)':'War geplant für '+fmtDate(weekDayEventDate[wd])+' (abgelaufen, aktuell inaktiv)')}</p>` : ''}
+      <div class="day-goal-chips">${goalCheck.checks.map(c=> `<span class="day-goal-chip ${c.ok?'ok':'bad'}">${c.ok?'✓':'✗'} ${c.label}</span>`).join('')}</div>
+      ${goalCheck.failedLevers.map(l=> `<div class="day-lever">Größter Hebel: ${escapeAttr(l)}</div>`).join('')}
       <div class="day-metrics">
         <div class="metric-labels">
           <span class="${over?'over':''}">${dayTotal} / ${target} kcal</span>
@@ -3534,11 +3639,11 @@ function renderWeek(){
           <div class="half"><div class="fill fill-ff" style="width:${ffPct}%;"></div></div>
         </div>
         <div class="metric-labels">
-          <span>${dayFiber} g Ballaststoffe</span>
+          <span>${dayFat} / ${goalCheck.fatTarget} g Fett</span>
           <span class="${proteinShort?'low':''}">${dayProtein} / ${profile.proteinGoal} g Protein</span>
         </div>
         <div class="split-bar">
-          <div class="half left"><div class="fill fill-fiber" style="width:${fiberPct}%;"></div></div>
+          <div class="half left"><div class="fill fill-fat" style="width:${fatPct}%;"></div></div>
           <div class="divider"></div>
           <div class="half"><div class="fill fill-protein" style="width:${proteinPct}%;"></div></div>
         </div>
@@ -3649,8 +3754,9 @@ document.getElementById('kiDayContext').addEventListener('input', ()=>{
   kiContextSaveTimer = setTimeout(()=> saveWeekVersionRow(wd, {context: val}), 800);
 });
 function buildAiDayPrompt(wd, dayContext){
-  const dishList = dishes.map(d=> `- ${d.name} (${effectiveKcal(d)} kcal, ${effectiveFiber(d)} g Ballaststoffe, ${calculatedProtein(d)} g Protein) – Zutaten: ${d.ingredients.map(i=>`${i.amount}${i.unit} ${i.name}`).join(', ')||'keine hinterlegt'}`).join('\n');
-  const pantryList = pantry.filter(p=> p.kcalPerUnit>0).map(p=> `- ${p.name} (${p.unit}) – ${p.kcalPerUnit} kcal / ${p.fiberPerUnit} g Ballaststoffe / ${p.proteinPerUnit} g Protein pro ${(p.unit==='g'||p.unit==='ml')?'100'+p.unit:p.unit}`).join('\n');
+  const dishList = dishes.map(d=> `- ${d.name} (${effectiveKcal(d)} kcal, ${effectiveFiber(d)} g Ballaststoffe, ${calculatedProtein(d)} g Protein, ${effectiveFat(d)} g Fett) – Zutaten: ${d.ingredients.map(i=>`${i.amount}${i.unit} ${i.name}`).join(', ')||'keine hinterlegt'}`).join('\n');
+  const pantryList = pantry.filter(p=> p.kcalPerUnit>0).map(p=> `- ${p.name} (${p.unit}) – ${p.kcalPerUnit} kcal / ${p.fiberPerUnit} g Ballaststoffe / ${p.proteinPerUnit} g Protein / ${p.fatPerUnit||0} g Fett pro ${(p.unit==='g'||p.unit==='ml')?'100'+p.unit:p.unit}${p.novaGroup?' / NOVA '+p.novaGroup:''}`).join('\n');
+  const fatTarget = Math.round((profile.kcalMax*0.20)/9*10)/10;
   const currentSlots = activeSlots(wd);
   const currentPlanText = currentSlots.length ? currentSlots.map(s=> `- ${s.time} ${s.dishName}`).join('\n') : '(noch keine Mahlzeiten geplant)';
   const contextBlock = dayContext && dayContext.trim() ? `
@@ -3663,6 +3769,8 @@ Berücksichtige bei jedem vorgeschlagenen Gericht/Snack auch, ob es sich gut unt
 - Kalorien: HARTER BEREICH ${profile.kcalMin}–${profile.kcalMax} kcal – die Summe aller vorgeschlagenen Gerichte muss in diesem Bereich liegen, NIE darüber und NIE darunter. Kalorien haben oberste Priorität vor den anderen Zielen, rechne beim Zusammenstellen genau nach.
 - Ballaststoffe: mind. ${profile.fiberGoal} g
 - Protein: mind. ${profile.proteinGoal} g
+- Fett: mind. ${fatTarget} g (gute Fette, z.B. aus Nüssen, Samen, Olivenöl, fettem Fisch – nicht aus Wurst/Frittiertem)
+- Mind. 90% der kcal sollen aus unverarbeiteten/minimal verarbeiteten Zutaten kommen (NOVA 1-2, siehe Vorratsliste unten) – bevorzuge diese klar gegenüber NOVA-3/4-Zutaten
 - Vegetarisch
 ${contextBlock}
 Aktueller Plan für diesen Tag:
@@ -3674,7 +3782,7 @@ ${dishList}
 Du darfst auch neue, sinnvolle Gerichte vorschlagen (kennzeichne diese im JSON mit "isNew": true), WICHTIG dabei: Verwende für neue Gerichte AUSSCHLIESSLICH Zutaten aus dieser Vorratsliste (Name exakt übernehmen, Menge in der angegebenen Einheit) – erfinde KEINE neuen, unbekannten Zutaten, auch wenn dir eine Zutat für das Ziel fehlt. Wenn die Vorratsliste für ein Ziel nicht ausreicht, kombiniere vorhandene Zutaten sinnvoll oder greife auf ein bestehendes Bibliotheks-Gericht zurück, statt eine unbekannte Zutat zu erfinden:
 ${pantryList || '(noch keine Vorrats-Zutaten mit Nährwerten hinterlegt)'}
 
-Gib bei neuen Gerichten "ingredients" als Array aus {name, amount, unit} an (Einheit nur g/ml/TL/EL/Stück/Dose, exakt wie in der Vorratsliste). "kcal"/"fiber"/"protein" bei neuen Gerichten brauchst du nicht selbst zu berechnen, die App rechnet sie aus den Zutaten.
+Gib bei neuen Gerichten "ingredients" als Array aus {name, amount, unit} an (Einheit nur g/ml/TL/EL/Stück/Dose, exakt wie in der Vorratsliste). "kcal"/"fiber"/"protein"/"fett" bei neuen Gerichten brauchst du nicht selbst zu berechnen, die App rechnet sie aus den Zutaten.
 
 Antworte AUSSCHLIESSLICH mit gültigem, einzeiligem JSON in genau diesem Format, ohne weiteren Text, ohne Markdown-Codeblock. "notes" ist ein Array aus 2-4 kurzen, knappen Stichpunkten (je max. ca. 12 Wörter, kein Fließtext, keine ganzen Absätze) – falls ein besonderer Tagesablauf angegeben wurde, geht mindestens ein Stichpunkt kurz darauf ein:
 {"slots":[{"time":"08:00","dishName":"...","isNew":false}],"notes":["Kurzer Stichpunkt 1","Kurzer Stichpunkt 2"]}`;
@@ -3802,6 +3910,46 @@ Antworte AUSSCHLIESSLICH mit gültigem, einzeiligem JSON in diesem Format, keine
       try{ await savePantryItem(p); }catch(e){ console.error(e); }
     }
     statusEl.textContent = updated+' Zutaten klassifiziert, '+noGroup+' ohne verlässliche Einordnung.';
+    renderPantry();
+    render();
+  }catch(err){
+    console.error(err);
+    statusEl.textContent = 'Fehler: '+err.message;
+  }finally{
+    btn.disabled = false;
+  }
+});
+document.getElementById('estimateFatBtn').addEventListener('click', async ()=>{
+  const statusEl = document.getElementById('estimateFatStatus');
+  const btn = document.getElementById('estimateFatBtn');
+  const items = pantry.filter(p=> p.kcalPerUnit>0);
+  if(!items.length){ statusEl.textContent = 'Keine Zutaten mit hinterlegten kcal gefunden.'; return; }
+  btn.disabled = true;
+  statusEl.textContent = 'Claude schätzt den Fettgehalt für '+items.length+' Zutaten…';
+  try{
+    const list = items.map(p=> `- ${p.name}: ${p.kcalPerUnit} kcal, ${p.proteinPerUnit} g Protein pro ${(p.unit==='g'||p.unit==='ml')?'100'+p.unit:p.unit}`).join('\n');
+    const prompt = `Du bist Ernährungswissenschaftler. Schätze für jede der folgenden Zutaten den Fettgehalt in Gramm, pro derselben Einheit wie kcal/Protein angegeben (also pro 100g/100ml bzw. pro Stück). Nutze dein Ernährungswissen (typische Nährwerttabellen). Kontrolliere grob gegen die kcal: Fett×9 + Protein×4 + Kohlenhydrate×4 sollte ungefähr die kcal ergeben.
+
+Zutaten:
+${list}
+
+Falls du für eine Zutat keine sinnvolle Schätzung abgeben kannst, lasse "fat" weg oder setze null.
+
+Antworte AUSSCHLIESSLICH mit gültigem, einzeiligem JSON in diesem Format, keine Erklärung, kein Markdown:
+{"items":[{"name":"Magerquark","fat":0.2},{"name":"Olivenöl","fat":100}]}`;
+    const raw = await callClaudeApi(prompt);
+    const parsed = parseAiJson(raw);
+    if(!Array.isArray(parsed.items)) throw new Error('Antwort enthält kein "items"-Array.');
+    let updated = 0, noFat = 0;
+    for(const entry of parsed.items){
+      const p = pantryItem(entry.name);
+      if(!p) continue;
+      const f = (entry.fat===null||entry.fat===undefined) ? null : Number(entry.fat);
+      p.fatPerUnit = (f!=null && f>=0) ? f : 0;
+      if(f==null) noFat++; else updated++;
+      try{ await savePantryItem(p); }catch(e){ console.error(e); }
+    }
+    statusEl.textContent = updated+' Zutaten mit Fettwert versehen, '+noFat+' ohne verlässliche Schätzung (bleiben 0g).';
     renderPantry();
     render();
   }catch(err){

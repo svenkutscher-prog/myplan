@@ -53,6 +53,7 @@ h2.section{font-family:'Fraunces',serif;font-weight:600;font-size:18px;margin:1.
 .snack-chip{font-size:12px;padding:6px 12px;border-radius:20px;border:1px solid transparent;cursor:pointer;font-weight:500;}
 .snack-chip.green{background:#E4EDDD;border-color:var(--olive);color:var(--olive-dark);}
 .snack-chip.orange{background:var(--mustard-bg);border-color:var(--mustard);color:#8A5A17;}
+.snack-chip.locked{background:var(--card);border-color:var(--line);color:var(--ink-soft);opacity:.55;}
 .snack-manage-row{display:flex;align-items:center;justify-content:space-between;padding:8px 11px;background:var(--card);border:1px solid var(--line);border-radius:10px;margin-bottom:6px;}
 .snack-manage-row button{border:none;background:none;color:var(--coral);cursor:pointer;font-size:13px;}
 .snack-fav-btn{color:var(--mustard)!important;font-size:16px!important;margin-right:6px;}
@@ -3079,6 +3080,7 @@ function renderProteinGapCard(eatenProtein, eatenKcal){
   }).join('');
 }
 function renderToday(){
+  updateFastStatus(); // muss vor dem Bauen der Essenszeilen laufen, damit canEatNow (Sperre bei geschlossenem Essensfenster) aktuell ist
   const wd = weekdayOf(currentDate);
 
   const slots = activeSlots(wd);
@@ -3201,7 +3203,6 @@ function renderToday(){
     const row = btn.closest('.food-row');
     openPortionSplitModal(row.dataset.baseslotid);
   }));
-  let eatLockPending = null;
   planList.querySelectorAll('.food-main').forEach(row=>{
     row.addEventListener('click', async ()=>{
       const foodRow = row.closest('.food-row');
@@ -3217,59 +3218,6 @@ function renderToday(){
       await performFoodCheckoff(row, foodRow, null);
     });
   });
-  document.getElementById('eatLockCancel').addEventListener('click', ()=>{
-    eatLockPending = null;
-    document.getElementById('eatLockModalBg').classList.remove('open');
-  });
-  document.getElementById('eatLockNachtrag').addEventListener('click', async ()=>{
-    if(!eatLockPending) return;
-    const time = document.getElementById('eatLockTime').value;
-    const { row, foodRow } = eatLockPending;
-    eatLockPending = null;
-    document.getElementById('eatLockModalBg').classList.remove('open');
-    await performFoodCheckoff(row, foodRow, time||null);
-  });
-  document.getElementById('eatLockNow').addEventListener('click', async ()=>{
-    if(!eatLockPending) return;
-    const { row, foodRow } = eatLockPending;
-    eatLockPending = null;
-    document.getElementById('eatLockModalBg').classList.remove('open');
-    await performFoodCheckoff(row, foodRow, null);
-  });
-  async function performFoodCheckoff(row, foodRow, overrideTime){
-      row.style.opacity = '0.5';
-      const logHitId = row.dataset.loghit;
-      const dish = dishByName(foodRow.dataset.dishname);
-      const ratio = Number(foodRow.dataset.ratio)||1;
-      try{
-        if(logHitId){
-          await atDelete('LogEntries', logHitId);
-          logEntries = logEntries.filter(l=>l.id!==logHitId);
-          if(dish) await adjustPantryForDish(dish, +1, ratio); // Abhaken rückgängig -> Bestand zurückbuchen
-        }else{
-          const now = new Date();
-          const checkedAt = overrideTime || (String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0'));
-          const slotId = foodRow.dataset.slotid;
-          let rec, savedCheckedAt = checkedAt;
-          try{
-            rec = await atCreate('LogEntries', { Date: currentDate, Type:'plan', Name: foodRow.dataset.dishname, Kcal: Number(row.dataset.kcal), Fiber: Number(row.dataset.fiber), Protein: Number(row.dataset.protein), Fat: Number(row.dataset.fat), Time: row.dataset.time, CheckedAt: checkedAt, SlotId: slotId });
-          }catch(fieldErr){
-            // Feld "CheckedAt"/"SlotId"/"Fat" existiert in Airtable evtl. noch nicht -> ohne erneut versuchen, sonst geht das Abhaken komplett nicht
-            try{
-              rec = await atCreate('LogEntries', { Date: currentDate, Type:'plan', Name: foodRow.dataset.dishname, Kcal: Number(row.dataset.kcal), Fiber: Number(row.dataset.fiber), Protein: Number(row.dataset.protein), Time: row.dataset.time, CheckedAt: checkedAt });
-            }catch(fieldErr2){
-              rec = await atCreate('LogEntries', { Date: currentDate, Type:'plan', Name: foodRow.dataset.dishname, Kcal: Number(row.dataset.kcal), Fiber: Number(row.dataset.fiber), Protein: Number(row.dataset.protein), Time: row.dataset.time });
-              savedCheckedAt = '';
-            }
-            setStatus('Gespeichert (Feld "CheckedAt"/"SlotId"/"Fat" fehlt noch in Airtable – bitte ergänzen)');
-          }
-          logEntries.push({ id:rec.id, date:currentDate, type:'plan', name:foodRow.dataset.dishname, kcal:Number(row.dataset.kcal), fiber:Number(row.dataset.fiber), protein:Number(row.dataset.protein), fat:Number(row.dataset.fat), time:row.dataset.time, checkedAt:savedCheckedAt, slotId });
-          if(dish) await adjustPantryForDish(dish, -1, ratio); // gegessen -> Bestand verbrauchen
-        }
-      }catch(e){ console.error(e); setStatus('Fehler beim Speichern'); }
-      if(dish) await computeShoppingNeeds(); // Bedarf für die nächsten 7 Tage neu prüfen
-      renderToday();
-  }
 
   const extraList = document.getElementById('extraList');
   extraList.innerHTML = dayLogExtra.map(e=>`
@@ -3325,7 +3273,6 @@ function renderToday(){
 
   renderWeightBlock();
   renderStepsButton();
-  updateFastStatus();
   updateDayLockUI();
 }
 
@@ -3344,19 +3291,97 @@ function renderSnackChips(remaining){
   const visible = resolved.filter(s=> s.kcal <= remaining + 100);
   if(!visible.length){ wrap.innerHTML = '<p class="section-note">Keine Favoriten-Snacks passend zum Rest-Budget – im Vorrat-Tab welche markieren (★).</p>'; return; }
   wrap.innerHTML = [...visible].sort((a,b)=>a.kcal-b.kcal).map(s=>{
-    const color = s.kcal <= remaining ? 'green' : 'orange';
+    const color = canEatNow ? (s.kcal <= remaining ? 'green' : 'orange') : 'locked';
     return `<button class="snack-chip ${color}" data-id="${s.id}" data-name="${escapeAttr(s.name)}" data-kcal="${s.kcal}" data-fiber="${s.fiber}" data-protein="${s.protein}" data-fat="${s.fat}">${escapeAttr(s.name)} · ${s.kcal} kcal</button>`;
   }).join('');
   wrap.querySelectorAll('.snack-chip').forEach(btn=> btn.addEventListener('click', async ()=>{
-    const name = btn.dataset.name, kcal = Number(btn.dataset.kcal), fiber = Number(btn.dataset.fiber), protein = Number(btn.dataset.protein), fat = Number(btn.dataset.fat);
-    const now = new Date();
-    const time = String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
-    try{
-      const rec = await atCreateLogEntry({ Date: currentDate, Type:'extra', Name:name, Kcal:kcal, Fiber:fiber, Protein:protein, Fat:fat, Time:time, Source:'snack' });
-      logEntries.push({ id:rec.id, date:currentDate, type:'extra', name, kcal, fiber, protein, fat, time, source:'snack' });
-      renderToday();
-    }catch(e){ setStatus('Fehler beim Speichern'); }
+    if(!canEatNow){
+      eatLockPendingSnack = { name: btn.dataset.name, kcal: Number(btn.dataset.kcal), fiber: Number(btn.dataset.fiber), protein: Number(btn.dataset.protein), fat: Number(btn.dataset.fat), source:'snack' };
+      document.getElementById('eatLockLabel').textContent = `"${btn.dataset.name}" jetzt trotzdem eintragen?`;
+      const now0 = new Date();
+      document.getElementById('eatLockTime').value = String(now0.getHours()).padStart(2,'0')+':'+String(now0.getMinutes()).padStart(2,'0');
+      document.getElementById('eatLockModalBg').classList.add('open');
+      return;
+    }
+    await logExtraNow(btn.dataset.name, Number(btn.dataset.kcal), Number(btn.dataset.fiber), Number(btn.dataset.protein), Number(btn.dataset.fat), 'snack', null);
   }));
+}
+let eatLockPending = null;
+let eatLockPendingSnack = null;
+document.getElementById('eatLockCancel').addEventListener('click', ()=>{
+  eatLockPending = null;
+  eatLockPendingSnack = null;
+  document.getElementById('eatLockModalBg').classList.remove('open');
+});
+document.getElementById('eatLockNachtrag').addEventListener('click', async ()=>{
+  const time = document.getElementById('eatLockTime').value;
+  if(eatLockPendingSnack){
+    const s = eatLockPendingSnack; eatLockPendingSnack = null;
+    document.getElementById('eatLockModalBg').classList.remove('open');
+    await logExtraNow(s.name, s.kcal, s.fiber, s.protein, s.fat, s.source, time||null);
+    return;
+  }
+  if(!eatLockPending) return;
+  const { row, foodRow } = eatLockPending;
+  eatLockPending = null;
+  document.getElementById('eatLockModalBg').classList.remove('open');
+  await performFoodCheckoff(row, foodRow, time||null);
+});
+document.getElementById('eatLockNow').addEventListener('click', async ()=>{
+  if(eatLockPendingSnack){
+    const s = eatLockPendingSnack; eatLockPendingSnack = null;
+    document.getElementById('eatLockModalBg').classList.remove('open');
+    await logExtraNow(s.name, s.kcal, s.fiber, s.protein, s.fat, s.source, null);
+    return;
+  }
+  if(!eatLockPending) return;
+  const { row, foodRow } = eatLockPending;
+  eatLockPending = null;
+  document.getElementById('eatLockModalBg').classList.remove('open');
+  await performFoodCheckoff(row, foodRow, null);
+});
+async function performFoodCheckoff(row, foodRow, overrideTime){
+  row.style.opacity = '0.5';
+  const logHitId = row.dataset.loghit;
+  const dish = dishByName(foodRow.dataset.dishname);
+  const ratio = Number(foodRow.dataset.ratio)||1;
+  try{
+    if(logHitId){
+      await atDelete('LogEntries', logHitId);
+      logEntries = logEntries.filter(l=>l.id!==logHitId);
+      if(dish) await adjustPantryForDish(dish, +1, ratio); // Abhaken rückgängig -> Bestand zurückbuchen
+    }else{
+      const now = new Date();
+      const checkedAt = overrideTime || (String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0'));
+      const slotId = foodRow.dataset.slotid;
+      let rec, savedCheckedAt = checkedAt;
+      try{
+        rec = await atCreate('LogEntries', { Date: currentDate, Type:'plan', Name: foodRow.dataset.dishname, Kcal: Number(row.dataset.kcal), Fiber: Number(row.dataset.fiber), Protein: Number(row.dataset.protein), Fat: Number(row.dataset.fat), Time: row.dataset.time, CheckedAt: checkedAt, SlotId: slotId });
+      }catch(fieldErr){
+        // Feld "CheckedAt"/"SlotId"/"Fat" existiert in Airtable evtl. noch nicht -> ohne erneut versuchen, sonst geht das Abhaken komplett nicht
+        try{
+          rec = await atCreate('LogEntries', { Date: currentDate, Type:'plan', Name: foodRow.dataset.dishname, Kcal: Number(row.dataset.kcal), Fiber: Number(row.dataset.fiber), Protein: Number(row.dataset.protein), Time: row.dataset.time, CheckedAt: checkedAt });
+        }catch(fieldErr2){
+          rec = await atCreate('LogEntries', { Date: currentDate, Type:'plan', Name: foodRow.dataset.dishname, Kcal: Number(row.dataset.kcal), Fiber: Number(row.dataset.fiber), Protein: Number(row.dataset.protein), Time: row.dataset.time });
+          savedCheckedAt = '';
+        }
+        setStatus('Gespeichert (Feld "CheckedAt"/"SlotId"/"Fat" fehlt noch in Airtable – bitte ergänzen)');
+      }
+      logEntries.push({ id:rec.id, date:currentDate, type:'plan', name:foodRow.dataset.dishname, kcal:Number(row.dataset.kcal), fiber:Number(row.dataset.fiber), protein:Number(row.dataset.protein), fat:Number(row.dataset.fat), time:row.dataset.time, checkedAt:savedCheckedAt, slotId });
+      if(dish) await adjustPantryForDish(dish, -1, ratio); // gegessen -> Bestand verbrauchen
+    }
+  }catch(e){ console.error(e); setStatus('Fehler beim Speichern'); }
+  if(dish) await computeShoppingNeeds(); // Bedarf für die nächsten 7 Tage neu prüfen
+  renderToday();
+}
+async function logExtraNow(name, kcal, fiber, protein, fat, source, overrideTime){
+  const now = new Date();
+  const time = overrideTime || (String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0'));
+  try{
+    const rec = await atCreateLogEntry({ Date: currentDate, Type:'extra', Name:name, Kcal:kcal, Fiber:fiber, Protein:protein, Fat:fat, Time:time, Source:source });
+    logEntries.push({ id:rec.id, date:currentDate, type:'extra', name, kcal, fiber, protein, fat, time, source });
+    renderToday();
+  }catch(e){ setStatus('Fehler beim Speichern'); }
 }
 
 

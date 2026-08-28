@@ -211,6 +211,10 @@ h2.section{font-family:'Fraunces',serif;font-weight:600;font-size:18px;margin:1.
 .ai-badge{font-size:11px;font-weight:600;color:var(--olive);background:rgba(122,140,88,.14);border-radius:6px;padding:2px 7px;white-space:nowrap;}
 .ki-day-apply{font-size:12px;padding:.4rem .8rem;}
 .ki-slot-new{color:var(--olive);font-style:italic;}
+.ki-slot-clickable{cursor:pointer;}
+.ki-slot-detail{padding:2px 0 8px 0;border-bottom:1px solid var(--line);}
+.ki-recipe-btn{font-family:'Inter',sans-serif;font-size:11.5px;color:var(--olive);background:transparent;border:1px dashed var(--olive);border-radius:7px;padding:4px 10px;cursor:pointer;margin-top:.3rem;}
+.ki-recipe-text{font-size:12.5px;color:var(--ink-soft);margin-top:.4rem;line-height:1.4;}
 .ki-day-picker{display:flex;gap:6px;flex-wrap:wrap;margin:.6rem 0;}
 .ki-day-picker button{font-family:'Inter',sans-serif;font-size:12.5px;font-weight:500;padding:.45rem .75rem;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer;text-align:center;line-height:1.5;}
 .ki-day-date{font-size:10px;font-weight:400;opacity:.75;}
@@ -635,6 +639,9 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
     <button class="btn primary" id="aiCheckBtn" style="margin-top:1.2rem;">🤖 2-Tage-Check von deinem Personal Trainer</button>
     <p class="section-note" id="aiCheckStatus"></p>
     <div id="aiCheckResult" class="ki-plan-notes" style="display:none;"></div>
+    <button class="btn primary" id="dayReviewBtn" style="margin-top:.6rem;">🤖 Was hätte ich heute besser machen können?</button>
+    <p class="section-note" id="dayReviewStatus"></p>
+    <div id="dayReviewResult" class="ki-plan-notes" style="display:none;"></div>
 
     <h2 class="section" style="margin-top:1.4rem;">Routine <span class="section-note" id="routineBadge"></span></h2>
     <div id="routineList"></div>
@@ -970,7 +977,10 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
   <div class="modal">
     <h2>Portion aufteilen</h2>
     <p class="section-label" id="portionSplitLabel"></p>
-    <div class="profile-field"><label>Uhrzeit für die 2. Hälfte</label><input type="time" id="portionSplitTime"></div>
+    <div class="field-row">
+      <div class="fcol"><label>Datum für die 2. Hälfte</label><input type="date" id="portionSplitDate"></div>
+      <div class="fcol"><label>Uhrzeit für die 2. Hälfte</label><input type="time" id="portionSplitTime"></div>
+    </div>
     <div class="modal-actions">
       <button class="btn" id="portionSplitRemove" style="display:none;">Aufteilung aufheben</button>
       <button class="btn" id="portionSplitCancel">Abbrechen</button>
@@ -2817,7 +2827,7 @@ async function loadAll(){
     }catch(e){ console.warn('DaySwaps-Tabelle noch nicht vorhanden – lege sie in Airtable an (Felder: Date, SlotId, DishName).'); daySwaps = []; }
     try{
       const psRecs = await portionSplitsP; if(psRecs===null) throw new Error('missing');
-      portionSplits = psRecs.map(r=>({ id:r.id, date:r.fields.Date||'', slotId:r.fields.SlotId||'', secondTime:r.fields.SecondTime||'' }));
+      portionSplits = psRecs.map(r=>({ id:r.id, date:r.fields.Date||'', slotId:r.fields.SlotId||'', secondTime:r.fields.SecondTime||'', targetDate:r.fields.TargetDate||'', dishName:r.fields.DishName||'', originalTime:r.fields.OriginalTime||'' }));
     }catch(e){ console.warn('PortionSplits-Tabelle noch nicht vorhanden – lege sie in Airtable an (Felder: Date, SlotId, SecondTime).'); portionSplits = []; }
     try{
       const profRecs = await profileP; if(profRecs===null) throw new Error('missing');
@@ -2880,6 +2890,8 @@ async function loadAll(){
     weights = wRecs.map(r=>({ id:r.id, date:r.fields.Date, kg:Number(r.fields.Kg)||0, time:r.fields.Time||'' }));
     profile.bmr = calcBmr(); // Grundumsatz automatisch aus aktuellstem Gewicht + Größe/Alter/Geschlecht neu berechnen
     profile.proteinGoal = calcProteinGoal(); // Protein-Ziel automatisch aus aktuellstem Gewicht (×1,6g) neu berechnen
+    // Sofort zurückschreiben, damit die Stammdaten in Airtable nie einen veralteten Wert zeigen (nicht erst beim nächsten Gewichts-Eintrag)
+    if(profile.id){ atUpdate('Profile', profile.id, { Bmr: profile.bmr, ProteinGoal: profile.proteinGoal }).catch(()=>{}); }
     steps = sRecs.map(r=>({ id:r.id, date:r.fields.Date, steps:Number(r.fields.Steps)||0, kcal:Number(r.fields.Kcal)||0, time:r.fields.Time||'' }));
     setStatus('Verbunden');
     document.getElementById('loadingOverlay').classList.add('hidden');
@@ -3104,15 +3116,28 @@ function renderToday(){
     const dish = dishByName(swap ? swap.dishName : slot.dishName);
     const split = portionSplits.find(s=> s.date===currentDate && s.slotId===slot.id);
     if(split){
+      const crossDay = split.targetDate && split.targetDate!==split.date;
       const id1 = slot.id+'__1', id2 = slot.id+'__2';
       const logHit1 = dayLogPlan.find(l=> l.slotId===id1);
-      const logHit2 = dayLogPlan.find(l=> l.slotId===id2);
       resolvedSlots.push({ slot:{...slot, id:id1, time:slot.time}, swap, dish, logHit:logHit1, split, half:1, baseSlotId:slot.id, ratio:0.5 });
-      resolvedSlots.push({ slot:{...slot, id:id2, time:split.secondTime||slot.time}, swap, dish, logHit:logHit2, split, half:2, baseSlotId:slot.id, ratio:0.5 });
+      if(!crossDay){
+        // Normalfall: 2. Hälfte am selben Tag, andere Uhrzeit
+        const logHit2 = dayLogPlan.find(l=> l.slotId===id2);
+        resolvedSlots.push({ slot:{...slot, id:id2, time:split.secondTime||slot.time}, swap, dish, logHit:logHit2, split, half:2, baseSlotId:slot.id, ratio:0.5 });
+      }
+      // Bei crossDay taucht die 2. Hälfte NICHT hier auf, sondern unten am Zieltag (eigener Block)
     }else{
       const logHit = dayLogPlan.find(l=> l.slotId ? l.slotId===slot.id : (dish && l.name===dish.name && l.time===slot.time));
       resolvedSlots.push({ slot, swap, dish, logHit, split:null, baseSlotId:slot.id, ratio:1 });
     }
+  });
+  // 2. Hälften, deren ZIELTAG heute ist (Split wurde an einem ANDEREN Tag angelegt) - als eigenständige Zeile einfügen
+  portionSplits.filter(s=> s.targetDate===currentDate && s.date!==currentDate).forEach(split=>{
+    const dish = dishByName(split.dishName);
+    if(!dish) return;
+    const id2 = split.slotId+'__2';
+    const logHit2 = dayLogPlan.find(l=> l.slotId===id2);
+    resolvedSlots.push({ slot:{ id:id2, time:split.secondTime||split.originalTime||'12:00', dishName:split.dishName }, swap:null, dish, logHit:logHit2, split, half:2, baseSlotId:split.slotId, ratio:0.5, crossDayIn:true });
   });
   resolvedSlots.sort((a,b)=> a.slot.time.localeCompare(b.slot.time));
 
@@ -4026,9 +4051,37 @@ function renderAiDayProposal(){
     <div class="metric-labels">
       <span class="${outOfRangeKcal?'over':''}">${dayKcal} kcal (Ziel ${profile.kcalMin}–${profile.kcalMax})${outOfRangeKcal?' ⚠️':''}</span><span>${dayFiber} g Ballaststoffe</span><span>${dayProtein} g Protein</span>
     </div>
-    <div class="slots">${slots.map(sl=>{
-        return `<div class="slot-row"><span class="hour-select">${sl.time}</span><span class="slot-dishname ${sl.isNew?'ki-slot-new':''}">${escapeAttr(sl.dishName)}${sl.isNew?' <span class="ai-badge">neu</span>':''}</span><span class="slot-kcal">${slotKcal(sl)} kcal</span></div>`;
+    <div class="slots">${slots.map((sl,i)=>{
+        const clickable = sl.isNew && (sl.ingredients||[]).length;
+        return `<div class="slot-row ${clickable?'ki-slot-clickable':''}" data-idx="${i}"><span class="hour-select">${sl.time}</span><span class="slot-dishname ${sl.isNew?'ki-slot-new':''}">${escapeAttr(sl.dishName)}${sl.isNew?' <span class="ai-badge">neu</span>':''}</span><span class="slot-kcal">${slotKcal(sl)} kcal</span></div>
+          ${clickable?`<div class="ki-slot-detail" id="kiSlotDetail${i}" style="display:none;">
+            ${sl.ingredients.map(ing=> `<div class="ing-row"><span>${escapeAttr(ing.name)}</span><span>${ing.amount} ${ing.unit}</span></div>`).join('')}
+            <button type="button" class="ki-recipe-btn" data-idx="${i}">🤖 Zubereitung anzeigen</button>
+            <div class="ki-recipe-text" id="kiRecipeText${i}" style="display:none;"></div>
+          </div>`:''}`;
       }).join('') || '<div class="slot-row"><span>Keine Vorschläge für diesen Tag.</span></div>'}</div>`;
+  block.querySelectorAll('.ki-slot-clickable').forEach(row=> row.addEventListener('click', ()=>{
+    const idx = row.dataset.idx;
+    const detail = document.getElementById('kiSlotDetail'+idx);
+    if(detail) detail.style.display = detail.style.display==='none' ? 'block' : 'none';
+  }));
+  block.querySelectorAll('.ki-recipe-btn').forEach(btn=> btn.addEventListener('click', async e=>{
+    e.stopPropagation();
+    const idx = btn.dataset.idx;
+    const sl = slots[idx];
+    const textEl = document.getElementById('kiRecipeText'+idx);
+    btn.disabled = true;
+    btn.textContent = 'Wird erstellt…';
+    try{
+      const ingList = (sl.ingredients||[]).map(i=> `${i.amount}${i.unit} ${i.name}`).join(', ');
+      const prompt = `Gib eine sehr kurze Zubereitung (max. 3 Sätze, keine Nummerierung, keine Überschrift) für "${sl.dishName}" aus genau diesen Zutaten: ${ingList}. Nur Fließtext auf Deutsch.`;
+      const text = await callClaudeApi(prompt, 'Du antwortest ausschließlich mit kurzem Fließtext auf Deutsch, kein JSON, kein Markdown.');
+      textEl.textContent = text.trim();
+      textEl.style.display = 'block';
+      btn.style.display = 'none';
+    }catch(err){ textEl.textContent = 'Fehler: '+err.message; textEl.style.display='block'; }
+    finally{ btn.disabled=false; btn.textContent = '🤖 Zubereitung anzeigen'; }
+  }));
   block.querySelector('.ki-day-apply').addEventListener('click', applyAiDayProposal);
   wrap.appendChild(block);
 }
@@ -4114,6 +4167,30 @@ Gewichtsverlauf (chronologisch, letzte Einträge): ${weightText}
 
 Gehe auf folgende Kategorien ein, wo relevant: Kalorien, Ballaststoffe, Protein, Schritte, Fastenfenster/Uhrzeiten, und bewerte den Gewichtsverlauf (Trend, nicht nur letzter Wert). Schreibe wie ein Personal Trainer direkt zu seinem Klienten: persönlich, motivierend, per Du-Anrede, ehrlich aber wertschätzend, keine Bullet Points, keine Überschriften, kein JSON, kein Markdown – nur 4-5 zusammenhängende Sätze Fließtext auf Deutsch, mit konkreten Empfehlungen was heute besser laufen kann.`;
 }
+function buildDayReviewPrompt(){
+  const entries = logEntries.filter(l=> l.date===currentDate && (l.type==='plan'||l.type==='extra')).sort((a,b)=> (a.time||'').localeCompare(b.time||''));
+  if(!entries.length) return null;
+  const eatenText = entries.map(l=> `- ${l.time||'?'} ${l.name}: ${l.kcal} kcal, ${l.fiber||0}g Ballaststoffe, ${l.protein||0}g Protein, ${l.fat||0}g Fett`).join('\n');
+  const totalKcal = entries.reduce((s,l)=>s+(l.kcal||0),0);
+  const totalFiber = Math.round(entries.reduce((s,l)=>s+(l.fiber||0),0)*10)/10;
+  const totalProtein = Math.round(entries.reduce((s,l)=>s+(l.protein||0),0)*10)/10;
+  const totalFat = Math.round(entries.reduce((s,l)=>s+(l.fat||0),0)*10)/10;
+  const fatTarget = Math.round((profile.kcalMax*0.20)/9*10)/10;
+  const stats = computeProcessedStats(currentDate);
+  const pantryList = pantry.filter(p=> p.kcalPerUnit>0).map(p=> `- ${p.name} (${p.unit}) – ${p.kcalPerUnit} kcal / ${p.fiberPerUnit}g Ballaststoffe / ${p.proteinPerUnit}g Protein / ${p.fatPerUnit||0}g Fett pro ${(p.unit==='g'||p.unit==='ml')?'100'+p.unit:p.unit}`).join('\n');
+  return `Du bist Ernährungsberater. Bewerte, was mein Klient heute gegessen hat, im Vergleich zu seinen Tageszielen, und schlage konkrete Verbesserungen für die verbleibende Zeit oder für morgen vor.
+
+Bisher heute gegessen:
+${eatenText}
+
+Summe: ${totalKcal} kcal, ${totalFiber}g Ballaststoffe, ${totalProtein}g Protein, ${totalFat}g Fett
+Tagesziele: ${profile.kcalMin}-${profile.kcalMax} kcal, mind. ${profile.fiberGoal}g Ballaststoffe, mind. ${profile.proteinGoal}g Protein, mind. ${fatTarget}g Fett, mind. 90% der kcal unverarbeitet (aktuell: ${stats.pct===null?'unbekannt':stats.pct+'%'})
+
+Vorrat, aus dem konkrete Ergänzungsvorschläge kommen sollen (nur diese Zutaten verwenden, keine erfinden):
+${pantryList || '(keine Vorratsdaten)'}
+
+Analysiere: Welche Wahl war heute besonders gut (z.B. gute Sättigung, unverarbeitet)? Wo gab es ein Ungleichgewicht (z.B. viele Kohlenhydrate aber wenig Fett, oder Protein zu knapp)? Nenne 1-2 KONKRETE Zutaten aus der Vorratsliste oben, die das ausgleichen würden, mit ungefährer Menge. Schreibe wie ein Ernährungsberater direkt zu seinem Klienten: persönlich, per Du-Anrede, ehrlich aber wertschätzend, keine Bullet Points, keine Überschriften, kein JSON, kein Markdown – nur 4-5 zusammenhängende Sätze Fließtext auf Deutsch.`;
+}
 document.getElementById('aiCheckBtn').addEventListener('click', async ()=>{
   const statusEl = document.getElementById('aiCheckStatus');
   const resultEl = document.getElementById('aiCheckResult');
@@ -4123,6 +4200,28 @@ document.getElementById('aiCheckBtn').addEventListener('click', async ()=>{
   resultEl.style.display = 'none';
   try{
     const prompt = buildAiCheckPrompt();
+    const text = await callClaudeApi(prompt, 'Du antwortest ausschließlich mit Fließtext auf Deutsch, kein JSON, kein Markdown, keine Bullet Points, keine Überschriften.');
+    resultEl.textContent = '🤖 ' + text.trim();
+    resultEl.style.display = 'block';
+    statusEl.textContent = '';
+  }catch(err){
+    console.error(err);
+    statusEl.textContent = 'Fehler: '+err.message;
+  }finally{
+    btn.disabled = false;
+  }
+});
+
+document.getElementById('dayReviewBtn').addEventListener('click', async ()=>{
+  const statusEl = document.getElementById('dayReviewStatus');
+  const resultEl = document.getElementById('dayReviewResult');
+  const btn = document.getElementById('dayReviewBtn');
+  const prompt = buildDayReviewPrompt();
+  if(!prompt){ statusEl.textContent = 'Noch nichts heute gegessen – dazu gibt es noch nichts zu bewerten.'; return; }
+  btn.disabled = true;
+  statusEl.textContent = 'Wird ausgewertet…';
+  resultEl.style.display = 'none';
+  try{
     const text = await callClaudeApi(prompt, 'Du antwortest ausschließlich mit Fließtext auf Deutsch, kein JSON, kein Markdown, keine Bullet Points, keine Überschriften.');
     resultEl.textContent = '🤖 ' + text.trim();
     resultEl.style.display = 'block';
@@ -4260,8 +4359,8 @@ function openPortionSplitModal(slotId){
   const slot = activeSlots(wd).find(s=>s.id===slotId);
   if(!slot) return;
   const existing = portionSplits.find(s=> s.date===currentDate && s.slotId===slotId);
-  document.getElementById('portionSplitLabel').textContent = `"${slot.dishName}" (${slot.time}) in 2 gleiche Hälften aufteilen – nur für ${fmtDate(currentDate)}`;
-  // Vorschlag: 2h nach der ursprünglichen Zeit, als zweite Portion
+  document.getElementById('portionSplitLabel').textContent = `"${slot.dishName}" (${slot.time}) in 2 gleiche Hälften aufteilen`;
+  // Vorschlag: 2h nach der ursprünglichen Zeit, als zweite Portion, standardmäßig noch am selben Tag
   let defaultTime = existing ? existing.secondTime : null;
   if(!defaultTime){
     const [h,m] = slot.time.split(':').map(Number);
@@ -4269,24 +4368,29 @@ function openPortionSplitModal(slotId){
     defaultTime = String(suggested).padStart(2,'0')+':'+String(m).padStart(2,'0');
   }
   document.getElementById('portionSplitTime').value = defaultTime;
+  document.getElementById('portionSplitDate').value = existing && existing.targetDate ? existing.targetDate : currentDate;
   document.getElementById('portionSplitRemove').style.display = existing ? 'inline-flex' : 'none';
   document.getElementById('portionSplitModalBg').classList.add('open');
 }
 document.getElementById('portionSplitCancel').addEventListener('click', ()=> document.getElementById('portionSplitModalBg').classList.remove('open'));
 document.getElementById('portionSplitConfirm').addEventListener('click', async ()=>{
   const secondTime = document.getElementById('portionSplitTime').value;
+  const targetDate = document.getElementById('portionSplitDate').value || currentDate;
   if(!secondTime){ document.getElementById('portionSplitModalBg').classList.remove('open'); return; }
+  const wd = weekdayOf(currentDate);
+  const slot = activeSlots(wd).find(s=>s.id===portionSplitSlotId);
+  if(!slot) return;
   const existing = portionSplits.find(s=> s.date===currentDate && s.slotId===portionSplitSlotId);
   try{
     if(existing){
-      await atUpdate('PortionSplits', existing.id, { SecondTime: secondTime });
-      existing.secondTime = secondTime;
+      await atUpdate('PortionSplits', existing.id, { SecondTime: secondTime, TargetDate: targetDate, DishName: slot.dishName, OriginalTime: slot.time });
+      existing.secondTime = secondTime; existing.targetDate = targetDate; existing.dishName = slot.dishName; existing.originalTime = slot.time;
     }else{
-      const rec = await atCreate('PortionSplits', { Date: currentDate, SlotId: portionSplitSlotId, SecondTime: secondTime });
-      portionSplits.push({ id:rec.id, date:currentDate, slotId:portionSplitSlotId, secondTime });
+      const rec = await atCreate('PortionSplits', { Date: currentDate, SlotId: portionSplitSlotId, SecondTime: secondTime, TargetDate: targetDate, DishName: slot.dishName, OriginalTime: slot.time });
+      portionSplits.push({ id:rec.id, date:currentDate, slotId:portionSplitSlotId, secondTime, targetDate, dishName:slot.dishName, originalTime:slot.time });
     }
-    renderToday();
-  }catch(e){ console.error(e); setStatus('PortionSplits-Tabelle prüfen (Felder: Date, SlotId, SecondTime) – '+(e.message||'Fehler beim Aufteilen')); }
+    render();
+  }catch(e){ console.error(e); setStatus('PortionSplits-Tabelle prüfen (Felder: Date, SlotId, SecondTime, TargetDate, DishName, OriginalTime) – '+(e.message||'Fehler beim Aufteilen')); }
   document.getElementById('portionSplitModalBg').classList.remove('open');
 });
 document.getElementById('portionSplitRemove').addEventListener('click', async ()=>{
@@ -4294,7 +4398,7 @@ document.getElementById('portionSplitRemove').addEventListener('click', async ()
   if(existing){
     try{ await atDelete('PortionSplits', existing.id); }catch(e){ console.error(e); }
     portionSplits = portionSplits.filter(s=>s.id!==existing.id);
-    renderToday();
+    render();
   }
   document.getElementById('portionSplitModalBg').classList.remove('open');
 });

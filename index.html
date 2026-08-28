@@ -440,6 +440,10 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
 .p-dprompt{width:28px;height:28px;border-radius:8px;background:var(--mustard-bg);display:flex;align-items:center;justify-content:center;color:var(--olive-dark);flex-shrink:0;align-self:center;cursor:pointer;border:none;}
 .p-dprompt svg{width:13px;height:13px;}
 .ff-status{display:flex;align-items:center;gap:10px;padding:10px 13px;border-radius:12px;margin-bottom:1rem;border:1px solid transparent;}
+.protein-gap-card{background:var(--water-bg);border:1px solid var(--water);border-radius:12px;padding:10px 13px;margin-bottom:1rem;}
+.protein-gap-title{font-size:13.5px;font-weight:600;color:var(--ink);margin:0 0 6px;}
+.protein-gap-row{display:flex;justify-content:space-between;font-size:13px;padding:3px 0;color:var(--ink);}
+.protein-gap-row span:last-child{color:var(--ink-soft);white-space:nowrap;margin-left:8px;}
 .ff-status.good{background:#E4EDDD;border-color:var(--olive);}
 .ff-status.mid{background:var(--mustard-bg);border-color:var(--mustard);}
 .ff-status.low{background:var(--coral-bg);border-color:var(--coral);}
@@ -580,12 +584,9 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
     </div>
 
     <p class="section-label">Heute gesamt (Plan + Extras): <span id="planKcalTotal">0</span>/<span id="dayPlanKcal">0</span> kcal (<span id="planFiberTotal">0</span>/<span id="dayPlanFiber">0</span> g Ball., <span id="planProteinTotal">0</span>/<span id="dayPlanProtein">0</span> g Prot.) · Ø <span id="planFullnessTotal">–</span>/10 Fullness</p>
-    <div class="ff-status" id="ffStatus" style="display:none;">
-      <span class="dot"></span>
-      <div class="ff-status-text">
-        <p class="ff-status-title" id="ffStatusTitle"></p>
-        <p class="ff-status-sub" id="ffStatusSub"></p>
-      </div>
+    <div class="protein-gap-card" id="proteinGapCard" style="display:none;">
+      <p class="protein-gap-title" id="proteinGapTitle"></p>
+      <div id="proteinGapList"></div>
     </div>
     <div class="ff-status good" id="deficitStatus">
       <span class="dot"></span>
@@ -2267,6 +2268,14 @@ function resyncPantryFromDishes(){
   merged.sort((a,b)=> a.name.localeCompare(b.name,'de'));
   pantry = merged;
 }
+/* Menge eines Snacks lesbar formatieren: "100g" statt kryptisch "×100" */
+function snackAmountLabel(amt, unit){
+  amt = amt||1;
+  const isG = unit==='g'||unit==='ml';
+  if(isG) return ` (${amt}${unit})`;
+  if(amt!==1) return ` (${amt}×)`;
+  return '';
+}
 function pantryItem(name){
   const key = name.trim().toLowerCase();
   return pantry.find(p=> p.name.trim().toLowerCase()===key);
@@ -2671,11 +2680,11 @@ function renderSnackManage(){
     const amt = s.amount||1;
     const src = s.source==='dish' ? dishByName(s.name) : pantryItem(s.name);
     const kcal = src ? Math.round(s.source==='dish' ? effectiveKcal(src)*amt : nutrientContribution({unit:src.unit, amount:amt}, src.kcalPerUnit)) : (s.kcal||0);
-    return { ...s, amt, kcal };
+    return { ...s, amt, kcal, unit: src && s.source!=='dish' ? src.unit : '' };
   });
   wrap.innerHTML = withKcal.sort((a,b)=>a.kcal-b.kcal).map(s=>`
     <div class="snack-manage-row" data-id="${s.id}">
-      <span class="pantry-name">${escapeAttr(s.name)}${s.amt!==1?` <span class="pantry-hint">×${s.amt}</span>`:''} <span class="pantry-hint">${s.kcal} kcal</span></span>
+      <span class="pantry-name">${escapeAttr(s.name)}<span class="pantry-hint">${snackAmountLabel(s.amt, s.unit)}</span> <span class="pantry-hint">${s.kcal} kcal</span></span>
       <span>
         <button class="snack-fav-btn ${s.favorite?'active':''}" title="${s.favorite?'Favorit – erscheint im Heute-Tab':'Kein Favorit – im Heute-Tab ausgeblendet'}">${s.favorite?'★':'☆'}</button>
         <button class="snack-del-btn">Entfernen</button>
@@ -2940,6 +2949,35 @@ document.getElementById('processedCard').addEventListener('click', ()=>{
   renderProcessedCard();
 });
 
+/* Protein-Lücke: zeigt Vorrats-Zutaten mit der besten Protein-pro-kcal-Dichte, mit genau der Menge,
+   die die Lücke schließt - aber gedeckelt aufs verbleibende kcal-Budget (Stammdaten kcalMax), damit
+   der Vorschlag nie über die Tagesgrenze schießt. */
+function renderProteinGapCard(eatenProtein, eatenKcal){
+  const wrap = document.getElementById('proteinGapCard');
+  if(!wrap) return;
+  const titleEl = document.getElementById('proteinGapTitle');
+  const listEl = document.getElementById('proteinGapList');
+  const gap = profile.proteinGoal - eatenProtein;
+  const kcalRemaining = profile.kcalMax - eatenKcal;
+  if(gap<=0 || kcalRemaining<=0){ wrap.style.display = 'none'; return; }
+  const isG = p=> p.unit==='g'||p.unit==='ml';
+  const candidates = pantry
+    .filter(p=> p.kcalPerUnit>0 && p.proteinPerUnit>0)
+    .sort((a,b)=> (b.proteinPerUnit/b.kcalPerUnit) - (a.proteinPerUnit/a.kcalPerUnit))
+    .slice(0,4);
+  if(!candidates.length){ wrap.style.display = 'none'; return; }
+  wrap.style.display = 'block';
+  titleEl.textContent = 'Noch '+(Math.round(gap*10)/10)+' g Protein bis zum Ziel ('+profile.proteinGoal+'g) – Rest-Budget: '+Math.round(kcalRemaining)+' kcal';
+  listEl.innerHTML = candidates.map(p=>{
+    const unitsNeeded = gap / p.proteinPerUnit;
+    const kcalForFullGap = unitsNeeded * p.kcalPerUnit;
+    let units, kcalUsed, proteinGained;
+    if(kcalForFullGap <= kcalRemaining){ units = unitsNeeded; kcalUsed = kcalForFullGap; proteinGained = gap; }
+    else{ kcalUsed = kcalRemaining; units = kcalRemaining / p.kcalPerUnit; proteinGained = units * p.proteinPerUnit; }
+    const amountLabel = isG(p) ? Math.round(units*100)+p.unit : (Math.round(units*10)/10)+' Stk';
+    return `<div class="protein-gap-row"><span>${escapeAttr(p.name)} (${amountLabel})</span><span>+${Math.round(proteinGained*10)/10}g Prot · ${Math.round(kcalUsed)} kcal</span></div>`;
+  }).join('');
+}
 function renderToday(){
   const wd = weekdayOf(currentDate);
 
@@ -2983,17 +3021,7 @@ function renderToday(){
   document.getElementById('dayPlanKcal').textContent = Math.round(dayPlanKcal);
   document.getElementById('dayPlanFiber').textContent = (Math.round(dayPlanFiber*10)/10).toLocaleString('de-DE',{minimumFractionDigits:1,maximumFractionDigits:1});
   document.getElementById('dayPlanProtein').textContent = (Math.round(dayPlanProtein*10)/10).toLocaleString('de-DE',{minimumFractionDigits:1,maximumFractionDigits:1});
-  const ffStatusEl = document.getElementById('ffStatus');
-  if(dayFullness!==null){
-    const tier = ffTier(dayFullness);
-    const title = tier==='high'||tier==='good' ? 'Guter Fullness-Tag' : tier==='mid' ? 'Mittlerer Fullness-Tag' : 'Eher niedriger Fullness-Tag';
-    ffStatusEl.className = 'ff-status '+(tier==='high'?'good':tier);
-    ffStatusEl.style.display = 'flex';
-    document.getElementById('ffStatusTitle').textContent = title;
-    document.getElementById('ffStatusSub').textContent = ff10(dayFullness)+'/10 – '+(tier==='high'?'sättigend, kein Anpassungsbedarf':tier==='mid'?'geht so, könnte sättigender sein':'heute wenig sättigend, Anpassung sinnvoll');
-  }else{
-    ffStatusEl.style.display = 'none';
-  }
+  renderProteinGapCard(planProteinTotalRaw, planKcalTotal);
 
   const resolvedSlots = [];
   slots.forEach(slot=>{
@@ -3179,7 +3207,7 @@ function renderSnackChips(remaining){
     const kcal = src ? Math.round(s.source==='dish' ? effectiveKcal(src)*amt : nutrientContribution({unit:src.unit, amount:amt}, src.kcalPerUnit)) : (s.kcal||0);
     const fiber = src ? Math.round((s.source==='dish' ? effectiveFiber(src)*amt : nutrientContribution({unit:src.unit, amount:amt}, src.fiberPerUnit))*10)/10 : 0;
     const protein = src ? Math.round((s.source==='dish' ? calculatedProtein(src)*amt : nutrientContribution({unit:src.unit, amount:amt}, src.proteinPerUnit))*10)/10 : 0;
-    return { id:s.id, name: s.name+(amt!==1?` ×${amt}`:''), kcal, fiber, protein };
+    return { id:s.id, name: s.name+snackAmountLabel(amt, src ? src.unit : ''), kcal, fiber, protein };
   });
   const visible = resolved.filter(s=> s.kcal <= remaining + 100);
   if(!visible.length){ wrap.innerHTML = '<p class="section-note">Keine Favoriten-Snacks passend zum Rest-Budget – im Vorrat-Tab welche markieren (★).</p>'; return; }

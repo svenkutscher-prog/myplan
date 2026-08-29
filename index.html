@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Nouri</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap');
@@ -18,11 +18,11 @@
 .loading-spinner{width:34px;height:34px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--olive);animation:loadingSpin .8s linear infinite;}
 .loading-text{font-family:'Fraunces',serif;font-weight:600;font-size:15px;color:var(--ink-soft);margin:0;}
 @keyframes loadingSpin{to{transform:rotate(360deg);}}
-body{margin:0;background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;padding:2rem 1.1rem 5rem;}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;padding:2rem 1.1rem calc(5.2rem + env(safe-area-inset-bottom));}
 .wrap{max-width:520px;margin:0 auto;}
 h1{font-family:'Fraunces',serif;font-weight:600;font-size:26px;margin:0 0 1.1rem;}
 h2.section{font-family:'Fraunces',serif;font-weight:600;font-size:18px;margin:1.8rem 0 .8rem;}
-.tabs{display:flex;gap:6px;margin-bottom:.7rem;border-bottom:1px solid var(--line);position:relative;}
+.tabs{display:flex;gap:6px;position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--bg);border-top:1px solid var(--line);border-bottom:none;padding:.3rem 1.1rem calc(.3rem + env(safe-area-inset-bottom));max-width:520px;margin:0 auto;box-sizing:border-box;}
 
 .water-dropdown{display:none;position:absolute;top:60px;left:1.1rem;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:.9rem 1rem;box-shadow:0 8px 24px rgba(0,0,0,.12);z-index:20;min-width:220px;}
 .water-dropdown.open{display:block;}

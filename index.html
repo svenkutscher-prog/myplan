@@ -131,6 +131,8 @@ h2.section{font-family:'Fraunces',serif;font-weight:600;font-size:18px;margin:1.
 .food-fiber{font-size:10px;color:var(--ink-soft);opacity:.8;display:block;}
 .info-btn{width:36px;flex-shrink:0;border:none;border-left:1px solid var(--line);background:transparent;color:var(--ink-soft);cursor:pointer;font-size:14px;}
 .food-row.checked .info-btn{border-left-color:var(--olive);color:var(--olive-dark);}
+.pin-btn{width:32px;flex-shrink:0;border:none;border-left:1px solid var(--line);background:transparent;color:var(--ink-soft);cursor:pointer;font-size:13px;opacity:.4;}
+.pin-btn.active{opacity:1;background:#F6E9D2;}
 .info-btn:hover{background:rgba(0,0,0,.04);}
 .info-btn.open{background:rgba(0,0,0,.06);}
 .ing-panel{display:none;width:100%;background:#fff;border-top:1px dashed var(--line);}
@@ -491,6 +493,7 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
 .pvt-btn{flex:1;font-family:'Inter',sans-serif;font-size:12.5px;font-weight:500;padding:.4rem;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer;}
 .pvt-btn.active{background:var(--olive);border-color:var(--olive);color:#fff;}
 .p-nutri-inline{flex:1;font-size:12px;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.p-delete-btn{background:none;border:1px dashed var(--coral);color:var(--coral);border-radius:7px;padding:5px 10px;font-size:12px;cursor:pointer;}
 .processed-card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:.85rem 1.1rem;margin-bottom:1rem;cursor:pointer;}
 .processed-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.6rem;}
 .processed-title{font-size:14px;font-weight:600;color:var(--ink);margin:0 0 2px;}
@@ -644,6 +647,9 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
     <button class="btn primary" id="dayReviewBtn" style="margin-top:.6rem;">🤖 Was hätte ich heute besser machen können?</button>
     <p class="section-note" id="dayReviewStatus"></p>
     <div id="dayReviewResult" class="ki-plan-notes" style="display:none;"></div>
+    <button class="btn primary" id="optimizeTodayBtn" style="margin-top:.6rem;">🤖 Rest des Tages optimieren (Test)</button>
+    <p class="section-note" id="optimizeTodayStatus"></p>
+    <div id="optimizeTodayResult" style="display:none;"></div>
 
     <h2 class="section" style="margin-top:1.4rem;">Routine <span class="section-note" id="routineBadge"></span></h2>
     <div id="routineList"></div>
@@ -1221,6 +1227,18 @@ function fmtCountdown(ms){
   return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
 }
 let canEatNow = true;
+/* Fixierte Gerichte für "Rest des Tages optimieren" - bewusst nur lokal (localStorage) und nur für heute,
+   da es sich um einen Test-Baustein handelt, kein dauerhaftes/geräteübergreifendes Feature. */
+function pinnedSlotsToday(){
+  try{ return JSON.parse(localStorage.getItem('pinned_'+currentDate)||'[]'); }catch(e){ return []; }
+}
+function isPinnedToday(baseSlotId){ return pinnedSlotsToday().includes(baseSlotId); }
+function togglePinToday(baseSlotId){
+  let list = pinnedSlotsToday();
+  if(list.includes(baseSlotId)) list = list.filter(id=>id!==baseSlotId);
+  else list.push(baseSlotId);
+  localStorage.setItem('pinned_'+currentDate, JSON.stringify(list));
+}
 let fastStatusCache = null;
 function updateFastWindowStats(status){
   const wrap = document.getElementById('fastWindowStats');
@@ -2456,7 +2474,14 @@ function computeProcessedStats(dateStr){
   activeSlots(wd).forEach(slot=>{
     const dish = dishByName(slot.dishName);
     if(!dish) return;
-    items.push({ name: dish.name, kcal: Math.round(effectiveKcal(dish)), group: dishNovaGroup(dish) });
+    const split = portionSplits.find(s=> s.date===dateStr && s.slotId===slot.id);
+    const ratio = (split && split.targetDate && split.targetDate!==split.date) ? 0.5 : 1;
+    items.push({ name: dish.name, kcal: Math.round(effectiveKcal(dish)*ratio), group: dishNovaGroup(dish) });
+  });
+  portionSplits.filter(s=> s.targetDate===dateStr && s.date!==dateStr).forEach(split=>{
+    const dish = dishByName(split.dishName);
+    if(!dish) return;
+    items.push({ name: dish.name+' (2. Hälfte)', kcal: Math.round(effectiveKcal(dish)*0.5), group: dishNovaGroup(dish) });
   });
   logEntries.filter(l=> l.date===dateStr && l.type==='extra').forEach(l=>{
     items.push({ name: l.name, kcal: l.kcal||0, group: entryNovaGroup(l) });
@@ -2559,6 +2584,7 @@ function pantryRowHtml(p, i){
         <div class="p-dfield"><label>Bal.${isG?'/100':'/Stk'}</label><input type="number" step="any" class="pf-fiber" value="${p.fiberPerUnit}"></div>
         <div class="p-dfield"><label>Prot.${isG?'/100':'/Stk'}</label><input type="number" step="any" class="pf-protein" value="${p.proteinPerUnit}"></div>
         <button type="button" class="p-dprompt pf-prompt" title="Nährwerte per ChatGPT schätzen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></button>
+        <button type="button" class="p-delete-btn" title="Zutat löschen">🗑️</button>
       </div>
     </div>`;
   }
@@ -2580,6 +2606,7 @@ function pantryRowHtml(p, i){
         <div class="p-dfield"><label>Prot.${isG?'/100':'/Stk'}</label><input type="number" step="any" class="pf-protein" value="${p.proteinPerUnit}"></div>
         <button type="button" class="p-dprompt pf-prompt" title="Nährwerte per ChatGPT schätzen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></button>
         <div class="toggle on" style="align-self:center;" title="Prüfen"><div class="knob"></div></div>
+        <button type="button" class="p-delete-btn" title="Zutat löschen">🗑️</button>
       </div>
     </div>`;
 }
@@ -2639,6 +2666,18 @@ function renderPantry(){
       try{ await navigator.clipboard.writeText(prompt); setStatus('Prompt für "'+p.name+'" kopiert'); }
       catch(e){ setStatus('Kopieren nicht möglich'); }
       window.open('https://chatgpt.com/', '_blank');
+    });
+    const deleteBtn = row.querySelector('.p-delete-btn');
+    if(deleteBtn) deleteBtn.addEventListener('click', async ()=>{
+      const usedIn = dishes.filter(d=> d.ingredients.some(ing=> ing.name.trim().toLowerCase()===p.name.trim().toLowerCase()));
+      const warning = usedIn.length ? `\n\nWird noch in ${usedIn.length} Gericht(en) verwendet: ${usedIn.map(d=>d.name).join(', ')}. Diese Gerichte behalten die Zutat als reinen Text, sie wird dann aber nirgends mehr mit Nährwerten hinterlegt sein.` : '';
+      if(!confirm(`"${p.name}" wirklich aus dem Vorrat löschen?${warning}`)) return;
+      try{
+        if(p.id) await atDelete('Pantry', p.id);
+        pantry = pantry.filter(x=>x!==p);
+        setStatus('"'+p.name+'" gelöscht');
+        renderPantry(); render();
+      }catch(err){ console.error(err); setStatus('Fehler beim Löschen: '+err.message); }
     });
   });
 }
@@ -3120,7 +3159,17 @@ function renderToday(){
   slots.forEach(slot=>{
     const swap = daySwaps.find(s=> s.date===currentDate && s.slotId===slot.id);
     const dish = dishByName(swap ? swap.dishName : slot.dishName);
-    if(dish){ dayPlanKcal += effectiveKcal(dish); dayPlanFiber += effectiveFiber(dish); dayPlanProtein += effectiveProtein(dish); }
+    if(!dish) return;
+    // Bei einem Tag-übergreifenden Split (2. Hälfte geht an einen ANDEREN Tag) bleibt heute nur die Hälfte übrig
+    const split = portionSplits.find(s=> s.date===currentDate && s.slotId===slot.id);
+    const ratio = (split && split.targetDate && split.targetDate!==split.date) ? 0.5 : 1;
+    dayPlanKcal += effectiveKcal(dish)*ratio; dayPlanFiber += effectiveFiber(dish)*ratio; dayPlanProtein += effectiveProtein(dish)*ratio;
+  });
+  // 2. Hälften, die HEUTE als Ziel ankommen (Split wurde an einem ANDEREN Tag angelegt), zur Hälfte mitzählen
+  portionSplits.filter(s=> s.targetDate===currentDate && s.date!==currentDate).forEach(split=>{
+    const dish = dishByName(split.dishName);
+    if(!dish) return;
+    dayPlanKcal += effectiveKcal(dish)*0.5; dayPlanFiber += effectiveFiber(dish)*0.5; dayPlanProtein += effectiveProtein(dish)*0.5;
   });
   document.getElementById('dayPlanKcal').textContent = Math.round(dayPlanKcal);
   document.getElementById('dayPlanFiber').textContent = (Math.round(dayPlanFiber*10)/10).toLocaleString('de-DE',{minimumFractionDigits:1,maximumFractionDigits:1});
@@ -3176,6 +3225,7 @@ function renderToday(){
         <span class="food-kcal">${kcalR} kcal<br><span class="food-fiber">${fiberR}g Ball. · ${proteinR}g Prot.</span></span>
       </div>
       <button class="info-btn" title="Zutaten anzeigen">ⓘ</button>
+      ${!checked?`<button class="pin-btn ${isPinnedToday(baseSlotId)?'active':''}" data-baseslotid="${baseSlotId}" title="${isPinnedToday(baseSlotId)?'Fixiert – bleibt beim Optimieren unverändert':'Für heute fixieren (bleibt beim Optimieren unverändert)'}">📌</button>`:''}
       <div class="ing-panel">
         <div class="ing-panel-body">
           ${dish.ingredients.length ? dish.ingredients.map(i=>`<div class="ing-row"><span>${escapeAttr(i.name)}</span><span>${Math.round(i.amount*ratio*100)/100} ${i.unit}</span></div>`).join('') : '<span>Keine Zutaten hinterlegt.</span>'}
@@ -3202,6 +3252,11 @@ function renderToday(){
     e.stopPropagation();
     const row = btn.closest('.food-row');
     openPortionSplitModal(row.dataset.baseslotid);
+  }));
+  planList.querySelectorAll('.pin-btn').forEach(btn=> btn.addEventListener('click', e=>{
+    e.stopPropagation();
+    togglePinToday(btn.dataset.baseslotid);
+    renderToday();
   }));
   planList.querySelectorAll('.food-main').forEach(row=>{
     row.addEventListener('click', async ()=>{
@@ -3235,12 +3290,12 @@ function renderToday(){
     renderToday();
   }));
 
-  let total = 0, totalFiber = 0, totalProtein = 0;
+  let total = 0, totalFiber = 0, totalProtein = 0, totalFat = 0;
   resolvedSlots.forEach(({slot, dish})=>{
     const hit = dayLogPlan.find(l=> l.slotId ? l.slotId===slot.id : (dish && l.name===dish.name && l.time===slot.time));
-    if(hit){ total += hit.kcal; totalFiber += hit.fiber||0; totalProtein += hit.protein||0; }
+    if(hit){ total += hit.kcal; totalFiber += hit.fiber||0; totalProtein += hit.protein||0; totalFat += hit.fat||0; }
   });
-  dayLogExtra.forEach(e=>{ total += e.kcal; totalFiber += e.fiber||0; totalProtein += e.protein||0; });
+  dayLogExtra.forEach(e=>{ total += e.kcal; totalFiber += e.fiber||0; totalProtein += e.protein||0; totalFat += e.fat||0; });
   const target = targets[activeTarget];
   const remaining = target-total;
 
@@ -3269,15 +3324,16 @@ function renderToday(){
   document.getElementById('deficitStatusSub').textContent = dSub;
   renderProcessedCard();
 
-  renderSnackChips(remaining);
+  renderSnackChips(remaining, totalProtein, totalFat, totalFiber);
 
   renderWeightBlock();
   renderStepsButton();
   updateDayLockUI();
 }
 
-/* Snack-Chips: grün passt ins Budget, orange bis 100 kcal drüber, mehr wird ausgeblendet */
-function renderSnackChips(remaining){
+/* Snack-Chips: grün passt ins Budget, orange bis 100 kcal drüber, mehr wird ausgeblendet.
+   Bei aktivem KI-Tag zusätzlich: nur Snacks zeigen, die zum größten offenen Makro-Ziel wirklich beitragen. */
+function renderSnackChips(remaining, eatenProtein, eatenFat, eatenFiber){
   const wrap = document.getElementById('snackChips');
   const resolved = snacks.filter(s=> s.favorite).map(s=>{
     const amt = s.amount||1;
@@ -3288,9 +3344,27 @@ function renderSnackChips(remaining){
     const fat = src ? Math.round((s.source==='dish' ? effectiveFat(src)*amt : nutrientContribution({unit:src.unit, amount:amt}, src.fatPerUnit))*10)/10 : 0;
     return { id:s.id, name: s.name+snackAmountLabel(amt, src ? src.unit : ''), kcal, fiber, protein, fat };
   });
-  const visible = resolved.filter(s=> s.kcal <= remaining + 100);
+  let filtered = resolved.filter(s=> s.kcal <= remaining + 100);
+  const wd = weekdayOf(currentDate);
+  const kiActiveToday = isAiActiveForDate(wd, currentDate);
+  let gapLabel = '';
+  if(kiActiveToday && filtered.length){
+    // Größte offene Lücke ermitteln (wie weit vom Ziel entfernt, relativ) und nur Snacks zeigen, die dafür spürbar beitragen
+    const fatTarget = Math.round((profile.kcalMax*0.20)/9*10)/10;
+    const gaps = [
+      { key:'protein', ratio: profile.proteinGoal>0 ? eatenProtein/profile.proteinGoal : 1, test: s=> s.protein>=8 },
+      { key:'fett', ratio: fatTarget>0 ? eatenFat/fatTarget : 1, test: s=> s.fat>=5 },
+      { key:'ballaststoffe', ratio: profile.fiberGoal>0 ? eatenFiber/profile.fiberGoal : 1, test: s=> s.fiber>=3 },
+    ].sort((a,b)=> a.ratio-b.ratio);
+    const weakest = gaps[0];
+    if(weakest.ratio<1){
+      const withGap = filtered.filter(weakest.test);
+      if(withGap.length){ filtered = withGap; gapLabel = weakest.key; }
+    }
+  }
+  const visible = filtered;
   if(!visible.length){ wrap.innerHTML = '<p class="section-note">Keine Favoriten-Snacks passend zum Rest-Budget – im Vorrat-Tab welche markieren (★).</p>'; return; }
-  wrap.innerHTML = [...visible].sort((a,b)=>a.kcal-b.kcal).map(s=>{
+  wrap.innerHTML = (gapLabel?`<p class="section-note" style="width:100%;margin:0 0 .3rem;">🤖 Nur Snacks, die deine ${gapLabel}-Lücke schließen</p>`:'') + [...visible].sort((a,b)=>a.kcal-b.kcal).map(s=>{
     const color = canEatNow ? (s.kcal <= remaining ? 'green' : 'orange') : 'locked';
     return `<button class="snack-chip ${color}" data-id="${s.id}" data-name="${escapeAttr(s.name)}" data-kcal="${s.kcal}" data-fiber="${s.fiber}" data-protein="${s.protein}" data-fat="${s.fat}">${escapeAttr(s.name)} · ${s.kcal} kcal</button>`;
   }).join('');
@@ -4240,6 +4314,166 @@ Gewichtsverlauf (chronologisch, letzte Einträge): ${weightText}
 
 Gehe auf folgende Kategorien ein, wo relevant: Kalorien, Ballaststoffe, Protein, Schritte, Fastenfenster/Uhrzeiten, und bewerte den Gewichtsverlauf (Trend, nicht nur letzter Wert). Schreibe wie ein Personal Trainer direkt zu seinem Klienten: persönlich, motivierend, per Du-Anrede, ehrlich aber wertschätzend, keine Bullet Points, keine Überschriften, kein JSON, kein Markdown – nur 4-5 zusammenhängende Sätze Fließtext auf Deutsch, mit konkreten Empfehlungen was heute besser laufen kann.`;
 }
+function buildOptimizeTodayPrompt(){
+  const wd = weekdayOf(currentDate);
+  const slots = activeSlots(wd);
+  const dayLogPlan = logEntries.filter(l=> l.date===currentDate && l.type==='plan');
+  const dayLogExtra = logEntries.filter(l=> l.date===currentDate && l.type==='extra');
+  const pinned = pinnedSlotsToday();
+  const fixedPlan = [], open = [];
+  slots.forEach(slot=>{
+    const swap = daySwaps.find(s=> s.date===currentDate && s.slotId===slot.id);
+    const dish = dishByName(swap ? swap.dishName : slot.dishName);
+    if(!dish) return;
+    const checked = dayLogPlan.some(l=> l.slotId===slot.id || l.slotId===slot.id+'__1' || l.slotId===slot.id+'__2');
+    if(checked || pinned.includes(slot.id)){
+      fixedPlan.push({ time:slot.time, name:dish.name, kcal:effectiveKcal(dish), fiber:effectiveFiber(dish), protein:calculatedProtein(dish), fat:effectiveFat(dish) });
+    }else{
+      open.push({ time:slot.time, name:dish.name });
+    }
+  });
+  const fixedExtras = dayLogExtra.map(e=> ({ time:e.time||'', name:e.name, kcal:e.kcal||0, fiber:e.fiber||0, protein:e.protein||0, fat:e.fat||0 }));
+  if(!open.length) return null;
+  const allFixed = [...fixedPlan, ...fixedExtras];
+  const fixedKcal = allFixed.reduce((s,f)=>s+f.kcal,0);
+  const fixedProtein = allFixed.reduce((s,f)=>s+f.protein,0);
+  const fixedFat = allFixed.reduce((s,f)=>s+f.fat,0);
+  const fixedFiber = allFixed.reduce((s,f)=>s+f.fiber,0);
+  const fixedPlanText = fixedPlan.length ? fixedPlan.map(f=> `- ${f.time} ${f.name} (FIX, unverändert in "slots" übernehmen): ${f.kcal} kcal, ${f.fiber}g Ballaststoffe, ${f.protein}g Protein, ${f.fat}g Fett`).join('\n') : '(nichts fixiert)';
+  const fixedExtraText = fixedExtras.length ? fixedExtras.map(f=> `- ${f.time} ${f.name} (bereits gegessenes Extra, NUR zur Berechnung, NICHT in "slots" aufnehmen): ${f.kcal} kcal, ${f.fiber}g Ballaststoffe, ${f.protein}g Protein, ${f.fat}g Fett`).join('\n') : '(keine)';
+  const openText = open.map(o=> `- ${o.time} ${o.name} (OFFEN, darf verändert/getauscht werden)`).join('\n');
+  const dishList = dishes.map(d=> `- ${d.name} (${effectiveKcal(d)} kcal, ${effectiveFiber(d)} g Ballaststoffe, ${calculatedProtein(d)} g Protein, ${effectiveFat(d)} g Fett)`).join('\n');
+  const snackList = snacks.filter(s=> s.source==='dish').map(s=>{
+    const amt = s.amount||1;
+    const src = dishByName(s.name);
+    if(!src) return null;
+    const kcal = Math.round(effectiveKcal(src)*amt);
+    const fiber = Math.round(effectiveFiber(src)*amt*10)/10;
+    const protein = Math.round(calculatedProtein(src)*amt*10)/10;
+    const fat = Math.round(effectiveFat(src)*amt*10)/10;
+    return `- ${s.name}${snackAmountLabel(amt, src.unit)} (${kcal} kcal, ${fiber}g Ballaststoffe, ${protein}g Protein, ${fat}g Fett)`;
+  }).filter(Boolean).join('\n');
+  const pantryList = pantry.filter(p=> p.kcalPerUnit>0).map(p=> `- ${p.name} (${p.unit}) – ${p.kcalPerUnit} kcal / ${p.fiberPerUnit}g Ballaststoffe / ${p.proteinPerUnit}g Protein / ${p.fatPerUnit||0}g Fett pro ${(p.unit==='g'||p.unit==='ml')?'100'+p.unit:p.unit}${p.novaGroup?' / NOVA '+p.novaGroup:''}`).join('\n');
+  // Test-Makroverteilung 40/40/20 (Protein/Kohlenhydrate/Fett % der Ziel-kcal), unabhängig von den sonstigen Stammdaten-Zielen
+  const proteinTargetG = Math.round((profile.kcalMax*0.40)/4);
+  const carbTargetG = Math.round((profile.kcalMax*0.40)/4);
+  const fatTargetG = Math.round((profile.kcalMax*0.20)/9);
+  const last7Steps = [...Array(7)].map((_,i)=> addDays(currentDate,-i-1)).map(d=> steps.find(s=>s.date===d)).filter(Boolean).map(s=>s.steps);
+  const avgSteps = last7Steps.length ? Math.round(last7Steps.reduce((a,b)=>a+b,0)/last7Steps.length) : profile.stepsGoal;
+  const sortedWeights = weights.slice().sort((a,b)=> a.date.localeCompare(b.date));
+  const currentWeight = sortedWeights.length ? sortedWeights[sortedWeights.length-1].kg : profile.startWeight;
+  const kcalPerStep = Math.round(currentWeight*0.00045*1000)/1000; // Richtwert: ca. 0,00045 kcal pro Schritt und kg Körpergewicht
+  return { prompt: `Du bist Ernährungsberater. Optimiere NUR die als OFFEN markierten Mahlzeiten von heute (${WEEKDAY_NAMES[wd]}), damit der GANZE Tag (FIX-Wochenplan + bereits gegessene Extras + OFFEN zusammen) folgende Ziele möglichst erreicht.
+
+FIX aus dem Wochenplan (bereits gegessen oder bewusst festgelegt – NIEMALS verändern, unverändert in "slots" übernehmen):
+${fixedPlanText}
+
+Bereits gegessene Extras/Snacks heute (gehören NICHT zum Wochenplan, NICHT in "slots" aufnehmen, aber unbedingt in die Zielrechnung miteinbeziehen):
+${fixedExtraText}
+
+Summe aus FIX-Wochenplan + Extras zusammen: ${fixedKcal} kcal, ${fixedFiber}g Ballaststoffe, ${fixedProtein}g Protein, ${fixedFat}g Fett
+
+OFFEN (hier darfst du tauschen/anpassen):
+${openText}
+
+Tagesziele – KALORIEN HABEN OBERSTE PRIORITÄT: Die Summe aller Mahlzeiten (FIX-Wochenplan + Extras + neue OFFEN-Mahlzeiten) MUSS im HARTEN BEREICH ${profile.kcalMin}-${profile.kcalMax} kcal liegen, NIE darüber und NIE darunter – das gilt VOR allen anderen Zielen. Rechne beim Zusammenstellen genau nach. Erst danach, INNERHALB dieses kcal-Rahmens, so gut wie möglich anpeilen: ca. 40% Protein (≈${proteinTargetG}g), 40% Kohlenhydrate (≈${carbTargetG}g), 20% Fett (≈${fatTargetG}g), mind. ${profile.fiberGoal}g Ballaststoffe, mind. 90% der kcal unverarbeitet (NOVA 1-2).
+
+Vorrat (nur diese Zutaten für neue/geänderte Gerichte verwenden, keine erfinden):
+${pantryList || '(keine Vorratsdaten)'}
+
+Bestehende Gerichte-Bibliothek – nutze bevorzugt eines dieser fertigen Gerichte, wenn eines gut passt, statt ein neues zu erfinden (Name muss dann exakt übernommen werden, "isNew": false):
+${dishList || '(noch keine Gerichte angelegt)'}
+
+Übliche Snacks (können bei Bedarf als zusätzlicher OFFEN-Slot vorgeschlagen werden, z.B. um eine Protein-/Ballaststoff-Lücke zu schließen, Name exakt übernehmen, "isNew": false):
+${snackList || '(keine Snacks hinterlegt)'}
+
+Schritte-Ziel berechnen, mit NACHVOLLZIEHBARER Rechnung (keine frei erfundene Zahl):
+1. Berechne zuerst deine vorgeschlagene Tagesbilanz (FIX-Wochenplan + Extras + neue OFFEN-Mahlzeiten zusammen).
+2. Falls diese Bilanz über ${profile.kcalMax} kcal liegt: Überschuss-kcal = Bilanz − ${profile.kcalMax}. Sonst: Überschuss-kcal = 0.
+3. Zusätzliche Schritte = Überschuss-kcal ÷ ${kcalPerStep} kcal pro Schritt (Richtwert für ${currentWeight}kg Körpergewicht).
+4. Schritte-Ziel = 7-Tage-Schnitt (${avgSteps}) + zusätzliche Schritte, aufgerundet auf volle 500er-Schritte.
+Wenn kein Überschuss besteht, ist das Schritte-Ziel einfach der 7-Tage-Schnitt (${avgSteps}), NICHT künstlich erhöht. Erkläre die Rechnung kurz in einem eigenen Stichpunkt in "notes" (z.B. "Schritte: X kcal Überschuss ÷ ${kcalPerStep} = Y zusätzliche Schritte").
+
+In "notes": max. 3-4 KURZE Stichpunkte, die erklären WARUM dieser Plan besser ist als vorher (z.B. "mehr Protein durch X statt Y", "Fett-Ziel jetzt erreicht dank Z") - KEINE eigenen Zahlen-Summen (kein "Tagesbilanz: X kcal", kein "Protein: Yg") nennen, die App zeigt die exakten Zahlen bereits selbst an und deine eigene Summe könnte von der echten abweichen. Nur die Qualität/Richtung der Änderung beschreiben, keine Rechenwerte.
+
+Antworte AUSSCHLIESSLICH mit gültigem, einzeiligem JSON, kein Markdown, kein weiterer Text. "slots" muss NUR die Wochenplan-Mahlzeiten enthalten (FIX-Wochenplan unverändert übernommen + OFFEN ggf. angepasst) – die bereits gegessenen Extras NICHT mit aufnehmen, die bleiben nur Log-Einträge. Sortiere "slots" nach Uhrzeit:
+{"slots":[{"time":"08:00","dishName":"...","isNew":false}],"stepsGoal":8000,"notes":["Kurzer Stichpunkt 1","Kurzer Stichpunkt 2"]}`, wd, fixedPlan, fixedExtraKcal: fixedExtras.reduce((s,f)=>s+f.kcal,0) };
+}
+document.getElementById('optimizeTodayBtn').addEventListener('click', async ()=>{
+  const statusEl = document.getElementById('optimizeTodayStatus');
+  const resultEl = document.getElementById('optimizeTodayResult');
+  const btn = document.getElementById('optimizeTodayBtn');
+  const built = buildOptimizeTodayPrompt();
+  if(!built){ statusEl.textContent = 'Keine offenen (nicht abgehakten/fixierten) Mahlzeiten mehr heute – nichts zu optimieren.'; return; }
+  btn.disabled = true;
+  statusEl.textContent = 'Claude optimiert den Rest deines Tages…';
+  resultEl.style.display = 'none';
+  try{
+    const raw = await callClaudeApi(built.prompt);
+    const parsed = parseAiDayResponse(raw);
+    // Absicherung: die KI soll FIX-Einträge unverändert übernehmen, hält sich aber nicht immer zuverlässig daran -
+    // deshalb hier selbst nachprüfen und fehlende FIX-Gerichte notfalls ergänzen, statt der Anweisung blind zu vertrauen.
+    let fixedSlots = parsed.slots;
+    const missingFixed = built.fixedPlan.filter(f=> !fixedSlots.some(sl=> sl.dishName===f.name));
+    if(missingFixed.length){
+      fixedSlots = [...fixedSlots, ...missingFixed.map(f=> ({ time:f.time, dishName:f.name, isNew:false }))].sort((a,b)=> a.time.localeCompare(b.time));
+    }
+    aiDayProposal = { wd: built.wd, slots: fixedSlots, notes: parsed.notes||[] };
+    if(missingFixed.length) aiDayProposal.notes = [...aiDayProposal.notes, '⚠️ Ergänzt (von der KI übersehen): '+missingFixed.map(f=>f.name).join(', ')];
+    // Nachrechnen: kcal-Summe des ganzen Tages (Extras + alle Slots) muss im harten Bereich liegen - der KI nicht blind vertrauen
+    const slotsKcal = fixedSlots.reduce((sum, sl)=>{
+      if(sl.isNew && sl.ingredients) return sum + calculatedKcal({ ingredients: sl.ingredients });
+      const d = dishByName(sl.dishName);
+      return sum + (d ? effectiveKcal(d) : 0);
+    }, 0);
+    const dayTotalKcalCheck = Math.round(built.fixedExtraKcal + slotsKcal);
+    if(dayTotalKcalCheck > profile.kcalMax || dayTotalKcalCheck < profile.kcalMin){
+      aiDayProposal.notes = [...aiDayProposal.notes, `⚠️ Tagesbilanz liegt bei ${dayTotalKcalCheck} kcal – außerhalb deines Ziels von ${profile.kcalMin}-${profile.kcalMax} kcal. Vor dem Speichern nochmal prüfen.`];
+    }
+    const stepsGoal = parsed.stepsGoal ? Math.round(Number(parsed.stepsGoal)) : null;
+    resultEl.innerHTML = `
+      <div class="ki-plan-notes">
+        ${stepsGoal?`<p>🚶 Vorgeschlagenes Schritte-Ziel heute: <b>${stepsGoal.toLocaleString('de-DE')}</b></p>`:''}
+        ${(aiDayProposal.notes||[]).map(n=>`<p>${escapeAttr(n)}</p>`).join('')}
+      </div>
+      <div id="optimizeTodaySlots"></div>
+      <button class="btn primary" id="optimizeTodayApply" style="margin-top:.6rem;">✓ Als KI-Version für heute speichern</button>
+      <button class="btn" id="optimizeTodayDiscard" style="margin-top:.4rem;">Verwerfen</button>`;
+    document.getElementById('optimizeTodaySlots').innerHTML = aiDayProposal.slots.map(sl=> `<div class="slot-row"><span class="hour-select">${sl.time}</span><span class="slot-dishname ${sl.isNew?'ki-slot-new':''}">${escapeAttr(sl.dishName)}${sl.isNew?' <span class="ai-badge">neu</span>':''}</span></div>`).join('');
+    resultEl.style.display = 'block';
+    statusEl.textContent = 'Vorschlag erstellt – prüfen und ggf. übernehmen.';
+    document.getElementById('optimizeTodayApply').addEventListener('click', async ()=>{
+      const wd = built.wd;
+      const oldDayLogPlan = logEntries.filter(l=> l.date===currentDate && l.type==='plan');
+      await applyAiDayProposal();
+      // Verknüpfung reparieren: bereits abgehakte Mahlzeiten von heute zeigen nach dem Speichern noch auf die
+      // ALTEN (gelöschten) Wochenplan-Slot-IDs - sonst würden sie fälschlich wieder als "offen" erscheinen und
+      // ein zweites Mal abhakbar sein. Neu erstellte Slots mit gleichem Namen+Zeit übernehmen die Verknüpfung.
+      const newSlots = weekPlanAI[wd] || [];
+      for(const oldLog of oldDayLogPlan){
+        const stillMatches = newSlots.some(s=> s.id===oldLog.slotId);
+        if(stillMatches) continue; // Zufallstreffer, aber sicherheitshalber nicht anfassen
+        const newSlot = newSlots.find(s=> s.dishName===oldLog.name && s.time===oldLog.time);
+        if(newSlot && newSlot.id!==oldLog.slotId){
+          try{ await atUpdate('LogEntries', oldLog.id, { SlotId: newSlot.id }); oldLog.slotId = newSlot.id; }catch(e){ console.error(e); }
+        }
+      }
+      renderToday();
+      resultEl.style.display = 'none';
+      statusEl.textContent = 'Gespeichert – aktiv für heute. Umschalten jederzeit möglich (Original/KI im Wochenplan-Tab oder in den Sondertagen oben).';
+    });
+    document.getElementById('optimizeTodayDiscard').addEventListener('click', ()=>{
+      aiDayProposal = null;
+      resultEl.style.display = 'none';
+      statusEl.textContent = '';
+    });
+  }catch(err){
+    console.error(err);
+    statusEl.textContent = 'Fehler: '+err.message;
+  }finally{
+    btn.disabled = false;
+  }
+});
 function buildDayReviewPrompt(){
   const entries = logEntries.filter(l=> l.date===currentDate && (l.type==='plan'||l.type==='extra')).sort((a,b)=> (a.time||'').localeCompare(b.time||''));
   if(!entries.length) return null;

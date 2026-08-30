@@ -812,6 +812,15 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
     <p class="section-label">Tag wählen – Claude optimiert ihn passend zu deinem Kalorien-, Ballaststoff-, Protein- und Fett-Ziel sowie mind. 90% unverarbeiteten Zutaten. Der Vorschlag wird als eigene KI-Version gespeichert; dein Original-Wochenplan bleibt dabei unverändert und ist jederzeit über den Umschalter im Wochenplan-Tab wieder aktivierbar.</p>
     <div class="ki-day-picker" id="kiDayPicker"></div>
     <div class="profile-field" style="margin-top:.4rem;">
+      <label>Ereignis (optional) – füllt den Tagesablauf unten mit einer Vorlage, die du danach noch anpassen kannst</label>
+      <select id="kiEventPreset" style="width:100%;font-family:'Inter',sans-serif;font-size:14px;border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:#fff;color:var(--ink);">
+        <option value="">– kein besonderes Ereignis (normaler Tag) –</option>
+        <option value="fotoshooting">Fotoshooting</option>
+        <option value="nicht_zuhause">Nicht zuhause</option>
+        <option value="mehrtaegig">Mehrtägig nicht zuhause</option>
+      </select>
+    </div>
+    <div class="profile-field" style="margin-top:.4rem;">
       <label>Besonderer Tagesablauf (optional) – z.B. Termine, Fahrtzeiten, wann du unterwegs bist. Wird pro Wochentag in Airtable gespeichert (geräteübergreifend synchron).</label>
       <textarea id="kiDayContext" rows="3" placeholder="z.B. Fotoshooting-Tag: ab 8 Uhr 2 h Autofahrt zum Termin, dann ca. 3,5 h Shooting, dann 2 h zurück" style="width:100%;font-family:'Inter',sans-serif;font-size:14px;border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:#fff;color:var(--ink);resize:vertical;"></textarea>
     </div>
@@ -2255,16 +2264,38 @@ function isAiActiveForDate(wd, dateStr){ return weekVersion[wd]==='ai' && weekDa
 function activeSlots(wd){ return isAiActiveForDate(wd, currentDate) ? (weekPlanAI[wd]||[]) : (weekPlan[wd]||[]); }
 /* Speichert Mode/Context/Notes/Date für einen Wochentag in EINEM Airtable-Record (WeekVersion) - geräteübergreifend synchron.
    updates: {mode?, context?, notes?, eventDate?} - nur angegebene Felder werden geändert, Rest bleibt wie im State. */
+let weekDayContextDate = {}; // wd -> Datum, für das der "Besonderer Tagesablauf"-Text gilt (einmalig, nicht dauerhaft pro Wochentag)
 async function saveWeekVersionRow(wd, updates){
   if(updates.mode!==undefined) weekVersion[wd] = updates.mode;
   if(updates.context!==undefined) weekDayContext[wd] = updates.context;
+  if(updates.contextDate!==undefined) weekDayContextDate[wd] = updates.contextDate;
   if(updates.notes!==undefined) weekDayNotes[wd] = updates.notes;
   if(updates.eventDate!==undefined) weekDayEventDate[wd] = updates.eventDate;
-  const fields = { Weekday: wd, Mode: weekVersion[wd]||'original', Context: weekDayContext[wd]||'', Notes: JSON.stringify(weekDayNotes[wd]||[]), Date: weekDayEventDate[wd]||'' };
+  const fields = { Weekday: wd, Mode: weekVersion[wd]||'original', Context: weekDayContext[wd]||'', ContextDate: weekDayContextDate[wd]||'', Notes: JSON.stringify(weekDayNotes[wd]||[]), Date: weekDayEventDate[wd]||'' };
   try{
     if(weekVersionRecId[wd]) await atUpdate('WeekVersion', weekVersionRecId[wd], fields);
     else{ const rec = await atCreate('WeekVersion', fields); weekVersionRecId[wd] = rec.id; }
-  }catch(e){ console.error(e); setStatus('WeekVersion-Tabelle: Felder Weekday/Mode/Context/Notes/Date prüfen (Context/Notes/Date als Long text bzw. Text) – Änderung wird nicht dauerhaft gespeichert.'); }
+  }catch(e){
+    // Feld "ContextDate" existiert in Airtable evtl. noch nicht -> ohne erneut versuchen, sonst geht Speichern komplett nicht
+    const { ContextDate, ...fieldsWithoutContextDate } = fields;
+    try{
+      if(weekVersionRecId[wd]) await atUpdate('WeekVersion', weekVersionRecId[wd], fieldsWithoutContextDate);
+      else{ const rec = await atCreate('WeekVersion', fieldsWithoutContextDate); weekVersionRecId[wd] = rec.id; }
+    }catch(e2){ console.error(e2); setStatus('WeekVersion-Tabelle: Felder Weekday/Mode/Context/Notes/Date prüfen (Context/Notes/Date als Long text bzw. Text) – Änderung wird nicht dauerhaft gespeichert.'); }
+  }
+}
+/* Prüft, ob es heute schon abgehakte Mahlzeiten in der GERADE AKTIVEN Version gibt, bevor auf die andere
+   Version umgeschaltet wird - sonst zählen beim späteren Umschalten (und ggf. dort auch Abhaken) Mahlzeiten
+   aus BEIDEN Versionen gleichzeitig in die Tagesbilanz, weil sie unterschiedliche Slot-IDs haben. */
+function confirmVersionSwitch(wd){
+  if(weekDayEventDate[wd]!==currentDate) return true; // betrifft nur wenn die Version heute aktiv ist/wird
+  const currentSlots = activeSlots(wd);
+  const currentSlotIds = new Set(currentSlots.map(s=>s.id));
+  const dayLogPlan = logEntries.filter(l=> l.date===currentDate && l.type==='plan');
+  const checkedNow = dayLogPlan.filter(l=> l.slotId && (currentSlotIds.has(l.slotId) || currentSlotIds.has((l.slotId||'').replace(/__[12]$/,''))));
+  if(!checkedNow.length) return true;
+  const kcalSum = checkedNow.reduce((s,l)=>s+(l.kcal||0),0);
+  return confirm(`Du hast in der aktuellen Version schon ${checkedNow.length} Mahlzeit(en) abgehakt (${kcalSum} kcal). Diese bleiben auch nach dem Wechsel in der Tagesbilanz erhalten und könnten sich mit neu abgehakten Mahlzeiten in der anderen Version überschneiden. Trotzdem wechseln?`);
 }
 async function setWeekVersion(wd, mode){
   const updates = { mode };
@@ -2920,7 +2951,7 @@ async function loadAll(){
       });
       WEEKDAYS.forEach(wd=> weekPlanAI[wd].sort((a,b)=> a.time.localeCompare(b.time)));
     }catch(e){ console.warn('WeekPlanAI-Tabelle noch nicht vorhanden – lege sie in Airtable an (Felder: Weekday, Time, DishName).'); }
-    weekVersion = {}; weekVersionRecId = {}; weekDayContext = {}; weekDayNotes = {}; weekDayEventDate = {}; WEEKDAYS.forEach(wd=> weekVersion[wd]='original');
+    weekVersion = {}; weekVersionRecId = {}; weekDayContext = {}; weekDayContextDate = {}; weekDayNotes = {}; weekDayEventDate = {}; WEEKDAYS.forEach(wd=> weekVersion[wd]='original');
     try{
       const wvRecs = await weekVersionP; if(wvRecs===null) throw new Error('missing');
       wvRecs.forEach(r=>{
@@ -2929,8 +2960,17 @@ async function loadAll(){
           weekVersion[wd] = r.fields.Mode==='ai' ? 'ai' : 'original';
           weekVersionRecId[wd] = r.id;
           weekDayContext[wd] = r.fields.Context || '';
+          weekDayContextDate[wd] = r.fields.ContextDate || '';
           weekDayEventDate[wd] = r.fields.Date || '';
           try{ weekDayNotes[wd] = JSON.parse(r.fields.Notes || '[]'); }catch(e){ weekDayNotes[wd] = []; }
+        }
+      });
+      // Tagesablauf-Text ist bewusst nur EINMALIG gültig, fürs konkrete Datum in ContextDate - danach automatisch leeren,
+      // sonst würde er als dauerhafte Vorlage für jeden künftigen Wochentag hängen bleiben.
+      WEEKDAYS.forEach(wd=>{
+        if(weekDayContextDate[wd] && weekDayContextDate[wd]<currentDate && weekDayContext[wd]){
+          weekDayContext[wd] = ''; weekDayContextDate[wd] = '';
+          saveWeekVersionRow(wd, { context:'', contextDate:'' }).catch(()=>{});
         }
       });
     }catch(e){ console.warn('WeekVersion-Tabelle noch nicht vorhanden – lege sie in Airtable an (Felder: Weekday, Mode, Context, Notes, Date). Ohne sie bleibt immer die Original-Version aktiv.'); }
@@ -3015,6 +3055,7 @@ function renderSpecialDays(){
     e.stopPropagation();
     const wd = b.dataset.wd;
     if(b.dataset.mode===weekVersion[wd]) return;
+    if(!confirmVersionSwitch(wd)) return;
     setWeekVersion(wd, b.dataset.mode);
   }));
   wrap.querySelectorAll('.special-day-detail .sd-swap-row').forEach(row=> row.addEventListener('click', (e)=>{
@@ -3243,7 +3284,7 @@ function renderToday(){
   }).join('');
   planList.querySelectorAll('.info-btn').forEach(btn=> btn.addEventListener('click', e=>{
     e.stopPropagation();
-    const panel = btn.nextElementSibling;
+    const panel = btn.closest('.food-row').querySelector('.ing-panel');
     const open = panel.classList.contains('show');
     panel.classList.toggle('show', !open);
     btn.classList.toggle('open', !open);
@@ -3837,6 +3878,7 @@ function renderWeek(){
       <div class="slots"></div>`;
     block.querySelectorAll('.ver-btn').forEach(b=> b.addEventListener('click', ()=>{
       if(b.dataset.mode === weekVersion[wd]) return;
+      if(!confirmVersionSwitch(wd)) return;
       setWeekVersion(wd, b.dataset.mode);
     }));
     if(editOn) block.querySelector('.day-move-btn').addEventListener('click', ()=> openDayMoveModal(wd));
@@ -3922,6 +3964,7 @@ let aiDayProposal = null; // { wd, slots:[{time,dishName,isNew,...}], notes }
 function loadKiDayContext(wd){
   const ta = document.getElementById('kiDayContext');
   ta.value = weekDayContext[wd] || '';
+  document.getElementById('kiEventPreset').value = ''; // Auswahl ist nur eine Vorlagen-Hilfe, wird nicht gespeichert/geladen
 }
 function initKiDayPicker(){
   const wrap = document.getElementById('kiDayPicker');
@@ -3931,13 +3974,25 @@ function initKiDayPicker(){
   loadKiDayContext(kiSelectedDay);
 }
 let kiContextSaveTimer = null;
+const kiEventPresets = {
+  fotoshooting: 'Fotoshooting-Tag: ab 8 Uhr 2 h Autofahrt zum Termin, dann ca. 3,5 h Shooting, dann 2 h zurück. Unterwegs kein Zugriff auf Küche/Kühlschrank – Mahlzeiten müssen to-go-tauglich sein (kalt, ohne Aufwärmen essbar, gut transportierbar).',
+  nicht_zuhause: 'Den ganzen Tag unterwegs, kein Zugriff auf die eigene Küche. Mahlzeiten müssen to-go-tauglich sein (kalt, ohne Aufwärmen essbar, gut transportierbar, nichts Löffelbedürftiges/Tropfendes).',
+  mehrtaegig: 'Mehrere Tage am Stück unterwegs, kein Zugriff auf die eigene Küche/Kühlschrank. Mahlzeiten müssen mehrere Tage haltbar/lagerfähig sein ohne Kühlung, to-go-tauglich, einfach unterwegs zu besorgen oder mitzunehmen.',
+};
+document.getElementById('kiEventPreset').addEventListener('change', (e)=>{
+  const key = e.target.value;
+  if(!key) return; // "kein besonderes Ereignis" -> Textfeld unangetastet lassen
+  const textarea = document.getElementById('kiDayContext');
+  textarea.value = kiEventPresets[key];
+  textarea.dispatchEvent(new Event('input'));
+});
 document.getElementById('kiDayContext').addEventListener('input', ()=>{
   if(!kiSelectedDay) return;
   const wd = kiSelectedDay;
   const val = document.getElementById('kiDayContext').value;
   weekDayContext[wd] = val; // sofort im State, damit z.B. die Heute-Vorschau nicht auf den Airtable-Write warten muss
   clearTimeout(kiContextSaveTimer);
-  kiContextSaveTimer = setTimeout(()=> saveWeekVersionRow(wd, {context: val}), 800);
+  kiContextSaveTimer = setTimeout(()=> saveWeekVersionRow(wd, {context: val, contextDate: val ? nextOccurrenceDate(wd, currentDate) : ''}), 800);
 });
 function buildAiDayPrompt(wd, dayContext){
   const dishList = dishes.map(d=> `- ${d.name} (${effectiveKcal(d)} kcal, ${effectiveFiber(d)} g Ballaststoffe, ${calculatedProtein(d)} g Protein, ${effectiveFat(d)} g Fett) – Zutaten: ${d.ingredients.map(i=>`${i.amount}${i.unit} ${i.name}`).join(', ')||'keine hinterlegt'}`).join('\n');

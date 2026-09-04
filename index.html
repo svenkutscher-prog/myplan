@@ -30,8 +30,9 @@ h2.section{font-family:'Fraunces',serif;font-weight:600;font-size:18px;margin:1.
 .water-dd-btns{display:flex;gap:6px;}
 .water-dd-btns .qbtn{flex:1;padding:.55rem;border-radius:9px;border:1px solid var(--line);background:#fff;color:var(--ink);font-size:12px;font-weight:500;cursor:pointer;}
 .water-dd-btns .qbtn:hover{background:var(--water-bg,#DCEAF0);}
-#teaBtn{border-radius:9px;border:1px solid var(--line);background:#fff;color:var(--ink);font-size:12px;font-weight:500;cursor:pointer;padding:.55rem;}
-#teaBtn.active{background:#E4EDDD;border-color:var(--olive);color:var(--olive-dark);}
+.water-flex-row{display:flex;align-items:center;gap:10px;margin:10px 0 8px;}
+.water-flex-row input[type="range"]{flex:1;accent-color:var(--water);}
+.water-flex-val{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--ink);min-width:56px;text-align:right;}
 .tab{flex:1;text-align:center;padding:.7rem 0;font-size:14px;font-weight:500;color:var(--ink-soft);cursor:pointer;border-bottom:2px solid transparent;}
 .tab-icon{width:18px;height:18px;vertical-align:-4px;}
 .tab.active{color:var(--olive-dark);border-bottom-color:var(--olive);}
@@ -457,6 +458,25 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
 .p-dprompt svg{width:13px;height:13px;}
 .ff-status{display:flex;align-items:center;gap:10px;padding:10px 13px;border-radius:12px;margin-bottom:1rem;border:1px solid transparent;}
 .protein-gap-card{background:var(--water-bg);border:1px solid var(--water);border-radius:12px;padding:10px 13px;margin-bottom:1rem;}
+.ess-budget-card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 15px;margin-bottom:1rem;}
+.fast-hint-toast{position:fixed;left:1.1rem;right:1.1rem;bottom:calc(5.5rem + env(safe-area-inset-bottom));max-width:490px;margin:0 auto;background:#E4EDDD;border:1px solid var(--olive);border-radius:14px;padding:1rem 1.1rem;z-index:40;opacity:0;pointer-events:none;transform:translateY(8px);transition:opacity .3s ease, transform .3s ease;}
+.fast-hint-toast.show{opacity:1;transform:translateY(0);}
+.fh-title{font-family:'Fraunces',serif;font-size:15px;font-weight:600;color:var(--ink);margin:0 0 4px;}
+.fh-sub{font-size:13px;color:var(--olive-dark);margin:0 0 12px;}
+.fh-box{background:var(--card);border-radius:10px;padding:.6rem .8rem;margin-bottom:8px;}
+.fh-box:last-child{margin-bottom:0;}
+.fh-label{font-size:11px;font-weight:600;margin:0 0 3px;}
+.fh-label.ok{color:var(--olive);}
+.fh-label.bad{color:var(--coral);}
+.fh-text{font-size:12px;color:var(--ink);margin:0;}
+.eb-title{font-size:13px;color:var(--ink-soft);margin:0 0 2px;}
+.eb-big{font-family:'Fraunces',serif;font-weight:600;font-size:32px;color:var(--olive);margin:0 0 10px;}
+.eb-big.over{color:var(--coral);}
+.eb-sub{font-size:11.5px;color:var(--ink-soft);margin:8px 0 0;}
+.eb-track{position:relative;height:9px;background:var(--bg);border-radius:5px;}
+.eb-fill{height:100%;width:0%;background:var(--olive);border-radius:5px;transition:width .5s ease-out;}
+.eb-fill.over{background:var(--coral);}
+.eb-sport{font-size:12.5px;color:var(--coral);margin:8px 0 0;font-weight:500;}
 .macro-card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 13px;margin-bottom:1rem;}
 .macro-title{font-size:13.5px;font-weight:600;color:var(--ink);margin:0 0 8px;}
 .macro-row{display:flex;justify-content:space-between;font-size:12.5px;color:var(--ink);margin-bottom:3px;}
@@ -563,13 +583,28 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
     <div class="water-dd-btns">
       <button class="qbtn" data-ml="250">+ 250 ml</button>
       <button class="qbtn" data-ml="500">+ 500 ml</button>
-      <button class="qbtn" data-ml="750">+ 750 ml</button>
     </div>
-    <button class="qbtn" id="teaBtn" style="width:100%;margin-top:6px;">🍵 Grüner Tee heute <span id="teaBtnState"></span></button>
+    <div class="water-flex-row">
+      <input type="range" id="waterFlexSlider" min="50" max="1000" step="50" value="200">
+      <span class="water-flex-val" id="waterFlexVal">200 ml</span>
+    </div>
+    <button class="qbtn" id="waterFlexAddBtn" style="width:100%;">+ Eintragen</button>
   </div>
 
   <!-- TODAY -->
   <div class="panel active" id="panelToday">
+    <div class="fast-hint-toast" id="fastHintToast">
+      <p class="fh-title">🌙 Fastenfenster gestartet</p>
+      <p class="fh-sub">Deine Fettverbrennung startet gleich.</p>
+      <div class="fh-box">
+        <p class="fh-label ok">Erlaubt (bricht das Fasten nicht)</p>
+        <p class="fh-text">💧 Wasser · 🍵 Ungesüßter Tee · ☕ Schwarzer Kaffee (ohne Milch/Zucker)</p>
+      </div>
+      <div class="fh-box">
+        <p class="fh-label bad">Bricht das Fasten</p>
+        <p class="fh-text">🥛 Milch/Sahne · 🍬 Zucker/Süßstoff in Mengen · 🧃 Saft · 🍷 Alkohol</p>
+      </div>
+    </div>
     <div id="specialDaysWrap"></div>
     <div class="day-lock-banner" id="dayLockBanner" style="display:none;">🏁 <span id="dayLockText"></span></div>
     <div id="todayContent">
@@ -625,12 +660,12 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
       <p class="protein-gap-title" id="proteinGapTitle"></p>
       <div id="proteinGapList"></div>
     </div>
-    <div class="ff-status good" id="deficitStatus">
-      <span class="dot"></span>
-      <div class="ff-status-text">
-        <p class="ff-status-title" id="deficitStatusTitle"></p>
-        <p class="ff-status-sub" id="deficitStatusSub"></p>
-      </div>
+    <div class="ess-budget-card" id="essBudgetCard">
+      <p class="eb-title">Du kannst heute noch essen</p>
+      <p class="eb-big" id="ebBig">– kcal</p>
+      <div class="eb-track"><div class="eb-fill" id="ebFill"></div></div>
+      <p class="eb-sub" id="ebSub"></p>
+      <p class="eb-sport" id="ebSport" style="display:none;"></p>
     </div>
 
     <div class="pill-row">
@@ -1405,8 +1440,17 @@ document.getElementById('endTagBtn').addEventListener('click', async ()=>{
     updateDayLockUI();
     renderDashboard();
     setStatus('Tag beendet');
+    showFastHintToast();
   }catch(e){ console.error(e); setStatus(e.message||'Fehler beim Beenden des Tages'); }
 });
+let fastHintTimer = null;
+function showFastHintToast(){
+  const toast = document.getElementById('fastHintToast');
+  if(!toast) return;
+  clearTimeout(fastHintTimer);
+  toast.classList.add('show');
+  fastHintTimer = setTimeout(()=> toast.classList.remove('show'), 4000);
+}
 function updateDayLockUI(){
   const panel = document.getElementById('panelToday');
   const btn = document.getElementById('endTagBtn');
@@ -1521,24 +1565,13 @@ document.querySelectorAll('.water-dd-btns .qbtn').forEach(btn=> btn.addEventList
   await addWater(Number(btn.dataset.ml));
   document.getElementById('waterDropdown').classList.remove('open');
 }));
-function teaLoggedOn(dateStr){ return logEntries.some(l=> l.date===dateStr && l.type==='tea'); }
-async function toggleTea(){
-  const date = currentDate;
-  const existing = logEntries.find(l=> l.date===date && l.type==='tea');
-  try{
-    if(existing){
-      await atDelete('LogEntries', existing.id);
-      logEntries = logEntries.filter(l=>l.id!==existing.id);
-    }else{
-      const now = new Date();
-      const time = String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
-      const rec = await atCreate('LogEntries', { Date: date, Type:'tea', Name:'Grüner Tee', Time: time });
-      logEntries.push({ id:rec.id, date, type:'tea', name:'Grüner Tee', kcal:0, fiber:0, protein:0, ml:0, time, checkedAt:'', slotId:'' });
-    }
-  }catch(e){ setStatus('Fehler beim Speichern (Tee)'); }
-  renderTodayTab(); renderToday();
-}
-document.getElementById('teaBtn').addEventListener('click', ()=> toggleTea());
+document.getElementById('waterFlexSlider').addEventListener('input', e=>{
+  document.getElementById('waterFlexVal').textContent = e.target.value+' ml';
+});
+document.getElementById('waterFlexAddBtn').addEventListener('click', async ()=>{
+  await addWater(Number(document.getElementById('waterFlexSlider').value));
+  document.getElementById('waterDropdown').classList.remove('open');
+});
 
 /* Trinkziel: ~32.5 ml pro kg Körpergewicht, auf Basis des letzten Gewichtseintrags */
 function waterGoalMl(){
@@ -1547,26 +1580,26 @@ function waterGoalMl(){
   return Math.round(w*32.5);
 }
 function waterDayTotal(date){ return water.filter(w=>w.date===date).reduce((s,w)=>s+w.ml,0); }
+let waterLinkedToFoodId = {}; // LogEntries-ID (Essen) -> LogEntries-ID (automatisch mitgezähltes Wasser aus der Zutat "Wasser")
 async function addWater(ml){
   const date = todayStr();
   const now = new Date();
   const time = String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
   try{
     const rec = await atCreate('LogEntries', { Date: date, Type:'water', Name:'Wasser', Ml: ml, Time: time });
-    water.push({ id:rec.id, date, ml, time });
+    const entry = { id:rec.id, date, ml, time };
+    water.push(entry);
     logEntries.push({ id:rec.id, date, type:'water', name:'Wasser', kcal:0, fiber:0, protein:0, ml, time, checkedAt:'', slotId:'' });
     renderTodayTab();
     renderToday();
-  }catch(e){ setStatus('LogEntries-Tabelle braucht ein Feld "Ml" für Wasser-Einträge'); }
+    return entry;
+  }catch(e){ setStatus('LogEntries-Tabelle braucht ein Feld "Ml" für Wasser-Einträge'); return null; }
 }
 function renderTodayTab(){
   const date = todayStr();
   const total = waterDayTotal(date);
   const goal = waterGoalMl();
   document.getElementById('waterDdLabel').textContent = (total/1000).toLocaleString('de-DE',{minimumFractionDigits:1})+' / '+(goal/1000).toLocaleString('de-DE',{minimumFractionDigits:1})+' L heute';
-  const teaOn = teaLoggedOn(currentDate);
-  document.getElementById('teaBtnState').textContent = teaOn ? '✓' : '';
-  document.getElementById('teaBtn').classList.toggle('active', teaOn);
 }
 
 /* ================= ROUTINE ================= */
@@ -2444,6 +2477,15 @@ function calculatedFat(dish){
     return sum + (p ? nutrientContribution(ing, p.fatPerUnit) : 0);
   },0)*10)/10;
 }
+/* Enthält ein Gericht die Zutat "Wasser" (ml), zählt diese Menge automatisch zur Trinkmenge, wenn das
+   Gericht gegessen/abgehakt wird - so tauchen Tee/Shake als eigenes Gericht im Plan auf, UND ihr
+   Wasseranteil wird trotzdem ganz ohne Extra-Schritt als "Trinken" erfasst, ohne kcal doppelt zu zählen. */
+function dishWaterMl(dish){
+  return (dish.ingredients||[]).reduce((sum,ing)=>{
+    if(ing.name.trim().toLowerCase()==='wasser' && (ing.unit==='ml')) return sum + (Number(ing.amount)||0);
+    return sum;
+  }, 0);
+}
 /* Manueller Wert hat Vorrang, berechneter Wert ist der Fallback */
 function effectiveKcal(dish){ return dish.kcal>0 ? dish.kcal : calculatedKcal(dish); }
 function effectiveFiber(dish){ return dish.fiber>0 ? dish.fiber : calculatedFiber(dish); }
@@ -3112,13 +3154,12 @@ function renderMacroCard(eatenKcal, eatenProtein, eatenFat, eatenFiber){
   const fiberTarget = profile.fiberGoal;
   const waterTotal = waterDayTotal(currentDate);
   const waterTarget = waterGoalMl();
-  const teaOn = teaLoggedOn(currentDate);
 
   document.getElementById('macroProteinVal').textContent = (Math.round(eatenProtein*10)/10)+'/'+proteinTarget+' g';
   document.getElementById('macroFatVal').textContent = (Math.round(eatenFat*10)/10)+'/'+fatTarget+' g';
   document.getElementById('macroCarbVal').textContent = eatenCarbs+'/'+carbTarget+' g';
   document.getElementById('macroFiberVal').textContent = (Math.round(eatenFiber*10)/10)+'/'+fiberTarget+' g';
-  document.getElementById('macroWaterVal').textContent = waterTotal+'/'+waterTarget+' ml'+(teaOn?' · 🍵✓':'');
+  document.getElementById('macroWaterVal').textContent = waterTotal+'/'+waterTarget+' ml';
   document.getElementById('macroProteinFill').style.width = Math.max(0, Math.min(100, proteinTarget>0?(eatenProtein/proteinTarget*100):0))+'%';
   document.getElementById('macroFatFill').style.width = Math.max(0, Math.min(100, fatTarget>0?(eatenFat/fatTarget*100):0))+'%';
   document.getElementById('macroCarbFill').style.width = Math.max(0, Math.min(100, carbTarget>0?(eatenCarbs/carbTarget*100):0))+'%';
@@ -3131,6 +3172,40 @@ function renderMacroCard(eatenKcal, eatenProtein, eatenFat, eatenFiber){
     checkEl.textContent = 'Protein macht aktuell '+proteinKcalShare+'% deiner gegessenen kcal aus (Richtwert ~40%)';
   }else{
     checkEl.textContent = '';
+  }
+}
+/* Ess-Budget: wie viel darf ich noch essen, um mein Ziel-Defizit (Warnschwelle Defizit in den Stammdaten) zu
+   erreichen. Reicht das Essen allein nicht mehr (schon mehr gegessen als das Budget), wird statt eines
+   "kaputten" Balkens ein Sport-Ausgleich vorgeschlagen (wie viele Schritte das noch reinholen würden). */
+function renderEssBudget(eatenKcal, bmr, movementKcal){
+  const card = document.getElementById('essBudgetCard');
+  if(!card) return;
+  const allowed = Math.round(bmr + movementKcal - profile.deficitWarnThreshold);
+  const bigEl = document.getElementById('ebBig');
+  const fillEl = document.getElementById('ebFill');
+  const sportEl = document.getElementById('ebSport');
+  const subEl = document.getElementById('ebSub');
+  if(eatenKcal <= allowed){
+    const remaining = Math.round(allowed-eatenKcal);
+    bigEl.textContent = remaining.toLocaleString('de-DE')+' kcal';
+    bigEl.classList.remove('over');
+    fillEl.classList.remove('over');
+    fillEl.style.width = allowed>0 ? Math.max(0, Math.min(100, eatenKcal/allowed*100))+'%' : '0%';
+    subEl.textContent = `${Math.round(eatenKcal)} von ${allowed} kcal Tagesbudget schon gegessen`;
+    sportEl.style.display = 'none';
+  }else{
+    const overKcal = Math.round(eatenKcal-allowed);
+    bigEl.textContent = '0 kcal';
+    bigEl.classList.add('over');
+    fillEl.classList.add('over');
+    fillEl.style.width = '100%';
+    subEl.textContent = `${Math.round(eatenKcal)} von ${allowed} kcal Tagesbudget schon gegessen`;
+    const sortedWeights = weights.slice().sort((a,b)=> a.date.localeCompare(b.date));
+    const currentWeight = sortedWeights.length ? sortedWeights[sortedWeights.length-1].kg : profile.startWeight;
+    const kcalPerStep = currentWeight*0.00045;
+    const extraSteps = Math.round(overKcal/kcalPerStep/500)*500;
+    sportEl.textContent = `${overKcal} kcal drüber – ≈${extraSteps.toLocaleString('de-DE')} zusätzliche Schritte gleichen das aus`;
+    sportEl.style.display = 'block';
   }
 }
 function renderProteinGapCard(eatenProtein, eatenKcal){
@@ -3351,28 +3426,7 @@ function renderToday(){
   const remainingForSnacks = snackBudgetTarget-total;
 
   const movementKcal = (steps.find(s=>s.date===currentDate)||{}).kcal || 0;
-  const deficit = Math.round(profile.bmr + movementKcal - total);
-  const deficitEl = document.getElementById('deficitStatus');
-  const nowHour = new Date().getHours();
-  let dTier, dTitle, dSub;
-  if(deficit > profile.deficitWarnThreshold){
-    if(nowHour >= 20){
-      dTier='mid'; dTitle='Noch reichlich Puffer übrig';
-      dSub = deficit.toLocaleString('de-DE')+' kcal Puffer heute Abend (Grundumsatz '+profile.bmr.toLocaleString('de-DE')+' + Bewegung '+movementKcal.toLocaleString('de-DE')+' − gegessen '+total.toLocaleString('de-DE')+') – falls du noch hungrig bist, ist da noch Platz.';
-    }else{
-      dTier='good'; dTitle='Noch viel Spielraum heute';
-      dSub = deficit.toLocaleString('de-DE')+' kcal Puffer bisher (Grundumsatz '+profile.bmr.toLocaleString('de-DE')+' + Bewegung '+movementKcal.toLocaleString('de-DE')+' − gegessen '+total.toLocaleString('de-DE')+').';
-    }
-  }else if(deficit < 0){
-    dTier='mid'; dTitle='Kalorienüberschuss';
-    dSub = Math.abs(deficit).toLocaleString('de-DE')+' kcal über dem Grundumsatz + Bewegung.';
-  }else{
-    dTier='good'; dTitle='Defizit im geplanten Rahmen';
-    dSub = deficit.toLocaleString('de-DE')+' kcal heute (Grundumsatz '+profile.bmr.toLocaleString('de-DE')+' + Bewegung '+movementKcal.toLocaleString('de-DE')+' − gegessen '+total.toLocaleString('de-DE')+').';
-  }
-  deficitEl.className = 'ff-status '+dTier;
-  document.getElementById('deficitStatusTitle').textContent = dTitle;
-  document.getElementById('deficitStatusSub').textContent = dSub;
+  renderEssBudget(total, profile.bmr, movementKcal);
   renderProcessedCard();
 
   renderSnackChips(remainingForSnacks, totalProtein, totalFat, totalFiber);
@@ -3395,7 +3449,8 @@ function renderSnackChips(remaining, eatenProtein, eatenFat, eatenFiber){
     const fiber = src ? Math.round((s.source==='dish' ? effectiveFiber(src)*amt : nutrientContribution({unit:src.unit, amount:amt}, src.fiberPerUnit))*10)/10 : 0;
     const protein = src ? Math.round((s.source==='dish' ? calculatedProtein(src)*amt : nutrientContribution({unit:src.unit, amount:amt}, src.proteinPerUnit))*10)/10 : 0;
     const fat = src ? Math.round((s.source==='dish' ? effectiveFat(src)*amt : nutrientContribution({unit:src.unit, amount:amt}, src.fatPerUnit))*10)/10 : 0;
-    return { id:s.id, name: s.name+snackAmountLabel(amt, src ? src.unit : ''), kcal, fiber, protein, fat };
+    const water = src && s.source==='dish' ? Math.round(dishWaterMl(src)*amt) : 0;
+    return { id:s.id, name: s.name+snackAmountLabel(amt, src ? src.unit : ''), kcal, fiber, protein, fat, water };
   });
   let filtered = resolved.filter(s=> s.kcal <= remaining + 100);
   const kiActiveToday = isAiActiveForDate(wd, currentDate);
@@ -3421,18 +3476,18 @@ function renderSnackChips(remaining, eatenProtein, eatenFat, eatenFiber){
   const budgetLine = `<p class="section-note" style="width:100%;margin:0 0 .3rem;">Noch ${Math.max(0,Math.round(remaining))} kcal Rest-Budget für Snacks${gapLabel?` · 🤖 nur welche, die deine ${gapLabel}-Lücke schließen`:''}</p>`;
   wrap.innerHTML = budgetLine + [...visible].sort((a,b)=>a.kcal-b.kcal).map(s=>{
     const color = canEatNow ? (s.kcal <= remaining ? 'green' : 'orange') : 'locked';
-    return `<button class="snack-chip ${color}" data-id="${s.id}" data-name="${escapeAttr(s.name)}" data-kcal="${s.kcal}" data-fiber="${s.fiber}" data-protein="${s.protein}" data-fat="${s.fat}">${escapeAttr(s.name)} · ${s.kcal} kcal</button>`;
+    return `<button class="snack-chip ${color}" data-id="${s.id}" data-name="${escapeAttr(s.name)}" data-kcal="${s.kcal}" data-fiber="${s.fiber}" data-protein="${s.protein}" data-fat="${s.fat}" data-water="${s.water}">${escapeAttr(s.name)} · ${s.kcal} kcal</button>`;
   }).join('');
   wrap.querySelectorAll('.snack-chip').forEach(btn=> btn.addEventListener('click', async ()=>{
     if(!canEatNow){
-      eatLockPendingSnack = { name: btn.dataset.name, kcal: Number(btn.dataset.kcal), fiber: Number(btn.dataset.fiber), protein: Number(btn.dataset.protein), fat: Number(btn.dataset.fat), source:'snack' };
+      eatLockPendingSnack = { name: btn.dataset.name, kcal: Number(btn.dataset.kcal), fiber: Number(btn.dataset.fiber), protein: Number(btn.dataset.protein), fat: Number(btn.dataset.fat), water: Number(btn.dataset.water), source:'snack' };
       document.getElementById('eatLockLabel').textContent = `"${btn.dataset.name}" jetzt trotzdem eintragen?`;
       const now0 = new Date();
       document.getElementById('eatLockTime').value = String(now0.getHours()).padStart(2,'0')+':'+String(now0.getMinutes()).padStart(2,'0');
       document.getElementById('eatLockModalBg').classList.add('open');
       return;
     }
-    await logExtraNow(btn.dataset.name, Number(btn.dataset.kcal), Number(btn.dataset.fiber), Number(btn.dataset.protein), Number(btn.dataset.fat), 'snack', null);
+    await logExtraNow(btn.dataset.name, Number(btn.dataset.kcal), Number(btn.dataset.fiber), Number(btn.dataset.protein), Number(btn.dataset.fat), 'snack', null, Number(btn.dataset.water));
   }));
 }
 let eatLockPending = null;
@@ -3447,7 +3502,7 @@ document.getElementById('eatLockNachtrag').addEventListener('click', async ()=>{
   if(eatLockPendingSnack){
     const s = eatLockPendingSnack; eatLockPendingSnack = null;
     document.getElementById('eatLockModalBg').classList.remove('open');
-    await logExtraNow(s.name, s.kcal, s.fiber, s.protein, s.fat, s.source, time||null);
+    await logExtraNow(s.name, s.kcal, s.fiber, s.protein, s.fat, s.source, time||null, s.water);
     return;
   }
   if(!eatLockPending) return;
@@ -3460,7 +3515,7 @@ document.getElementById('eatLockNow').addEventListener('click', async ()=>{
   if(eatLockPendingSnack){
     const s = eatLockPendingSnack; eatLockPendingSnack = null;
     document.getElementById('eatLockModalBg').classList.remove('open');
-    await logExtraNow(s.name, s.kcal, s.fiber, s.protein, s.fat, s.source, null);
+    await logExtraNow(s.name, s.kcal, s.fiber, s.protein, s.fat, s.source, null, s.water);
     return;
   }
   if(!eatLockPending) return;
@@ -3479,6 +3534,14 @@ async function performFoodCheckoff(row, foodRow, overrideTime){
       await atDelete('LogEntries', logHitId);
       logEntries = logEntries.filter(l=>l.id!==logHitId);
       if(dish) await adjustPantryForDish(dish, +1, ratio); // Abhaken rückgängig -> Bestand zurückbuchen
+      // Falls beim Abhaken automatisch Wasser mitgezählt wurde (z.B. Tee/Shake), diesen Trinken-Eintrag auch wieder entfernen
+      const linkedWaterId = waterLinkedToFoodId[logHitId];
+      if(linkedWaterId){
+        try{ await atDelete('LogEntries', linkedWaterId); }catch(e){ console.error(e); }
+        water = water.filter(w=>w.id!==linkedWaterId);
+        logEntries = logEntries.filter(l=>l.id!==linkedWaterId);
+        delete waterLinkedToFoodId[logHitId];
+      }
     }else{
       const now = new Date();
       const checkedAt = overrideTime || (String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0'));
@@ -3498,17 +3561,23 @@ async function performFoodCheckoff(row, foodRow, overrideTime){
       }
       logEntries.push({ id:rec.id, date:currentDate, type:'plan', name:foodRow.dataset.dishname, kcal:Number(row.dataset.kcal), fiber:Number(row.dataset.fiber), protein:Number(row.dataset.protein), fat:Number(row.dataset.fat), time:row.dataset.time, checkedAt:savedCheckedAt, slotId });
       if(dish) await adjustPantryForDish(dish, -1, ratio); // gegessen -> Bestand verbrauchen
+      // Enthält das Gericht "Wasser" als Zutat (z.B. Tee, Shake), automatisch zur Trinkmenge dazuzählen
+      if(dish){
+        const waterMl = Math.round(dishWaterMl(dish)*ratio);
+        if(waterMl>0){ const waterRec = await addWater(waterMl); if(waterRec) waterLinkedToFoodId[rec.id] = waterRec.id; }
+      }
     }
   }catch(e){ console.error(e); setStatus('Fehler beim Speichern'); }
   if(dish) await computeShoppingNeeds(); // Bedarf für die nächsten 7 Tage neu prüfen
   renderToday();
 }
-async function logExtraNow(name, kcal, fiber, protein, fat, source, overrideTime){
+async function logExtraNow(name, kcal, fiber, protein, fat, source, overrideTime, waterMl){
   const now = new Date();
   const time = overrideTime || (String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0'));
   try{
     const rec = await atCreateLogEntry({ Date: currentDate, Type:'extra', Name:name, Kcal:kcal, Fiber:fiber, Protein:protein, Fat:fat, Time:time, Source:source });
     logEntries.push({ id:rec.id, date:currentDate, type:'extra', name, kcal, fiber, protein, fat, time, source });
+    if(waterMl>0) await addWater(waterMl);
     renderToday();
   }catch(e){ setStatus('Fehler beim Speichern'); }
 }
@@ -3532,6 +3601,8 @@ function renderExtraPickList(){
     try{
       const rec = await atCreateLogEntry({ Date: currentDate, Type:'extra', Name:dish.name, Kcal:kcal, Fiber:fiber, Protein:protein, Fat:fat, Time:time, Source:'manual' });
       logEntries.push({ id:rec.id, date:currentDate, type:'extra', name:dish.name, kcal, fiber, protein, fat, time, source:'manual' });
+      const waterMl = Math.round(dishWaterMl(dish));
+      if(waterMl>0) await addWater(waterMl);
       document.getElementById('extraModalBg').classList.remove('open');
       renderToday();
     }catch(e){ setStatus('Fehler beim Speichern'); }
@@ -3651,6 +3722,8 @@ document.getElementById('quickSaveBtn').addEventListener('click', async ()=>{
       logEntries.push({ id:rec.id, date:currentDate, type:'extra', name, kcal:totals.kcal, fiber:totals.fiber, protein:totals.protein, fat:totals.fat, time, source:'quick' });
     }
     document.getElementById('quickEatModalBg').classList.remove('open');
+    const waterMl = Math.round(quickSelected.filter(s=> s.name.trim().toLowerCase()==='wasser' && s.unit==='ml').reduce((sum,s)=> sum+(Number(s.amount)||0), 0));
+    if(waterMl>0) await addWater(waterMl);
     render();
     setStatus('Eingetragen');
   }catch(e){ errEl.textContent='Fehler beim Speichern.'; errEl.style.display='block'; }
@@ -4028,7 +4101,7 @@ Gib bei neuen Gerichten "ingredients" als Array aus {name, amount, unit} an (Ein
 Antworte AUSSCHLIESSLICH mit gültigem, einzeiligem JSON in genau diesem Format, ohne weiteren Text, ohne Markdown-Codeblock. "notes" ist ein Array aus 2-4 kurzen, knappen Stichpunkten (je max. ca. 12 Wörter, kein Fließtext, keine ganzen Absätze) – falls ein besonderer Tagesablauf angegeben wurde, geht mindestens ein Stichpunkt kurz darauf ein:
 {"slots":[{"time":"08:00","dishName":"...","isNew":false}],"notes":["Kurzer Stichpunkt 1","Kurzer Stichpunkt 2"]}`;
 }
-async function callClaudeApi(prompt, system){
+async function callClaudeApi(prompt, system, maxTokens){
   if(!claudeApiKey) throw new Error('Kein Claude API-Key hinterlegt (Profil ⚙️ → Claude API-Key).');
   const defaultSystem = 'Du antwortest IMMER ausschließlich mit einem einzigen gültigen JSON-Objekt. Kein einleitender Satz, keine Erklärung davor oder danach, kein Markdown-Codeblock – die Antwort muss mit { beginnen und mit } enden.';
   const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -4041,7 +4114,7 @@ async function callClaudeApi(prompt, system){
     },
     body: JSON.stringify({
       model: 'claude-sonnet-5',
-      max_tokens: 4000,
+      max_tokens: maxTokens || 4000,
       thinking: { type: 'disabled' },
       system: system!==undefined ? system : defaultSystem,
       messages: [{ role:'user', content: prompt }]
@@ -4449,7 +4522,7 @@ Summe aus FIX-Wochenplan + Extras zusammen: ${fixedKcal} kcal, ${fixedFiber}g Ba
 OFFEN (hier darfst du tauschen/anpassen):
 ${openText}
 
-Tagesziele – KALORIEN HABEN OBERSTE PRIORITÄT: Die Summe aller Mahlzeiten (FIX-Wochenplan + Extras + neue OFFEN-Mahlzeiten) MUSS im HARTEN BEREICH ${kiMinKcal}-${kiMaxKcal} kcal liegen, NIE darüber und NIE darunter – das gilt VOR allen anderen Zielen. Rechne beim Zusammenstellen genau nach. Erst danach, INNERHALB dieses kcal-Rahmens, so gut wie möglich anpeilen: ca. 40% Protein (≈${proteinTargetG}g), 40% Kohlenhydrate (≈${carbTargetG}g), 20% Fett (≈${fatTargetG}g), mind. ${profile.fiberGoal}g Ballaststoffe, mind. 90% der kcal unverarbeitet (NOVA 1-2).
+Tagesziele – KALORIEN HABEN OBERSTE PRIORITÄT: Die Summe aller Mahlzeiten (FIX-Wochenplan + Extras + neue OFFEN-Mahlzeiten) MUSS im HARTEN BEREICH ${kiMinKcal}-${kiMaxKcal} kcal liegen, NIE darüber und NIE darunter – das gilt VOR allen anderen Zielen. Rechne das im Kopf durch, OHNE die Rechnung/Zwischenschritte in der Antwort auszugeben - direkt mit dem fertigen JSON antworten. Erst danach, INNERHALB dieses kcal-Rahmens, so gut wie möglich anpeilen: ca. 40% Protein (≈${proteinTargetG}g), 40% Kohlenhydrate (≈${carbTargetG}g), 20% Fett (≈${fatTargetG}g), mind. ${profile.fiberGoal}g Ballaststoffe, mind. 90% der kcal unverarbeitet (NOVA 1-2).
 
 Vorrat (nur diese Zutaten für neue/geänderte Gerichte verwenden, keine erfinden):
 ${pantryList || '(keine Vorratsdaten)'}
@@ -4460,16 +4533,18 @@ ${dishList || '(noch keine Gerichte angelegt)'}
 Übliche Snacks (können bei Bedarf als zusätzlicher OFFEN-Slot vorgeschlagen werden, z.B. um eine Protein-/Ballaststoff-Lücke zu schließen, Name exakt übernehmen, "isNew": false):
 ${snackList || '(keine Snacks hinterlegt)'}
 
-Schritte-Ziel berechnen, mit NACHVOLLZIEHBARER Rechnung (keine frei erfundene Zahl):
+Schritte-Ziel berechnen (im Kopf, NICHT als sichtbare Rechnung ausgeben – nur das Ergebnis + eine Kurz-Erklärung landen in "notes"):
 1. Berechne zuerst deine vorgeschlagene Tagesbilanz (FIX-Wochenplan + Extras + neue OFFEN-Mahlzeiten zusammen).
 2. Falls diese Bilanz über ${kiMaxKcal} kcal liegt: Überschuss-kcal = Bilanz − ${kiMaxKcal}. Sonst: Überschuss-kcal = 0.
 3. Zusätzliche Schritte = Überschuss-kcal ÷ ${kcalPerStep} kcal pro Schritt (Richtwert für ${currentWeight}kg Körpergewicht).
 4. Schritte-Ziel = 7-Tage-Schnitt (${avgSteps}) + zusätzliche Schritte, aufgerundet auf volle 500er-Schritte.
-Wenn kein Überschuss besteht, ist das Schritte-Ziel einfach der 7-Tage-Schnitt (${avgSteps}), NICHT künstlich erhöht. Erkläre die Rechnung kurz in einem eigenen Stichpunkt in "notes" (z.B. "Schritte: X kcal Überschuss ÷ ${kcalPerStep} = Y zusätzliche Schritte").
+Wenn kein Überschuss besteht, ist das Schritte-Ziel einfach der 7-Tage-Schnitt (${avgSteps}), NICHT künstlich erhöht. Die kurze Erklärung dazu kommt als EIN Stichpunkt in "notes" (z.B. "Schritte: X kcal Überschuss ÷ ${kcalPerStep} = Y zusätzliche Schritte") - nicht als eigener Text davor.
 
 In "notes": max. 3-4 KURZE Stichpunkte, die erklären WARUM dieser Plan besser ist als vorher (z.B. "mehr Protein durch X statt Y", "Fett-Ziel jetzt erreicht dank Z") - KEINE eigenen Zahlen-Summen (kein "Tagesbilanz: X kcal", kein "Protein: Yg") nennen, die App zeigt die exakten Zahlen bereits selbst an und deine eigene Summe könnte von der echten abweichen. Nur die Qualität/Richtung der Änderung beschreiben, keine Rechenwerte.
 
-Antworte AUSSCHLIESSLICH mit gültigem, einzeiligem JSON, kein Markdown, kein weiterer Text. "slots" muss NUR die Wochenplan-Mahlzeiten enthalten (FIX-Wochenplan unverändert übernommen + OFFEN ggf. angepasst ODER weggelassen, wenn gestrichen) – die bereits gegessenen Extras NICHT mit aufnehmen, die bleiben nur Log-Einträge. Es ist normal und erwünscht, wenn "slots" dadurch WENIGER Einträge hat als es OFFEN-Mahlzeiten gab. Sortiere "slots" nach Uhrzeit:
+"slots" muss NUR die Wochenplan-Mahlzeiten enthalten (FIX-Wochenplan unverändert übernommen + OFFEN ggf. angepasst ODER weggelassen, wenn gestrichen) – die bereits gegessenen Extras NICHT mit aufnehmen, die bleiben nur Log-Einträge. Es ist normal und erwünscht, wenn "slots" dadurch WENIGER Einträge hat als es OFFEN-Mahlzeiten gab. Sortiere "slots" nach Uhrzeit.
+
+WICHTIG: Mach alle Berechnungen (kcal-Summen, Makro-Check, Schritte) NUR im Kopf/still. Gib NICHTS davon als Fließtext aus - deine gesamte Antwort besteht AUSSCHLIESSLICH aus dem folgenden JSON-Objekt, nichts davor, nichts danach, kein Markdown:
 {"slots":[{"time":"08:00","dishName":"...","isNew":false}],"stepsGoal":8000,"notes":["Kurzer Stichpunkt 1","Kurzer Stichpunkt 2"]}`, wd, fixedPlan, fixedExtraKcal: fixedExtras.reduce((s,f)=>s+f.kcal,0), kiMinKcal, kiMaxKcal };
 }
 document.getElementById('optimizeTodayBtn').addEventListener('click', async ()=>{
@@ -4482,7 +4557,7 @@ document.getElementById('optimizeTodayBtn').addEventListener('click', async ()=>
   statusEl.textContent = 'Claude optimiert den Rest deines Tages…';
   resultEl.style.display = 'none';
   try{
-    const raw = await callClaudeApi(built.prompt);
+    const raw = await callClaudeApi(built.prompt, undefined, 8000);
     const parsed = parseAiDayResponse(raw);
     // Absicherung: die KI soll FIX-Einträge unverändert übernehmen, hält sich aber nicht immer zuverlässig daran -
     // deshalb hier selbst nachprüfen und fehlende FIX-Gerichte notfalls ergänzen, statt der Anweisung blind zu vertrauen.
@@ -4615,23 +4690,46 @@ document.getElementById('dayReviewBtn').addEventListener('click', async ()=>{
 });
 
 document.getElementById('addSlotGlobalBtn').addEventListener('click', ()=>{
+  renderDaySlotDayPicker();
+  document.getElementById('daySlotModalBg').classList.add('open');
+});
+function renderDaySlotDayPicker(){
   const ul = document.getElementById('daySlotPickList');
-  ul.innerHTML = WEEKDAYS.map(wd=> `<li data-wd="${wd}" style="cursor:pointer;"><span>${WEEKDAY_NAMES[wd]}</span><span class="amt">${(weekPlan[wd]||[]).length} Gerichte</span></li>`).join('');
-  ul.querySelectorAll('li').forEach(li=> li.addEventListener('click', async ()=>{
+  ul.innerHTML = `<li data-all="1" style="cursor:pointer;"><span>Alle Tage</span><span class="amt">Gericht wählen</span></li>`
+    + WEEKDAYS.map(wd=> `<li data-wd="${wd}" style="cursor:pointer;"><span>${WEEKDAY_NAMES[wd]}</span><span class="amt">${(weekPlan[wd]||[]).length} Gerichte</span></li>`).join('');
+  ul.querySelectorAll('li[data-all]').forEach(li=> li.addEventListener('click', renderDaySlotDishPicker));
+  ul.querySelectorAll('li[data-wd]').forEach(li=> li.addEventListener('click', async ()=>{
     const wd = li.dataset.wd;
-    const firstDish = dishes[0];
-    if(!firstDish) return;
+    // Leer lassen statt eines beliebigen Gerichts - so sieht man sofort, dass es ein neuer, noch zu befüllender Eintrag ist
     try{
-      const rec = await atCreate('WeekPlan', { Weekday: wd, Time:'12:00', DishName: firstDish.name });
-      weekPlan[wd].push({ id: rec.id, time:'12:00', dishName: firstDish.name });
+      const rec = await atCreate('WeekPlan', { Weekday: wd, Time:'12:00', DishName: '' });
+      weekPlan[wd].push({ id: rec.id, time:'12:00', dishName: '' });
       weekPlan[wd].sort((a,b)=> a.time.localeCompare(b.time));
       weekEditMode[wd] = true;
     }catch(err){ setStatus('Fehler beim Speichern'); }
     document.getElementById('daySlotModalBg').classList.remove('open');
     renderWeek();
   }));
-  document.getElementById('daySlotModalBg').classList.add('open');
-});
+}
+function renderDaySlotDishPicker(){
+  const ul = document.getElementById('daySlotPickList');
+  ul.innerHTML = `<li data-back="1" style="cursor:pointer;"><span>‹ Zurück</span></li>`
+    + dishes.map(d=> `<li data-dish="${escapeAttr(d.name)}" style="cursor:pointer;"><span>${escapeAttr(d.name)}</span><span class="amt">${effectiveKcal(d)} kcal</span></li>`).join('');
+  ul.querySelector('li[data-back]').addEventListener('click', renderDaySlotDayPicker);
+  ul.querySelectorAll('li[data-dish]').forEach(li=> li.addEventListener('click', async ()=>{
+    const dishName = li.dataset.dish;
+    try{
+      await Promise.all(WEEKDAYS.map(async wd=>{
+        const rec = await atCreate('WeekPlan', { Weekday: wd, Time:'12:00', DishName: dishName });
+        weekPlan[wd].push({ id: rec.id, time:'12:00', dishName });
+        weekPlan[wd].sort((a,b)=> a.time.localeCompare(b.time));
+      }));
+      setStatus('"'+dishName+'" für alle Tage hinzugefügt');
+    }catch(err){ setStatus('Fehler beim Speichern'); }
+    document.getElementById('daySlotModalBg').classList.remove('open');
+    renderWeek();
+  }));
+}
 document.getElementById('daySlotCancel').addEventListener('click', ()=> document.getElementById('daySlotModalBg').classList.remove('open'));
 
 

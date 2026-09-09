@@ -576,7 +576,7 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
     <div class="tab" data-tab="vorrat" title="Vorrat"><svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/></svg></div>
     <div class="tab" data-tab="einkaufen" title="Einkaufen"><svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.5 3h2l2.6 12.9a2 2 0 0 0 2 1.6h8.8a2 2 0 0 0 2-1.6L22 7H6"/></svg><span class="badge" id="dashBadge" style="display:none;"></span></div>
     <div class="tab" data-tab="kiplan" title="KI-Plan"><svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M5.8 5.8l2.6 2.6M15.6 15.6l2.6 2.6M18.2 5.8l-2.6 2.6M8.4 15.6l-2.6 2.6"/></svg></div>
-    <div class="tab" data-tab="dashboard" title="Dashboard"><svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="20" x2="6" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="18" y1="20" x2="18" y2="14"/></svg></div>
+    <div class="tab" data-tab="dashboard" title="Dashboard"><svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="20" x2="6" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="18" y1="20" x2="18" y2="14"/></svg><span class="badge" id="dbLimitBadge" style="display:none;">!</span></div>
   </div>
   <div class="water-dropdown" id="waterDropdown">
     <p class="water-dd-label" id="waterDdLabel">0 / 0 L heute</p>
@@ -871,6 +871,10 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
       <h2 class="section" style="margin:0;">Dashboard</h2>
       <button class="gear-btn" id="openProfileBtn" title="Stammdaten bearbeiten">⚙️</button>
     </div>
+    <div class="db-warning-card" id="dbWarningCard" style="display:none;background:#FBEFD9;border:1px solid #C9862F;border-radius:10px;padding:10px 14px;margin-bottom:12px;">
+      <p style="margin:0 0 6px;font-size:14px;color:#6B4B1A;" id="dbWarningText">–</p>
+      <button class="btn" id="dbCleanupBtn" style="padding:6px 12px;font-size:13px;">Datenbank aufräumen</button>
+    </div>
     <div class="guthaben-card" id="guthabenCard">
       <span class="gh-emoji">🎉</span>
       <p class="gh-label">Kcal-Guthaben</p>
@@ -1081,6 +1085,18 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
   </div>
 </div>
 
+<div class="modal-bg" id="dbCleanupModalBg">
+  <div class="modal">
+    <h2>Datenbank aufräumen</h2>
+    <p class="section-note">Löscht Einträge, die älter als 4 Wochen sind, aus den Tages-Log-Tabellen. Stammdaten (Gerichte, Vorrat, Wochenplan, Profil) sind nicht betroffen. Dies kann nicht rückgängig gemacht werden.</p>
+    <ul id="dbCleanupList" style="margin:10px 0;padding-left:18px;font-size:14px;color:var(--ink);"></ul>
+    <div class="modal-actions">
+      <button class="btn" id="dbCleanupCancel">Abbrechen</button>
+      <button class="btn primary" id="dbCleanupConfirm">Jetzt löschen</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-bg" id="dayMoveModalBg">
   <div class="modal">
     <h2>Ganzen Tag tauschen mit …</h2>
@@ -1188,6 +1204,15 @@ async function atUpdate(table, id, fields){
 async function atDelete(table, id){
   const res = await fetch(`${AT_URL(table)}/${id}`, { method:'DELETE', headers: AT_HEADERS });
   if(!res.ok) throw new Error('Airtable-Fehler beim Löschen in '+table);
+}
+/* Löscht mehrere Records auf einmal (Airtable erlaubt max. 10 IDs pro Delete-Call) */
+async function atBatchDelete(table, ids){
+  for(let i=0;i<ids.length;i+=10){
+    const chunk = ids.slice(i,i+10);
+    const qs = chunk.map(id=> `records[]=${encodeURIComponent(id)}`).join('&');
+    const res = await fetch(`${AT_URL(table)}?${qs}`, { method:'DELETE', headers: AT_HEADERS });
+    if(!res.ok) throw new Error('Airtable-Fehler beim Löschen in '+table);
+  }
 }
 /* LogEntries anlegen mit Source-Feld (snack/manual/quick) - fällt automatisch ohne Source zurück,
    falls die Spalte in Airtable noch nicht existiert, damit das Loggen nie komplett fehlschlägt. */
@@ -1537,7 +1562,9 @@ document.querySelectorAll('.tab').forEach(t=>{
     if(t.dataset.tab === 'kiplan'){ initKiDayPicker(); renderAiDayProposal(); }
     if(t.dataset.tab === 'vorrat'){
       resyncPantryFromDishes(); renderPantry(); renderSnackManage(); renderBonusManage();
-      reloadPantryFresh().then(()=>{ renderPantry(); renderSnackManage(); renderBonusManage(); });
+      if(Date.now() - lastPantryFetchAt > DATA_CACHE_MAX_AGE_MS){
+        reloadPantryFresh().then(()=>{ renderPantry(); renderSnackManage(); renderBonusManage(); });
+      }
     }
   });
 });
@@ -1581,6 +1608,48 @@ function waterGoalMl(){
 }
 function waterDayTotal(date){ return water.filter(w=>w.date===date).reduce((s,w)=>s+w.ml,0); }
 let waterLinkedToFoodId = {}; // LogEntries-ID (Essen) -> LogEntries-ID (automatisch mitgezähltes Wasser aus der Zutat "Wasser")
+
+/* ===== Lokaler Daten-Cache (Airtable API-Call-Budget schonen) =====
+   Bis zu 30 Min. alte Daten sind ok (abgesprochen) - beim Öffnen der App wird zuerst
+   der lokale Cache genutzt statt sofort alle ~18 Tabellen neu von Airtable zu laden.
+   Der Cache wird nach jeder Änderung (renderToday) automatisch aktuell gehalten,
+   damit frisch geloggte Einträge nie durch einen alten Cache verdeckt werden. */
+const DATA_CACHE_KEY = 'nouriDataCache_v1';
+const DATA_CACHE_MAX_AGE_MS = 30*60*1000;
+function getDataCacheSnapshot(){
+  return { dishes, weekPlan, weekPlanAI, weekVersion, weekVersionRecId, weekDayContext, weekDayNotes,
+    weekDayEventDate, weekDayContextDate, logEntries, weights, steps, dayBounds, pantry, shoppingNeeds,
+    snacks, daySwaps, portionSplits, water, bonusItems, routineTasks, routineLog, bonusLog, profile };
+}
+function applyDataCacheSnapshot(d){
+  dishes=d.dishes; weekPlan=d.weekPlan; weekPlanAI=d.weekPlanAI; weekVersion=d.weekVersion;
+  weekVersionRecId=d.weekVersionRecId; weekDayContext=d.weekDayContext; weekDayNotes=d.weekDayNotes;
+  weekDayEventDate=d.weekDayEventDate; weekDayContextDate=d.weekDayContextDate; logEntries=d.logEntries;
+  weights=d.weights; steps=d.steps; dayBounds=d.dayBounds; pantry=d.pantry; shoppingNeeds=d.shoppingNeeds;
+  snacks=d.snacks; daySwaps=d.daySwaps; portionSplits=d.portionSplits; water=d.water; bonusItems=d.bonusItems;
+  routineTasks=d.routineTasks; routineLog=d.routineLog; bonusLog=d.bonusLog; profile=d.profile;
+}
+let saveCacheTimer = null;
+let lastPantryFetchAt = 0;
+function scheduleSaveDataCache(){
+  clearTimeout(saveCacheTimer);
+  saveCacheTimer = setTimeout(()=>{
+    try{ localStorage.setItem(DATA_CACHE_KEY, JSON.stringify({ ts: Date.now(), data: getDataCacheSnapshot() })); }
+    catch(e){ console.warn('Cache konnte nicht gespeichert werden', e); }
+  }, 800);
+}
+function loadDataCacheIfFresh(){
+  try{
+    const raw = localStorage.getItem(DATA_CACHE_KEY);
+    if(!raw) return false;
+    const parsed = JSON.parse(raw);
+    if(!parsed || !parsed.ts || !parsed.data) return false;
+    if(Date.now() - parsed.ts > DATA_CACHE_MAX_AGE_MS) return false;
+    applyDataCacheSnapshot(parsed.data);
+    lastPantryFetchAt = parsed.ts;
+    return true;
+  }catch(e){ return false; }
+}
 async function addWater(ml){
   const date = todayStr();
   const now = new Date();
@@ -1944,11 +2013,113 @@ function renderAdherence(){
       </div>`;
   }).join('');
 }
+/* ===== DB-Bereinigung (4-Wochen-Aufbewahrung für Tages-Log-Tabellen) ===== */
+const DB_CLEANUP_TABLES = ['LogEntries','Weights','Steps','RoutineLog','DaySwaps','PortionSplits'];
+const DB_WARN_THRESHOLD = 800;
+const DB_RETENTION_DAYS = 28;
+function getCleanupArray(table){
+  switch(table){
+    case 'LogEntries': return logEntries;
+    case 'Weights': return weights;
+    case 'Steps': return steps;
+    case 'RoutineLog': return routineLog;
+    case 'DaySwaps': return daySwaps;
+    case 'PortionSplits': return portionSplits;
+  }
+  return [];
+}
+function setCleanupArray(table, arr){
+  switch(table){
+    case 'LogEntries': logEntries = arr; break;
+    case 'Weights': weights = arr; break;
+    case 'Steps': steps = arr; break;
+    case 'RoutineLog': routineLog = arr; break;
+    case 'DaySwaps': daySwaps = arr; break;
+    case 'PortionSplits': portionSplits = arr; break;
+  }
+}
+function renderDbWarning(){
+  const totals = DB_CLEANUP_TABLES.map(t=> ({ table:t, count:getCleanupArray(t).length }));
+  const totalCount = totals.reduce((sum,x)=> sum+x.count, 0);
+  const card = document.getElementById('dbWarningCard');
+  const tabBadge = document.getElementById('dbLimitBadge');
+  if(totalCount < DB_WARN_THRESHOLD){ card.style.display='none'; tabBadge.style.display='none'; return; }
+  card.style.display='block';
+  tabBadge.style.display='inline-block';
+  document.getElementById('dbWarningText').textContent =
+    `⚠️ Insgesamt ${totalCount} von 1000 Datensätzen (Gratis-Plan-Limit) in den Log-Tabellen belegt.`;
+}
+function openDbCleanupModal(){
+  const cutoff = addDays(todayStr(), -DB_RETENTION_DAYS);
+  const list = document.getElementById('dbCleanupList');
+  list.innerHTML = '';
+  let anyToDelete = false;
+  DB_CLEANUP_TABLES.forEach(table=>{
+    const arr = getCleanupArray(table);
+    const toDelete = arr.filter(item=> item.date && item.date < cutoff);
+    if(toDelete.length){
+      anyToDelete = true;
+      const li = document.createElement('li');
+      li.textContent = `${table}: ${toDelete.length} Einträge vor dem ${fmtDate(cutoff)}`;
+      list.appendChild(li);
+    }
+  });
+  if(!anyToDelete){
+    const li = document.createElement('li');
+    li.textContent = 'Keine Einträge älter als 4 Wochen gefunden.';
+    list.appendChild(li);
+  }
+  document.getElementById('dbCleanupConfirm').style.display = anyToDelete ? '' : 'none';
+  document.getElementById('dbCleanupModalBg').classList.add('open');
+}
+/* silent=true: automatischer wöchentlicher Lauf im Hintergrund, ohne Modal/Button-UI */
+async function performDbCleanup(silent){
+  const cutoff = addDays(todayStr(), -DB_RETENTION_DAYS);
+  const btn = document.getElementById('dbCleanupConfirm');
+  if(!silent){ btn.disabled = true; btn.textContent = 'Lösche…'; }
+  let deletedTotal = 0;
+  try{
+    for(const table of DB_CLEANUP_TABLES){
+      const arr = getCleanupArray(table);
+      const toDelete = arr.filter(item=> item.date && item.date < cutoff);
+      if(!toDelete.length) continue;
+      await atBatchDelete(table, toDelete.map(item=> item.id));
+      setCleanupArray(table, arr.filter(item=> !(item.date && item.date < cutoff)));
+      deletedTotal += toDelete.length;
+    }
+    if(!silent) document.getElementById('dbCleanupModalBg').classList.remove('open');
+    renderDbWarning();
+    if(document.getElementById('panelDashboard').classList.contains('active')) renderDashboard();
+    if(deletedTotal>0) setStatus(silent ? `Automatische Bereinigung: ${deletedTotal} alte Einträge gelöscht.` : 'Alte Daten wurden gelöscht.');
+    else if(!silent) setStatus('Keine alten Daten zum Löschen gefunden.');
+    localStorage.setItem('dbLastAutoCleanup', todayStr());
+  }catch(e){
+    console.error(e);
+    if(!silent) setStatus('Fehler beim Aufräumen: '+(e.message||e));
+  }finally{
+    if(!silent){ btn.disabled = false; btn.textContent = 'Jetzt löschen'; }
+  }
+}
+/* Läuft automatisch max. 1x pro Woche im Hintergrund (unabhängig von der 800er-Warnung),
+   damit die 4-Wochen-Bereinigung nicht vom manuellen Öffnen des Dashboards abhängt. */
+function autoDbCleanupIfDue(){
+  const last = localStorage.getItem('dbLastAutoCleanup');
+  if(last){
+    const days = Math.round((new Date(todayStr()+'T00:00:00') - new Date(last+'T00:00:00')) / 86400000);
+    if(days < 7) return;
+  }
+  performDbCleanup(true);
+}
+document.getElementById('dbCleanupBtn').addEventListener('click', openDbCleanupModal);
+document.getElementById('dbCleanupCancel').addEventListener('click', ()=> document.getElementById('dbCleanupModalBg').classList.remove('open'));
+document.getElementById('dbCleanupConfirm').addEventListener('click', ()=> performDbCleanup(false));
+
 function renderDashboard(){
   const muted = '#5C6B52', grid = '#D8E0CC';
   Chart.defaults.color = muted;
   Chart.defaults.font.family = "'Inter', sans-serif";
 
+  renderDbWarning();
   renderGoalCard();
   renderScoreCard();
   renderRoutineDashboard();
@@ -2381,6 +2552,7 @@ async function reloadPantryFresh(){
   try{
     const pRecs = await atList('Pantry');
     syncPantry(pRecs);
+    lastPantryFetchAt = Date.now();
   }catch(e){ console.warn('Vorrat konnte nicht neu geladen werden', e); }
 }
 function resyncPantryFromDishes(){
@@ -2907,7 +3079,15 @@ document.getElementById('bonusAddBtn').addEventListener('click', async ()=>{
   }catch(e){ console.error(e); setStatus('Bonus-Tabelle fehlt (Felder: Name, Kcal)'); }
 });
 
-async function loadAll(){
+async function loadAll(force){
+  if(!force && loadDataCacheIfFresh()){
+    setStatus('Verbunden (zwischengespeichert)');
+    document.getElementById('loadingOverlay').classList.add('hidden');
+    runGateCheck();
+    render();
+    autoDbCleanupIfDue();
+    return;
+  }
   setStatus('Lädt…');
   document.getElementById('loadingOverlay').classList.remove('hidden');
   document.querySelector('.loading-text').textContent = 'Nouri lädt…';
@@ -3034,6 +3214,9 @@ async function loadAll(){
     setStatus('Verbunden');
     document.getElementById('loadingOverlay').classList.add('hidden');
     runGateCheck();
+    autoDbCleanupIfDue();
+    scheduleSaveDataCache();
+    lastPantryFetchAt = Date.now();
   }catch(e){
     console.error(e);
     setStatus('Verbindung fehlgeschlagen – prüfe Token/Base-ID');
@@ -3042,7 +3225,7 @@ async function loadAll(){
   render();
 }
 
-function render(){ renderToday(); renderWeek(); renderDishLibrary(); renderShopPreview(); renderUpcoming(); renderDashboardBadge(); renderTodayTab(); renderRoutine(); renderSpecialDays(); }
+function render(){ renderToday(); renderWeek(); renderDishLibrary(); renderShopPreview(); renderUpcoming(); renderDashboardBadge(); renderTodayTab(); renderRoutine(); renderSpecialDays(); renderDbWarning(); }
 let specialDaysExpanded = {}; // wd -> bool
 function renderSpecialDays(){
   const wrap = document.getElementById('specialDaysWrap');
@@ -3238,6 +3421,7 @@ function renderProteinGapCard(eatenProtein, eatenKcal){
   }).join('');
 }
 function renderToday(){
+  scheduleSaveDataCache();
   updateFastStatus(); // muss vor dem Bauen der Essenszeilen laufen, damit canEatNow (Sperre bei geschlossenem Essensfenster) aktuell ist
   const wd = weekdayOf(currentDate);
 
@@ -5381,7 +5565,7 @@ document.getElementById('copyListBtn').addEventListener('click', async ()=>{
     document.getElementById('copyStatus').textContent = 'Kopiert.';
   }
 });
-document.getElementById('resetBtn').addEventListener('click', ()=>{ loadAll(); });
+document.getElementById('resetBtn').addEventListener('click', ()=>{ loadAll(true); });
 
 /* Debug-Helfer für die Browser-Konsole: zeigt alle Uhrzeiten eines Tages (Standard: gestern)
    übersichtlich als Tabelle, inkl. der von der App tatsächlich verwendeten Zeit (Time vs. CheckedAt)

@@ -562,6 +562,7 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
 <div class="loading-overlay" id="loadingOverlay">
   <div class="loading-spinner"></div>
   <p class="loading-text">Nouri lädt…</p>
+  <p id="airtableAccountNote" style="font-size:11px;color:var(--ink-soft,#8891aa);opacity:0.6;margin-top:8px;"></p>
 </div>
 <div class="loading-overlay hidden" id="startGateOverlay">
   <p style="font-family:'Fraunces',serif;font-weight:600;font-size:17px;color:var(--ink);margin:0 0 6px;">Guten Morgen</p>
@@ -1166,8 +1167,10 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
 /* ===== Airtable config =====
    Repo containing this file MUST be a PRIVATE GitHub repo.
    This token is visible to anyone who can view the page source. */
-const AIRTABLE_BASE = 'app11SOKyzyc4Tjtn';
-const AIRTABLE_TOKEN = 'patgSls2mv3n7sxqI.d0d185a2c526a705b848c30e57c54ee48f55dfae3bea2d7a1047d8d92d892dc4';
+const AIRTABLE_BASE = 'appMXs8muaZVg3xxN';
+const AIRTABLE_TOKEN = 'patxRn3XE4fIDytHi.21480c9d52102110c8d7d8fcc9f791cc4eb7402d079db12b22a20d1d8c5db7cd';
+const AIRTABLE_ACCOUNT_EMAIL = 'the.sphynx.project@gmail.com';
+document.getElementById('airtableAccountNote').textContent = 'Airtable: ' + AIRTABLE_ACCOUNT_EMAIL;
 const AT_URL = (table) => `https://api.airtable.com/v0/${AIRTABLE_BASE}/${encodeURIComponent(table)}`;
 const AT_HEADERS = { Authorization: `Bearer ${AIRTABLE_TOKEN}`, 'Content-Type': 'application/json' };
 

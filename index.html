@@ -3046,12 +3046,14 @@ function renderSnackManage(){
     s.favorite = !s.favorite;
     try{ await atUpdate('Snacks', id, { Favorite: s.favorite }); }catch(err){ console.error(err); setStatus('Snacks-Tabelle: Feld "Favorite" (Checkbox) fehlt noch – bitte ergänzen.'); }
     renderSnackManage();
+    renderToday(); // Heute-Tab (Snack-Chips) sofort aktualisieren + lokalen Cache mitschreiben
   }));
   wrap.querySelectorAll('.snack-del-btn').forEach(btn=> btn.addEventListener('click', async e=>{
     const id = e.target.closest('.snack-manage-row').dataset.id;
     try{ await atDelete('Snacks', id); }catch(err){ console.error(err); }
     snacks = snacks.filter(s=>s.id!==id);
     renderSnackManage();
+    renderToday(); // gelöschten Snack auch aus dem Heute-Tab + Cache entfernen
   }));
 }
 document.getElementById('snackAddBtn').addEventListener('click', async ()=>{
@@ -3628,7 +3630,17 @@ function renderToday(){
 function renderSnackChips(remaining, eatenProtein, eatenFat, eatenFiber){
   const wrap = document.getElementById('snackChips');
   const wd = weekdayOf(currentDate);
-  const todayDishNames = new Set(activeSlots(wd).map(s=> s.dishName.trim().toLowerCase()));
+  // Nur Gerichte aus noch OFFENEN Plan-Slots ausblenden – sobald der Slot abgehakt ist, erscheint das Gericht
+  // wieder als Snack-Chip (z.B. zweiter Cappuccino). Tages-Tausch (DaySwaps) und geteilte Portionen werden berücksichtigt.
+  const dayLogPlanSnack = logEntries.filter(l=> l.date===currentDate && l.type==='plan');
+  const todayDishNames = new Set(activeSlots(wd).filter(slot=>{
+    const split = portionSplits.find(x=> x.date===currentDate && x.slotId===slot.id);
+    if(split) return !(dayLogPlanSnack.some(l=> l.slotId===slot.id+'__1') && dayLogPlanSnack.some(l=> l.slotId===slot.id+'__2'));
+    return !dayLogPlanSnack.some(l=> l.slotId===slot.id || (!l.slotId && l.name===slot.dishName && l.time===slot.time));
+  }).map(slot=>{
+    const swap = daySwaps.find(x=> x.date===currentDate && x.slotId===slot.id);
+    return ((swap && swap.dishName) || slot.dishName).trim().toLowerCase();
+  }));
   const resolved = snacks.filter(s=> s.favorite && !todayDishNames.has(s.name.trim().toLowerCase())).map(s=>{
     const amt = s.amount||1;
     const src = s.source==='dish' ? dishByName(s.name) : pantryItem(s.name);

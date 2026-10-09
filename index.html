@@ -259,6 +259,17 @@ h2.section{font-family:'Fraunces',serif;font-weight:600;font-size:18px;margin:1.
 .fill-fiber{background:var(--olive);}
 .fill-protein{background:var(--plum);}
 .fill-fat{background:var(--mustard);}
+.limit-pill{font-size:11px;font-weight:600;border-radius:20px;padding:2px 9px;white-space:nowrap;}
+.limit-pill.ok{background:#E4EDDD;color:var(--olive-dark);}
+.limit-pill.warn{background:var(--mustard-bg);color:#8A5A17;}
+.limit-pill.bad{background:var(--coral-bg);color:var(--coral);}
+.week-limit-summary{border-radius:14px;padding:.8rem 1.1rem;margin-bottom:1rem;border:1px solid var(--line);}
+.week-limit-summary.ok{background:#E4EDDD;border-color:var(--olive);}
+.week-limit-summary.warn{background:var(--mustard-bg);border-color:var(--mustard);}
+.week-limit-summary.bad{background:var(--coral-bg);border-color:var(--coral);}
+.wls-main{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:14px;color:var(--ink);}
+.wls-main span{font-size:12px;color:var(--ink-soft);}
+.wls-sub{font-size:12px;color:var(--ink-soft);margin-top:3px;}
 .day-goal-badge{font-size:11px;font-weight:600;background:var(--mustard-bg);color:#8A5A17;border-radius:20px;padding:2px 9px;margin-left:auto;margin-right:6px;}
 .day-goal-chips{display:flex;flex-wrap:wrap;gap:6px;margin:.3rem 0 .5rem;}
 .day-goal-chip{font-size:10.5px;border-radius:20px;padding:2px 8px;}
@@ -470,12 +481,44 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
 .fh-label.bad{color:var(--coral);}
 .fh-text{font-size:12px;color:var(--ink);margin:0;}
 .eb-title{font-size:13px;color:var(--ink-soft);margin:0 0 2px;}
+.eb-big.warn{color:var(--mustard);}
+.eb-fill.warn{background:var(--mustard);}
+.eb-mark{position:absolute;top:-4px;height:17px;}
+.eb-mark.strict{border-left:2px solid var(--ink);}
+.eb-mark.full{border-left:2px dashed var(--ink-soft);}
+.eb-scale{position:relative;height:16px;font-size:11px;color:var(--ink-soft);margin-top:5px;}
+.eb-scale span{position:absolute;top:0;white-space:nowrap;}
+.eb-buffer{margin:10px 0 0;border-radius:9px;padding:8px 12px;font-size:12.5px;line-height:1.45;background:#E4EDDD;color:var(--olive-dark);}
+.eb-buffer.warn{background:var(--mustard-bg);color:#8A5A17;}
+.eb-buffer.bad{background:var(--coral-bg);color:var(--coral);}
 .eb-big{font-family:'Fraunces',serif;font-weight:600;font-size:32px;color:var(--olive);margin:0 0 10px;}
 .eb-big.over{color:var(--coral);}
 .eb-sub{font-size:11.5px;color:var(--ink-soft);margin:8px 0 0;}
-.eb-track{position:relative;height:9px;background:var(--bg);border-radius:5px;}
+.eb-track{position:relative;height:9px;background:var(--bg);border-radius:5px;margin-right:2px;}
 .eb-fill{height:100%;width:0%;background:var(--olive);border-radius:5px;transition:width .5s ease-out;}
 .eb-fill.over{background:var(--coral);}
+.tw-bar{display:flex;justify-content:flex-end;margin:0 0 .4rem;}
+.tw-edit-btn{background:none;border:1px solid var(--line);border-radius:20px;padding:4px 12px;font-size:12px;color:var(--ink-soft);cursor:pointer;}
+.tw-edit-btn.active{background:var(--olive);border-color:var(--olive);color:#fff;}
+.tw.tw-hidden{display:none;}
+#todayContent.tw-editing .tw{position:relative;border:1.5px dashed var(--line);border-radius:14px;padding:.4rem .5rem .5rem;margin-bottom:.8rem;}
+#todayContent.tw-editing .tw.tw-hidden{display:block;background:repeating-linear-gradient(135deg,transparent 0 8px,rgba(0,0,0,.025) 8px 16px);}
+#todayContent.tw-editing .tw.tw-hidden > *:not(.tw-tools){opacity:.35;}
+#todayContent.tw-editing .tw.tw-hidden .tw-name{opacity:.55;}
+#todayContent.tw-editing .tw > *:not(.tw-tools){pointer-events:none;max-height:140px;overflow:hidden;}
+.tw-tools{display:none;align-items:center;gap:6px;margin-bottom:.4rem;}
+#todayContent.tw-editing .tw-tools{display:flex;}
+.tw-tools .tw-name{font-size:12.5px;font-weight:600;color:var(--ink);margin-right:auto;}
+.tw-tools button{border:1px solid var(--line);background:var(--card);border-radius:8px;min-width:32px;height:30px;font-size:14px;cursor:pointer;color:var(--ink);}
+.tw-tools button:disabled{opacity:.3;cursor:default;}
+.tw-tools .tw-lock{font-size:11px;color:var(--ink-soft);}
+.eb-calc{margin-top:12px;padding-top:10px;border-top:1px solid var(--line);display:grid;grid-template-columns:1fr auto;gap:3px 12px;font-size:12.5px;color:var(--ink-soft);}
+.eb-calc .v{font-family:'IBM Plex Mono',monospace;text-align:right;color:var(--ink);}
+.eb-calc .hint{grid-column:1/-1;font-size:11px;opacity:.8;margin:-1px 0 3px;}
+.eb-calc .sum{font-weight:600;color:var(--ink);border-top:1px solid var(--line);padding-top:4px;margin-top:2px;}
+.eb-calc .sum.v{color:var(--olive-dark);}
+.eb-calc .sum.v.over{color:var(--coral);}
+.eb-calc .sum.v.warn{color:var(--mustard);}
 .eb-sport{font-size:12.5px;color:var(--coral);margin:8px 0 0;font-weight:500;}
 .macro-card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 13px;margin-bottom:1rem;}
 .macro-title{font-size:13.5px;font-weight:600;color:var(--ink);margin:0 0 8px;}
@@ -608,9 +651,10 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
     </div>
     <div id="specialDaysWrap"></div>
     <div class="day-lock-banner" id="dayLockBanner" style="display:none;">🏁 <span id="dayLockText"></span></div>
+    <div class="tw-bar"><button type="button" class="tw-edit-btn" id="twEditBtn">✏️ Anordnen</button></div>
     <div id="todayContent">
 
-    <div class="dash-stats" id="fastWindowStats" style="display:none;">
+    <div class="tw" data-w="fast"><div class="dash-stats" id="fastWindowStats" style="display:none;">
       <div class="dash-stat" id="fastWindowCard">
         <p class="ds-label">Essensfenster</p>
         <p class="ds-val" id="fastWindowVal">–</p>
@@ -621,10 +665,11 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
         <p class="ds-val" id="lastFastVal">–</p>
         <p class="ds-sub" id="lastFastSub"></p>
       </div>
-    </div>
+    </div></div>
 
-    <p class="section-label">Heute gesamt (Plan + Extras): <span id="planKcalTotal">0</span>/<span id="dayPlanKcal">0</span> kcal (<span id="planFiberTotal">0</span>/<span id="dayPlanFiber">0</span> g Ball., <span id="planProteinTotal">0</span>/<span id="dayPlanProtein">0</span> g Prot.) · Ø <span id="planFullnessTotal">–</span>/10 Fullness</p>
-    <div class="macro-card" id="macroCard">
+    <div class="tw" data-w="summary"><p class="section-label">Heute gesamt (Plan + Extras): <span id="planKcalTotal">0</span>/<span id="dayPlanKcal">0</span> kcal (<span id="planFiberTotal">0</span>/<span id="dayPlanFiber">0</span> g Ball., <span id="planProteinTotal">0</span>/<span id="dayPlanProtein">0</span> g Prot.) · Ø <span id="planFullnessTotal">–</span>/10 Fullness</p>
+    </div>
+    <div class="tw" data-w="macros"><div class="macro-card" id="macroCard">
       <p class="macro-title">Makro-Ziele heute</p>
       <div class="macro-row"><span>Protein</span><span id="macroProteinVal">0/0 g</span></div>
       <div class="macro-track"><div class="macro-fill" id="macroProteinFill" style="background:var(--coral);"></div></div>
@@ -637,8 +682,8 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
       <div class="macro-row macro-clickable" id="macroWaterRow" title="Trinken eintragen"><span>Trinken 🍵</span><span id="macroWaterVal">0/0 ml</span></div>
       <div class="macro-track macro-clickable" id="macroWaterTrack" title="Trinken eintragen"><div class="macro-fill" id="macroWaterFill" style="background:var(--water);"></div></div>
       <p class="macro-check" id="macroProteinCheck"></p>
-    </div>
-    <div class="processed-card" id="processedCard">
+    </div></div>
+    <div class="tw" data-w="processed"><div class="processed-card" id="processedCard">
       <div class="processed-head" id="processedHead">
         <div>
           <p class="processed-title">Unverarbeitet-Anteil</p>
@@ -648,36 +693,39 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
       </div>
       <div class="processed-bar-track"><div class="processed-bar-fill" id="processedBarFill"></div><div class="processed-bar-goal"></div></div>
       <div class="processed-detail" id="processedDetail" style="display:none;"></div>
-    </div>
-    <div id="planList"></div>
+    </div></div>
+    <div class="tw" data-w="plan"><div id="planList"></div></div>
 
-    <p class="section-label" style="margin-top:1rem;">Snacks – passend zu deinem Rest-Budget</p>
-    <div class="snack-chips" id="snackChips"></div>
+    <div class="tw" data-w="snacks"><p class="section-label" style="margin-top:1rem;">Snacks – passend zu deinem Rest-Budget</p>
+    <div class="snack-chips" id="snackChips"></div></div>
 
-    <p class="section-label">Zusätzlich gegessen</p>
-    <div id="extraList"></div>
+    <div class="tw" data-w="extras"><p class="section-label">Zusätzlich gegessen</p>
+    <div id="extraList"></div></div>
 
-    <div class="protein-gap-card" id="proteinGapCard" style="display:none;">
+    <div class="tw" data-w="proteinGap"><div class="protein-gap-card" id="proteinGapCard" style="display:none;">
       <p class="protein-gap-title" id="proteinGapTitle"></p>
       <div id="proteinGapList"></div>
-    </div>
-    <div class="ess-budget-card" id="essBudgetCard">
-      <p class="eb-title">Du kannst heute noch essen</p>
+    </div></div>
+    <div class="tw" data-w="budget"><div class="ess-budget-card" id="essBudgetCard">
+      <p class="eb-title" id="ebTitle">Ohne Bewegung kannst du heute noch essen</p>
       <p class="eb-big" id="ebBig">– kcal</p>
-      <div class="eb-track"><div class="eb-fill" id="ebFill"></div></div>
-      <p class="eb-sub" id="ebSub"></p>
+      <div class="eb-track"><div class="eb-fill" id="ebFill"></div><div class="eb-mark strict" id="ebMarkStrict"></div><div class="eb-mark full" id="ebMarkFull"></div></div>
+      <div class="eb-scale" id="ebScale"></div>
+      <p class="eb-buffer" id="ebBuffer"></p>
+      <p class="eb-sub" id="ebSub" style="display:none;"></p>
       <p class="eb-sport" id="ebSport" style="display:none;"></p>
-    </div>
+      <div class="eb-calc" id="ebCalc"></div>
+    </div></div>
 
-    <div class="pill-row">
+    <div class="tw" data-w="actions"><div class="pill-row">
       <button class="open-btn" id="openQuickEatBtn" style="grid-column:1 / -1;"><span class="ic a">⚡</span> Schnell essen</button>
       <button class="open-btn" id="openExtraBtn"><span class="ic a">🍽️</span> Gericht hinzufügen</button>
       <button class="open-btn" id="openWeightBtn"><span class="ic b">⚖️</span> Gewicht <span class="sub" id="weightBtnSub"></span></button>
       <button class="open-btn" id="openStepsBtn"><span class="ic c">👟</span> Schritte <span class="sub" id="stepsBtnSub"></span></button>
       <button class="open-btn" id="endTagBtn"><span class="ic c">🏁</span> Tag beenden <span class="sub" id="endTagBtnSub"></span></button>
-    </div>
+    </div></div>
 
-    <button class="btn primary" id="aiCheckBtn" style="margin-top:1.2rem;">🤖 2-Tage-Check von deinem Personal Trainer</button>
+    <div class="tw" data-w="ai"><button class="btn primary" id="aiCheckBtn" style="margin-top:1.2rem;">🤖 2-Tage-Check von deinem Personal Trainer</button>
     <p class="section-note" id="aiCheckStatus"></p>
     <div id="aiCheckResult" class="ki-plan-notes" style="display:none;"></div>
     <button class="btn primary" id="dayReviewBtn" style="margin-top:.6rem;">🤖 Was hätte ich heute besser machen können?</button>
@@ -685,14 +733,14 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
     <div id="dayReviewResult" class="ki-plan-notes" style="display:none;"></div>
     <button class="btn primary" id="optimizeTodayBtn" style="margin-top:.6rem;">🤖 Rest des Tages optimieren (Test)</button>
     <p class="section-note" id="optimizeTodayStatus"></p>
-    <div id="optimizeTodayResult" style="display:none;"></div>
+    <div id="optimizeTodayResult" style="display:none;"></div></div>
 
-    <h2 class="section" style="margin-top:1.4rem;">Routine <span class="section-note" id="routineBadge"></span></h2>
+    <div class="tw" data-w="routine"><h2 class="section" style="margin-top:1.4rem;">Routine <span class="section-note" id="routineBadge"></span></h2>
     <div id="routineList"></div>
     <div class="quick-add">
       <input type="text" id="routineNewName" placeholder="Neue Routine (z.B. Zähneputzen)">
       <button id="routineAddBtn">+</button>
-    </div>
+    </div></div>
     </div>
   </div>
 
@@ -769,6 +817,7 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
 
   <!-- WOCHE -->
   <div class="panel" id="panelWoche">
+    <div class="week-limit-summary" id="weekLimitSummary" style="display:none;"></div>
     <div id="weekDays"></div>
     <button class="add-slot-global" id="addSlotGlobalBtn">+ Mahlzeit hinzufügen</button>
 
@@ -1066,7 +1115,7 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
     <div class="profile-field"><label>Startgewicht (kg)</label><input type="number" id="profStartWeight" step="0.1"></div>
     <div class="profile-field"><label>Wunschgewicht (kg)</label><input type="number" id="profGoalWeight" step="0.1"></div>
     <div class="profile-field"><label>Schritte-Ziel (Ø/Tag)</label><input type="number" id="profStepsGoal" step="100"></div>
-    <div class="profile-field"><label>Max. Kalorien pro Tag</label><input type="number" id="profKcalMax" step="10"></div>
+    <div class="profile-field"><label>Max. Kalorien pro Tag – automatisch: Grundumsatz − Ziel-Defizit</label><p class="ds-val" id="profKcalMaxDisplay" style="margin:0;font-size:22px;">–</p><p class="section-note" id="profKcalMaxFormula" style="margin:2px 0 0;"></p></div>
     <div class="profile-field"><label>Min. Kalorien pro Tag (nur für KI-Tagesplan)</label><input type="number" id="profKcalMin" step="10"></div>
     <div class="profile-field"><label>Ballaststoffe-Ziel pro Tag (g)</label><input type="number" id="profFiberGoal" step="1"></div>
     <div class="profile-field"><label>Protein-Ziel pro Tag (g) – automatisch berechnet aus Gewicht × 1,6g</label><p class="ds-val" id="profProteinGoalDisplay" style="margin:0;font-size:22px;">–</p></div>
@@ -1076,7 +1125,7 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
       <select id="profSex"><option value="m">Männlich</option><option value="w">Weiblich</option></select>
     </div>
     <div class="profile-field"><label>Grundumsatz (kcal) – automatisch berechnet aus Gewicht/Größe/Alter/Geschlecht</label><p class="ds-val" id="profBmrDisplay" style="margin:0;font-size:22px;">–</p></div>
-    <div class="profile-field"><label>Warnschwelle Defizit (kcal)</label><input type="number" id="profDeficitWarn" step="50"></div>
+    <div class="profile-field"><label>Ziel-Defizit pro Tag (kcal)</label><input type="number" id="profDeficitWarn" step="50"></div>
     <div class="profile-field"><label>Fastenziel (Stunden ohne Essen)</label><input type="number" id="profFastGoal" step="1" min="1" max="23"></div>
     <div class="profile-field"><label>Claude API-Key (nur lokal in diesem Browser gespeichert, für den KI-Wochenplan)</label><input type="password" id="profClaudeKey" placeholder="sk-ant-..." autocomplete="off"></div>
     <div class="modal-actions">
@@ -1436,6 +1485,18 @@ document.getElementById('startTagBtn').addEventListener('click', async ()=>{
   const btn = document.getElementById('startTagBtn');
   btn.disabled = true;
   try{
+    // DayBounds frisch holen, damit kein doppelter Eintrag entsteht, falls ein anderes Gerät den Tag schon gestartet hat
+    try{
+      const dbRecs = await atList('DayBounds');
+      dayBounds = dbRecs.map(r=>({ id:r.id, date:r.fields.Date||'', startTag:r.fields.StartTag||'', endTag:r.fields.EndTag||'' }));
+    }catch(e){ console.warn('DayBounds konnten nicht aktualisiert werden', e); }
+    if(dayStarted(todayStr())){
+      // Tag läuft schon (anderes Gerät) -> alle Daten frisch laden statt neu zu starten
+      document.getElementById('startGateOverlay').classList.add('hidden');
+      btn.disabled = false;
+      await loadAll(true);
+      return;
+    }
     await setStartTag(todayStr(), nowHM());
     document.getElementById('startGateOverlay').classList.add('hidden');
     const unclosed = findUnclosedPastDay();
@@ -1536,6 +1597,13 @@ function calcBmr(height, age, sex){
   const base = 10*currentWeight + 6.25*height - 5*age;
   return Math.round(sex==='w' ? base-161 : base+5);
 }
+/* Max kcal pro Tag = Grundumsatz (aus aktuellem Gewicht) - Ziel-Defizit. Ein Limit für Woche, KI-Plan, Heute & Dashboard. */
+function calcKcalMax(bmr, deficit){
+  bmr = bmr || profile.bmr || calcBmr();
+  deficit = (deficit===undefined || deficit===null) ? (profile.deficitWarnThreshold||0) : deficit;
+  return Math.max(0, Math.round(bmr - deficit));
+}
+function kcalLimit(){ return profile.kcalMax; }
 /* Protein-Ziel: Gewicht × 1,6g (etablierte Empfehlung für Sportler/Kraftsport, 1,2-2,0g/kg), aus aktuellstem Gewicht */
 function calcProteinGoal(){
   const sorted = weights.slice().sort((a,b)=> a.date.localeCompare(b.date));
@@ -1622,7 +1690,7 @@ const DATA_CACHE_MAX_AGE_MS = 30*60*1000;
 function getDataCacheSnapshot(){
   return { dishes, weekPlan, weekPlanAI, weekVersion, weekVersionRecId, weekDayContext, weekDayNotes,
     weekDayEventDate, weekDayContextDate, logEntries, weights, steps, dayBounds, pantry, shoppingNeeds,
-    snacks, daySwaps, portionSplits, water, bonusItems, routineTasks, routineLog, bonusLog, profile };
+    snacks, daySwaps, portionSplits, water, bonusItems, routineTasks, routineLog, bonusLog, profile, todayLayout };
 }
 function applyDataCacheSnapshot(d){
   dishes=d.dishes; weekPlan=d.weekPlan; weekPlanAI=d.weekPlanAI; weekVersion=d.weekVersion;
@@ -1631,6 +1699,7 @@ function applyDataCacheSnapshot(d){
   weights=d.weights; steps=d.steps; dayBounds=d.dayBounds; pantry=d.pantry; shoppingNeeds=d.shoppingNeeds;
   snacks=d.snacks; daySwaps=d.daySwaps; portionSplits=d.portionSplits; water=d.water; bonusItems=d.bonusItems;
   routineTasks=d.routineTasks; routineLog=d.routineLog; bonusLog=d.bonusLog; profile=d.profile;
+  if(d.todayLayout) todayLayout = normalizeTodayLayout(d.todayLayout);
 }
 let saveCacheTimer = null;
 let lastPantryFetchAt = 0;
@@ -1829,7 +1898,6 @@ document.getElementById('openProfileBtn').addEventListener('click', ()=>{
   document.getElementById('profStartWeight').value = profile.startWeight;
   document.getElementById('profGoalWeight').value = profile.goalWeight;
   document.getElementById('profStepsGoal').value = profile.stepsGoal;
-  document.getElementById('profKcalMax').value = profile.kcalMax;
   document.getElementById('profKcalMin').value = profile.kcalMin;
   document.getElementById('profFiberGoal').value = profile.fiberGoal;
   document.getElementById('profProteinGoalDisplay').textContent = profile.proteinGoal+' g';
@@ -1840,15 +1908,21 @@ document.getElementById('openProfileBtn').addEventListener('click', ()=>{
   document.getElementById('profDeficitWarn').value = profile.deficitWarnThreshold;
   document.getElementById('profFastGoal').value = profile.fastGoalHours;
   document.getElementById('profClaudeKey').value = claudeApiKey;
+  refreshBmrPreview();
   document.getElementById('profileModalBg').classList.add('open');
 });
 function refreshBmrPreview(){
   const h = Number(document.getElementById('profHeight').value)||profile.height;
   const a = Number(document.getElementById('profAge').value)||profile.age;
   const s = document.getElementById('profSex').value;
-  document.getElementById('profBmrDisplay').textContent = calcBmr(h,a,s)+' kcal';
+  const bmr = calcBmr(h,a,s);
+  const def = Number(document.getElementById('profDeficitWarn').value)||0;
+  const max = calcKcalMax(bmr, def);
+  document.getElementById('profBmrDisplay').textContent = bmr+' kcal';
+  document.getElementById('profKcalMaxDisplay').textContent = max.toLocaleString('de-DE')+' kcal';
+  document.getElementById('profKcalMaxFormula').textContent = bmr.toLocaleString('de-DE')+' − '+def.toLocaleString('de-DE')+' = '+max.toLocaleString('de-DE')+' kcal';
 }
-['profHeight','profAge','profSex'].forEach(id=> document.getElementById(id).addEventListener('input', refreshBmrPreview));
+['profHeight','profAge','profSex','profDeficitWarn'].forEach(id=> document.getElementById(id).addEventListener('input', refreshBmrPreview));
 document.getElementById('profileCancel').addEventListener('click', ()=> document.getElementById('profileModalBg').classList.remove('open'));
 document.getElementById('profileSave').addEventListener('click', async ()=>{
   claudeApiKey = document.getElementById('profClaudeKey').value.trim();
@@ -1856,7 +1930,6 @@ document.getElementById('profileSave').addEventListener('click', async ()=>{
   const startWeight = Number(document.getElementById('profStartWeight').value)||profile.startWeight;
   const goalWeight = Number(document.getElementById('profGoalWeight').value)||profile.goalWeight;
   const stepsGoal = Number(document.getElementById('profStepsGoal').value)||profile.stepsGoal;
-  const kcalMax = Number(document.getElementById('profKcalMax').value)||profile.kcalMax;
   const kcalMin = Number(document.getElementById('profKcalMin').value)||profile.kcalMin||1100;
   const fiberGoal = Number(document.getElementById('profFiberGoal').value)||profile.fiberGoal;
   const proteinGoal = calcProteinGoal();
@@ -1866,6 +1939,7 @@ document.getElementById('profileSave').addEventListener('click', async ()=>{
   const bmr = calcBmr(height, age, sex);
   const deficitWarnThreshold = Number(document.getElementById('profDeficitWarn').value)||profile.deficitWarnThreshold||1000;
   const fastGoalHours = Math.max(1, Math.min(23, Number(document.getElementById('profFastGoal').value)||profile.fastGoalHours||12));
+  const kcalMax = calcKcalMax(bmr, deficitWarnThreshold);
   const fields = { StartWeight: startWeight, GoalWeight: goalWeight, StepsGoal: stepsGoal, KcalMax: kcalMax, KcalMin: kcalMin, FiberGoal: fiberGoal, ProteinGoal: proteinGoal, Bmr: bmr, DeficitWarnThreshold: deficitWarnThreshold, FastGoalHours: fastGoalHours, Height: height, Age: age, Sex: sex };
   try{
     try{
@@ -1887,13 +1961,13 @@ document.getElementById('profileSave').addEventListener('click', async ()=>{
       }
       profile = { id:profile.id, startWeight, goalWeight, stepsGoal, kcalMax, kcalMin, fiberGoal, proteinGoal, bmr, deficitWarnThreshold, fastGoalHours, height, age, sex };
       document.getElementById('profileModalBg').classList.remove('open');
-      renderGoalCard(); renderScoreCard(); renderToday();
+      renderGoalCard(); renderScoreCard(); render();
       return;
     }
     profile = { id:profile.id, startWeight, goalWeight, stepsGoal, kcalMax, kcalMin, fiberGoal, proteinGoal, bmr, deficitWarnThreshold, fastGoalHours, height, age, sex };
     setStatus('Stammdaten gespeichert');
     document.getElementById('profileModalBg').classList.remove('open');
-    renderGoalCard(); renderScoreCard(); renderToday();
+    renderGoalCard(); renderScoreCard(); render();
   }catch(e){ console.error(e); setStatus(e.message||'Fehler beim Speichern'); }
 });
 
@@ -2129,7 +2203,7 @@ function renderDashboard(){
   renderAdherence();
 
   /* Kcal-Guthaben: dauerhaft aufsummiert, nur Tage mit echten Einträgen, heute zählt noch nicht */
-  const ghTarget = targets[activeTarget];
+  const ghTarget = kcalLimit();
   const trackedDates = new Set(logEntries.map(l=>l.date));
   trackedDates.delete(todayStr());
   let guthaben = 0, guthabenDays = 0;
@@ -2219,7 +2293,7 @@ function renderDashboard(){
       scales:{ y:{ grid:{color:grid} }, x:{ grid:{display:false} } } }
   });
 
-  const target = targets[activeTarget];
+  const target = kcalLimit();
   const kcalData = last7.map(d=> dayTotalKcal(d));
   const kcalDaysWithData = kcalData.filter(v=> v>0);
   const avgKcal = kcalDaysWithData.length ? Math.round(kcalDaysWithData.reduce((a,b)=>a+b,0)/kcalDaysWithData.length) : 0;
@@ -3086,6 +3160,10 @@ document.getElementById('bonusAddBtn').addEventListener('click', async ()=>{
 
 async function loadAll(force){
   if(!force && loadDataCacheIfFresh()){
+    // Lokaler Cache sagt "Tag noch nicht gestartet" -> evtl. wurde der Tag auf einem anderen Gerät gestartet
+    // und der Cache dieses Geräts ist veraltet. Dann lieber frisch aus Airtable laden statt Start-Gate zu zeigen.
+    if(!dayStarted(todayStr())) return loadAll(true);
+    profile.kcalMax = calcKcalMax(); // auch aus dem Cache immer mit der aktuellen Formel rechnen
     setStatus('Verbunden (zwischengespeichert)');
     document.getElementById('loadingOverlay').classList.add('hidden');
     runGateCheck();
@@ -3146,6 +3224,8 @@ async function loadAll(force){
     try{
       const profRecs = await profileP; if(profRecs===null) throw new Error('missing');
       if(profRecs[0]){
+        const remoteLayout = parseTodayLayout(profRecs[0].fields.TodayLayout);
+        if(remoteLayout){ todayLayout = remoteLayout; try{ localStorage.setItem(TODAY_LAYOUT_LS, JSON.stringify(remoteLayout)); }catch(e){} }
         profile = { id:profRecs[0].id, startWeight:Number(profRecs[0].fields.StartWeight)||profile.startWeight, goalWeight:Number(profRecs[0].fields.GoalWeight)||profile.goalWeight, stepsGoal:Number(profRecs[0].fields.StepsGoal)||profile.stepsGoal, kcalMax:Number(profRecs[0].fields.KcalMax)||profile.kcalMax, kcalMin:Number(profRecs[0].fields.KcalMin)||profile.kcalMin, fiberGoal:Number(profRecs[0].fields.FiberGoal)||profile.fiberGoal, proteinGoal:Number(profRecs[0].fields.ProteinGoal)||profile.proteinGoal, bmr:Number(profRecs[0].fields.Bmr)||profile.bmr, deficitWarnThreshold:Number(profRecs[0].fields.DeficitWarnThreshold)||profile.deficitWarnThreshold, fastGoalHours:Number(profRecs[0].fields.FastGoalHours)||profile.fastGoalHours, height:Number(profRecs[0].fields.Height)||profile.height, age:Number(profRecs[0].fields.Age)||profile.age, sex: profRecs[0].fields.Sex==='w' ? 'w' : 'm' };
       }
     }catch(e){ console.warn('Profile-Tabelle noch nicht vorhanden – lege sie in Airtable an (Felder: StartWeight, GoalWeight, StepsGoal, KcalMax, FiberGoal). Nutze bis dahin Standardwerte.'); }
@@ -3214,7 +3294,8 @@ async function loadAll(force){
     profile.bmr = calcBmr(); // Grundumsatz automatisch aus aktuellstem Gewicht + Größe/Alter/Geschlecht neu berechnen
     profile.proteinGoal = calcProteinGoal(); // Protein-Ziel automatisch aus aktuellstem Gewicht (×1,6g) neu berechnen
     // Sofort zurückschreiben, damit die Stammdaten in Airtable nie einen veralteten Wert zeigen (nicht erst beim nächsten Gewichts-Eintrag)
-    if(profile.id){ atUpdate('Profile', profile.id, { Bmr: profile.bmr, ProteinGoal: profile.proteinGoal }).catch(()=>{}); }
+    profile.kcalMax = calcKcalMax(); // Max kcal = Grundumsatz - Ziel-Defizit
+    if(profile.id){ atUpdate('Profile', profile.id, { Bmr: profile.bmr, ProteinGoal: profile.proteinGoal, KcalMax: profile.kcalMax }).catch(()=>{}); }
     steps = sRecs.map(r=>({ id:r.id, date:r.fields.Date, steps:Number(r.fields.Steps)||0, kcal:Number(r.fields.Kcal)||0, time:r.fields.Time||'' }));
     setStatus('Verbunden');
     document.getElementById('loadingOverlay').classList.add('hidden');
@@ -3230,7 +3311,7 @@ async function loadAll(force){
   render();
 }
 
-function render(){ renderToday(); renderWeek(); renderDishLibrary(); renderShopPreview(); renderUpcoming(); renderDashboardBadge(); renderTodayTab(); renderRoutine(); renderSpecialDays(); renderDbWarning(); }
+function render(){ renderToday(); renderWeek(); renderDishLibrary(); renderShopPreview(); renderUpcoming(); renderDashboardBadge(); renderTodayTab(); renderRoutine(); renderSpecialDays(); renderDbWarning(); applyTodayLayout(); }
 let specialDaysExpanded = {}; // wd -> bool
 function renderSpecialDays(){
   const wrap = document.getElementById('specialDaysWrap');
@@ -3365,36 +3446,166 @@ function renderMacroCard(eatenKcal, eatenProtein, eatenFat, eatenFiber){
 /* Ess-Budget: wie viel darf ich noch essen, um mein Ziel-Defizit (Warnschwelle Defizit in den Stammdaten) zu
    erreichen. Reicht das Essen allein nicht mehr (schon mehr gegessen als das Budget), wird statt eines
    "kaputten" Balkens ein Sport-Ausgleich vorgeschlagen (wie viele Schritte das noch reinholen würden). */
+/* ===== Heute-Ansicht: Widgets ein-/ausblenden und verschieben =====
+   Gespeichert als JSON im Feld "TodayLayout" der Profile-Tabelle (gilt auf allen Geräten),
+   zusätzlich lokal als Rückfall, falls das Feld in Airtable noch fehlt. */
+const TODAY_WIDGETS = {
+  fast:{ label:'Essensfenster / Fasten' },
+  summary:{ label:'Tagessumme' },
+  macros:{ label:'Makro-Ziele' },
+  processed:{ label:'Unverarbeitet-Anteil' },
+  plan:{ label:'Tagesplan (Mahlzeiten)', fixed:true },
+  snacks:{ label:'Snack-Vorschläge' },
+  extras:{ label:'Zusätzlich gegessen' },
+  proteinGap:{ label:'Protein-Lücke' },
+  budget:{ label:'Ess-Budget' },
+  actions:{ label:'Aktionen (Essen, Gewicht, Schritte, Tag beenden)', fixed:true },
+  ai:{ label:'KI-Funktionen' },
+  routine:{ label:'Routine' }
+};
+const TODAY_LAYOUT_LS = 'nouriTodayLayout_v1';
+let todayLayout = null; // { order:[...], hidden:[...] }
+let todayLayoutEditing = false;
+function normalizeTodayLayout(l){
+  const keys = Object.keys(TODAY_WIDGETS);
+  const order = (l && Array.isArray(l.order) ? l.order : []).filter(k=> keys.includes(k));
+  keys.forEach(k=>{ if(!order.includes(k)) order.push(k); }); // neue Widgets hinten anhängen
+  const hidden = (l && Array.isArray(l.hidden) ? l.hidden : []).filter(k=> keys.includes(k) && !TODAY_WIDGETS[k].fixed);
+  return { order, hidden };
+}
+function parseTodayLayout(raw){ try{ return raw ? normalizeTodayLayout(JSON.parse(raw)) : null; }catch(e){ return null; } }
+function getTodayLayout(){
+  if(!todayLayout){ todayLayout = parseTodayLayout(localStorage.getItem(TODAY_LAYOUT_LS)) || normalizeTodayLayout(null); }
+  return todayLayout;
+}
+function applyTodayLayout(){
+  const wrap = document.getElementById('todayContent');
+  if(!wrap) return;
+  const l = getTodayLayout();
+  l.order.forEach((k,i)=>{
+    const el = wrap.querySelector(`:scope > .tw[data-w="${k}"]`);
+    if(!el) return;
+    wrap.appendChild(el);
+    el.classList.toggle('tw-hidden', l.hidden.includes(k));
+    let tools = el.querySelector(':scope > .tw-tools');
+    if(!tools){ tools = document.createElement('div'); tools.className = 'tw-tools'; el.prepend(tools); }
+    const def = TODAY_WIDGETS[k];
+    const isHidden = l.hidden.includes(k);
+    tools.innerHTML = `<span class="tw-name">${def.label}</span>
+      ${def.fixed ? '<span class="tw-lock">immer sichtbar</span>' : `<button type="button" data-act="toggle" title="${isHidden?'Einblenden':'Ausblenden'}">${isHidden?'🙈':'👁️'}</button>`}
+      <button type="button" data-act="up" title="Nach oben" ${i===0?'disabled':''}>↑</button>
+      <button type="button" data-act="down" title="Nach unten" ${i===l.order.length-1?'disabled':''}>↓</button>`;
+    tools.querySelectorAll('button').forEach(b=> b.addEventListener('click', ()=> changeTodayLayout(k, b.dataset.act)));
+  });
+  wrap.classList.toggle('tw-editing', todayLayoutEditing);
+}
+let saveTodayLayoutTimer = null;
+function changeTodayLayout(key, act){
+  const l = getTodayLayout();
+  const i = l.order.indexOf(key);
+  if(act==='up' && i>0){ [l.order[i-1], l.order[i]] = [l.order[i], l.order[i-1]]; }
+  else if(act==='down' && i<l.order.length-1){ [l.order[i+1], l.order[i]] = [l.order[i], l.order[i+1]]; }
+  else if(act==='toggle' && !TODAY_WIDGETS[key].fixed){
+    l.hidden = l.hidden.includes(key) ? l.hidden.filter(k=>k!==key) : l.hidden.concat(key);
+  }
+  applyTodayLayout();
+  try{ localStorage.setItem(TODAY_LAYOUT_LS, JSON.stringify(l)); }catch(e){}
+  scheduleSaveDataCache();
+  clearTimeout(saveTodayLayoutTimer);
+  saveTodayLayoutTimer = setTimeout(async ()=>{
+    if(!profile.id) return;
+    try{ await atUpdate('Profile', profile.id, { TodayLayout: JSON.stringify(l) }); }
+    catch(e){ console.warn(e); setStatus('Layout nur lokal gespeichert – lege in Airtable in der Profile-Tabelle ein Textfeld "TodayLayout" an, damit es auf allen Geräten gilt'); }
+  }, 800);
+}
+document.getElementById('twEditBtn').addEventListener('click', ()=>{
+  todayLayoutEditing = !todayLayoutEditing;
+  const btn = document.getElementById('twEditBtn');
+  btn.classList.toggle('active', todayLayoutEditing);
+  btn.textContent = todayLayoutEditing ? '✓ Fertig' : '✏️ Anordnen';
+  applyTodayLayout();
+});
+/* Ess-Budget: Hauptzahl = Limit OHNE Bewegung (Grundumsatz - Ziel-Defizit, wie "Max. Kalorien" und Wochen-Menü).
+   Die Schritte des Tages sind nur Puffer obendrauf. Drei Zustände:
+   grün = unter dem strengen Limit, gelb = drüber aber durch Bewegung noch im Defizit, rot = über beidem. */
+function renderEssBudgetCalc(eatenKcal, bmr, movementKcal, strict, full){
+  const el = document.getElementById('ebCalc');
+  if(!el) return;
+  const f = n=> Math.round(n).toLocaleString('de-DE');
+  const deficit = profile.deficitWarnThreshold||0;
+  const restStrict = Math.round(strict - eatenKcal);
+  const restFull = Math.round(full - eatenKcal);
+  const restCls = restStrict>=0 ? '' : (restFull>=0 ? 'warn' : 'over');
+  el.innerHTML = `
+    <span>Grundumsatz</span><span class="v">${f(bmr)}</span>
+    <span class="hint">verbrennst du in Ruhe – aus Gewicht, Größe, Alter</span>
+    <span>− Ziel-Defizit</span><span class="v">− ${f(deficit)}</span>
+    <span class="hint">so viel willst du täglich einsparen (Einstellungen)</span>
+    <span class="sum">= Limit ohne Bewegung</span><span class="sum v">${f(strict)}</span>
+    <span>− schon gegessen</span><span class="v">− ${f(eatenKcal)}</span>
+    <span class="sum">= ${restStrict>=0 ? 'noch übrig' : 'über Limit'}</span><span class="sum v ${restCls}">${restStrict>=0 ? f(restStrict) : '+ '+f(-restStrict)} kcal</span>
+    <span>+ Bewegung heute (Puffer)</span><span class="v">+ ${f(movementKcal)}</span>
+    <span class="hint">${movementKcal>0 ? 'aus deinen eingetragenen Schritten' : 'noch keine Schritte eingetragen'}</span>
+    <span class="sum">= mit Bewegung ${restFull>=0 ? 'übrig' : 'drüber'}</span><span class="sum v ${restFull<0?'over':''}">${restFull>=0 ? f(restFull) : '+ '+f(-restFull)} kcal</span>`;
+}
 function renderEssBudget(eatenKcal, bmr, movementKcal){
   const card = document.getElementById('essBudgetCard');
   if(!card) return;
-  const allowed = Math.round(bmr + movementKcal - profile.deficitWarnThreshold);
+  const f = n=> Math.round(n).toLocaleString('de-DE');
+  movementKcal = Math.max(0, movementKcal||0);
+  const strict = Math.round(bmr - (profile.deficitWarnThreshold||0));
+  const full = Math.round(strict + movementKcal);
+  eatenKcal = Math.round(eatenKcal);
+  renderEssBudgetCalc(eatenKcal, bmr, movementKcal, strict, full);
+  const titleEl = document.getElementById('ebTitle');
   const bigEl = document.getElementById('ebBig');
   const fillEl = document.getElementById('ebFill');
   const sportEl = document.getElementById('ebSport');
-  const subEl = document.getElementById('ebSub');
-  if(eatenKcal <= allowed){
-    const remaining = Math.round(allowed-eatenKcal);
-    bigEl.textContent = remaining.toLocaleString('de-DE')+' kcal';
-    bigEl.classList.remove('over');
-    fillEl.classList.remove('over');
-    fillEl.style.width = allowed>0 ? Math.max(0, Math.min(100, eatenKcal/allowed*100))+'%' : '0%';
-    subEl.textContent = `${Math.round(eatenKcal)} von ${allowed} kcal Tagesbudget schon gegessen`;
-    sportEl.style.display = 'none';
+  const bufEl = document.getElementById('ebBuffer');
+  const state = eatenKcal<=strict ? 'ok' : (eatenKcal<=full ? 'warn' : 'bad');
+  bigEl.classList.toggle('warn', state==='warn'); bigEl.classList.toggle('over', state==='bad');
+  fillEl.classList.toggle('warn', state==='warn'); fillEl.classList.toggle('over', state==='bad');
+  bufEl.className = 'eb-buffer'+(state==='ok'?'':' '+state);
+  sportEl.style.display = 'none';
+  if(state==='ok'){
+    titleEl.textContent = 'Ohne Bewegung kannst du heute noch essen';
+    bigEl.textContent = f(strict-eatenKcal)+' kcal';
+    bufEl.textContent = movementKcal>0
+      ? `👟 Mit deinen Schritten hast du ${f(movementKcal)} kcal Puffer. Insgesamt wären noch ${f(full-eatenKcal)} kcal drin.`
+      : '👟 Noch keine Schritte eingetragen – jede Bewegung gibt dir zusätzlichen Puffer.';
+  }else if(state==='warn'){
+    titleEl.textContent = 'Über deinem Limit ohne Bewegung';
+    bigEl.textContent = '+'+f(eatenKcal-strict)+' kcal';
+    bufEl.textContent = `👟 Durch deine Bewegung bist du trotzdem im Ziel-Defizit. Noch ${f(full-eatenKcal)} kcal Puffer.`;
   }else{
-    const overKcal = Math.round(eatenKcal-allowed);
-    bigEl.textContent = '0 kcal';
-    bigEl.classList.add('over');
-    fillEl.classList.add('over');
-    fillEl.style.width = '100%';
-    subEl.textContent = `${Math.round(eatenKcal)} von ${allowed} kcal Tagesbudget schon gegessen`;
+    titleEl.textContent = 'Über deinem Tagesbudget';
+    bigEl.textContent = '+'+f(eatenKcal-strict)+' kcal';
+    const overFull = eatenKcal-full;
+    bufEl.textContent = movementKcal>0
+      ? `Auch mit deiner Bewegung (${f(movementKcal)} kcal) liegst du ${f(overFull)} kcal über dem Budget.`
+      : `Du liegst ${f(overFull)} kcal über deinem Limit.`;
     const sortedWeights = weights.slice().sort((a,b)=> a.date.localeCompare(b.date));
     const currentWeight = sortedWeights.length ? sortedWeights[sortedWeights.length-1].kg : profile.startWeight;
     const kcalPerStep = currentWeight*0.00045;
-    const extraSteps = Math.round(overKcal/kcalPerStep/500)*500;
-    sportEl.textContent = `${overKcal} kcal drüber – ≈${extraSteps.toLocaleString('de-DE')} zusätzliche Schritte gleichen das aus`;
+    const extraSteps = Math.max(500, Math.round(overFull/kcalPerStep/500)*500);
+    sportEl.textContent = `≈${extraSteps.toLocaleString('de-DE')} zusätzliche Schritte gleichen das aus`;
     sportEl.style.display = 'block';
   }
+  // Balken: Skala bis zum größeren Wert aus Budget mit Bewegung und Gegessenem
+  const scale = Math.max(full, eatenKcal, 1);
+  const pct = v=> Math.max(0, Math.min(100, v/scale*100));
+  fillEl.style.width = pct(eatenKcal)+'%';
+  document.getElementById('ebMarkStrict').style.left = pct(strict)+'%';
+  const markFull = document.getElementById('ebMarkFull');
+  markFull.style.left = pct(full)+'%';
+  markFull.style.display = movementKcal>0 ? '' : 'none';
+  const sc = document.getElementById('ebScale');
+  const ps = pct(strict), pf = pct(full);
+  const labelAt = (p, txt)=> p>80 ? `<span style="right:${100-p}%;">${txt}</span>` : `<span style="left:${p}%;transform:translateX(-50%);">${txt}</span>`;
+  sc.innerHTML = `<span style="left:0;">${f(eatenKcal)} gegessen</span>`
+    + (Math.abs(pf-ps)<18 && movementKcal>0
+        ? labelAt(pf, 'Limit '+f(strict)+' · mit Bewegung '+f(full))
+        : labelAt(ps, 'Limit '+f(strict)) + (movementKcal>0 ? labelAt(pf, f(full)) : ''));
 }
 function renderProteinGapCard(eatenProtein, eatenKcal){
   const wrap = document.getElementById('proteinGapCard');
@@ -3606,7 +3817,7 @@ function renderToday(){
     if(hit){ total += hit.kcal; totalFiber += hit.fiber||0; totalProtein += hit.protein||0; totalFat += hit.fat||0; }
   });
   dayLogExtra.forEach(e=>{ total += e.kcal; totalFiber += e.fiber||0; totalProtein += e.protein||0; totalFat += e.fat||0; });
-  const target = targets[activeTarget];
+  const target = kcalLimit();
   const remaining = target-total;
   // Bei aktivem KI-Tag gilt für die Snack-Auswahl der engere Test-Bereich (kcalMax-10%), nicht das normale Stammdaten-Ziel,
   // sonst könnten Snacks als "passt rein" markiert werden, die den eigentlich engeren KI-Rahmen sprengen.
@@ -3963,10 +4174,12 @@ document.getElementById('weightSaveBtn').addEventListener('click', async ()=>{
     else{ const rec = await atCreate('Weights', { Date: date, Kg: kg, Time: time }); weights.push({ id:rec.id, date, kg, time }); }
     profile.bmr = calcBmr(); // Grundumsatz mit neuem Gewicht neu berechnen
     profile.proteinGoal = calcProteinGoal(); // Protein-Ziel mit neuem Gewicht neu berechnen
-    if(profile.id){ try{ await atUpdate('Profile', profile.id, { Bmr: profile.bmr, ProteinGoal: profile.proteinGoal }); }catch(e){} }
+    profile.kcalMax = calcKcalMax(); // Max kcal mit neuem Grundumsatz neu berechnen
+    if(profile.id){ try{ await atUpdate('Profile', profile.id, { Bmr: profile.bmr, ProteinGoal: profile.proteinGoal, KcalMax: profile.kcalMax }); }catch(e){} }
     document.getElementById('weightKg').value='';
     document.getElementById('weightModalBg').classList.remove('open');
     renderWeightBlock();
+    render();
   }catch(e){ setStatus('Fehler beim Speichern'); }
 });
 
@@ -4088,9 +4301,26 @@ function computeDayGoalCheck(slots){
   const failedLevers = active.filter(c=> !c.ok).map(c=> c.weakest()).filter(Boolean);
   return { dayProtein, dayFiber, dayFat, fatTarget, checks: active, goalsMet, goalsTotal: active.length, failedLevers };
 }
+let weekLimitStats = [];
+function renderWeekLimitSummary(){
+  const el = document.getElementById('weekLimitSummary');
+  if(!el) return;
+  const days = weekLimitStats.filter(d=> d.state!=='empty');
+  if(!days.length){ el.style.display='none'; return; }
+  el.style.display='';
+  const limit = kcalLimit();
+  const inLimit = days.filter(d=> d.state==='ok').length;
+  const avg = Math.round(days.reduce((a,d)=>a+d.kcal,0)/days.length);
+  const weekDiff = days.reduce((a,d)=>a+d.diff,0);
+  const cls = weekDiff<=0 ? 'ok' : (weekDiff <= limit*0.05*days.length ? 'warn' : 'bad');
+  el.className = 'week-limit-summary '+cls;
+  el.innerHTML = `<div class="wls-main"><strong>${inLimit} von ${days.length} Tagen im Limit</strong><span>Limit ${limit.toLocaleString('de-DE')} kcal/Tag</span></div>
+    <div class="wls-sub">Ø ${avg.toLocaleString('de-DE')} kcal · Woche gesamt ${weekDiff<=0 ? Math.abs(weekDiff).toLocaleString('de-DE')+' kcal unter' : '+'+weekDiff.toLocaleString('de-DE')+' kcal über'} Limit</div>`;
+}
 function renderWeek(){
   const wrap = document.getElementById('weekDays');
   wrap.innerHTML = '';
+  weekLimitStats = [];
   WEEKDAYS.forEach(wd=>{
     const isAiActive = weekVersion[wd]==='ai';
     const editOn = !isAiActive && !!weekEditMode[wd];
@@ -4105,8 +4335,12 @@ function renderWeek(){
     let dayFFWeighted = 0, dayFFBase = 0;
     slots.forEach(slot=>{ const d=dishByName(slot.dishName); if(d){ const s=dishFullnessScore(d); const k=effectiveKcal(d); if(s!==null){ dayFFWeighted+=s*k; dayFFBase+=k; } } });
     const dayFF = dayFFBase>0 ? Math.round(dayFFWeighted/dayFFBase) : null;
-    const target = targets[activeTarget];
+    const target = kcalLimit();
     const over = dayTotal > target;
+    const limitDiff = dayTotal - target;
+    const limitState = slots.length===0 || dayTotal===0 ? 'empty' : (limitDiff<=0 ? 'ok' : (limitDiff <= target*0.05 ? 'warn' : 'bad'));
+    weekLimitStats.push({ state: limitState, kcal: dayTotal, diff: limitDiff });
+    const limitPill = limitState==='empty' ? '' : `<span class="limit-pill ${limitState}" title="Limit ${target} kcal (Grundumsatz − Ziel-Defizit)">${limitState==='ok' ? '✓ im Limit · '+Math.abs(limitDiff)+' übrig' : '+'+limitDiff+' kcal'}</span>`;
     const proteinShort = dayProtein < profile.proteinGoal;
     const kcalPct = Math.max(0, Math.min(100, Math.round(dayTotal/target*100)));
     const ffPct = dayFF!==null ? Math.max(0, Math.min(100, dayFF)) : 0;
@@ -4114,6 +4348,7 @@ function renderWeek(){
     const proteinPct = Math.max(0, Math.min(100, Math.round(dayProtein/profile.proteinGoal*100)));
     block.innerHTML = `<div class="day-block-head">
         <span class="day-title">${WEEKDAY_NAMES[wd]}</span>
+        ${limitPill}
         <span class="day-goal-badge">${goalCheck.goalsMet} von ${goalCheck.goalsTotal} Zielen</span>
         <div class="head-icons">
           ${(editOn&&!isAiActive)?`<button class="icon-btn day-move-btn" title="Ganzen Tag tauschen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 21l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></button>`:''}
@@ -4228,6 +4463,7 @@ function renderWeek(){
     });
     wrap.appendChild(block);
   });
+  renderWeekLimitSummary();
 }
 /* ===== KI-Tagesplan ===== */
 let kiSelectedDay = null;

@@ -613,7 +613,7 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
   <button class="btn primary" id="startTagBtn" style="padding:14px 32px;font-size:15px;">Start Tag</button>
 </div>
 <div class="wrap">
-  <h1>Nouri</h1>
+  <h1>Nouri <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:500;color:var(--ink-soft);vertical-align:middle;">v2</span></h1>
   <div class="tabs">
     <div class="tab active" data-tab="today" id="todayTab">Heute<span class="badge" id="specialDaysBadge" style="display:none;"></span></div>
     <div class="tab" data-tab="woche" title="Woche"><svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div>
@@ -4231,7 +4231,7 @@ document.getElementById('stepsSaveBtn').addEventListener('click', async ()=>{
     if(existing){ await atUpdate('Steps', existing.id, { Steps: stepsVal, Kcal: kcal, Time: time }); existing.steps=stepsVal; existing.kcal=kcal; existing.time=time; }
     else{ const rec = await atCreate('Steps', { Date: currentDate, Steps: stepsVal, Kcal: kcal, Time: time }); steps.push({ id:rec.id, date:currentDate, steps:stepsVal, kcal, time }); }
     document.getElementById('stepsModalBg').classList.remove('open');
-    renderStepsButton();
+    renderToday();
     setStatus('Gespeichert');
   }catch(e){ setStatus('Fehler beim Speichern'); }
 });

@@ -5862,8 +5862,16 @@ document.addEventListener('touchend', e=>{
   lastTouchEnd = now;
 }, false);
 
-loadAll();
+   loadAll().finally(()=>{
+     // Direkt-Sprung von der Startseite, z. B. …/myplan/#einkaufen
+     const ziel = location.hash.slice(1);
+     const tab = ziel && document.querySelector('.tab[data-tab="' + ziel + '"]');
+     if (tab) tab.click();
+   });
 </script>
 
 </body>
 </html>
+
+
+

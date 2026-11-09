@@ -640,6 +640,13 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
 .finish-row.diff .fr-qtywrap input{border-color:var(--mustard);background:var(--mustard-bg);}
 .finish-row.none .fr-check{color:var(--ink-soft);}
 .p-detail.open{flex-wrap:wrap;}
+.shop-bar{height:6px;border-radius:3px;background:var(--line);overflow:hidden;margin:2px 0 10px;}
+.shop-bar div{height:100%;width:0;background:var(--olive);transition:width .2s;}
+.shop-add{display:flex;gap:8px;margin-bottom:4px;}
+.shop-add input{flex:1;min-width:0;font-size:15px;border:1px solid var(--line);border-radius:8px;padding:9px 10px;background:var(--card);}
+.shop-add .btn{width:auto;padding:0 14px;}
+.shop-why{display:none;margin:2px 0 0;font-size:12px;color:var(--ink-soft);}
+.shop-row.open .shop-why{display:block;}
 .p-pack-row{flex-basis:100%;display:flex;gap:6px;}
 .p-dfield select.pf-packname{width:100%;border:none;background:transparent;font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--ink);padding:0;}
 .shoplist-text{width:100%;font-family:'IBM Plex Mono',monospace;font-size:12.5px;line-height:1.6;border:1px solid var(--line);border-radius:10px;padding:.8rem .9rem;background:#fff;color:var(--ink);resize:vertical;}
@@ -928,18 +935,16 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
 
   <!-- EINKAUFEN -->
   <div class="panel" id="panelEinkaufen">
-    <h2 class="section">Einkaufsliste <span class="section-note" id="previewMeta"></span> <button class="btn" id="refreshNeedsBtn" style="width:auto;padding:.3rem .7rem;font-size:12px;">↻ Aktualisieren</button></h2>
-    <div class="shop-summary">
-      <div class="shop-sum-card morgen" data-filter="1"><p class="ss-label">⚠︎ Für morgen</p><p class="ss-val" id="sumMorgen">0</p><p class="ss-sub">noch zu kaufen</p></div>
-      <div class="shop-sum-card uebermorgen active" data-filter="2"><p class="ss-label">📅 Bis übermorgen</p><p class="ss-val" id="sumUebermorgen">0</p><p class="ss-sub">noch zu kaufen</p></div>
-    </div>
+    <h2 class="section">Einkaufsliste <span class="section-note" id="previewMeta"></span></h2>
     <p class="shop-progress" id="shopProgress"></p>
+    <div class="shop-bar"><div id="shopBar"></div></div>
+    <div class="shop-add"><input type="text" id="shopAddInput" placeholder="+ Eigener Artikel, z. B. Milch"><button class="btn" id="shopAddBtn">Hinzufügen</button></div>
     <div id="shopPreview"></div>
 
-    <details class="shop-later"><summary id="upcomingSummary">Später diese Woche – optional mitnehmen</summary><div id="upcomingList"></div></details>
-
-    <button class="btn primary" id="finishShopBtn" style="margin-top:.9rem;">✓ Einkauf abschließen – Vorrat buchen</button>
-    <button class="btn" id="exportBtn" style="margin-top:.5rem;">Liste als Text kopieren</button>
+    <button class="btn primary" id="finishShopBtn" style="margin-top:1.2rem;">✓ Einkauf abschließen – Vorrat buchen</button>
+    <!-- bleiben unsichtbar, damit bestehende Handler weiter funktionieren -->
+    <button class="btn" id="refreshNeedsBtn" style="display:none;">↻</button>
+    <button class="btn" id="exportBtn" style="display:none;">Text</button>
   </div>
 
   <!-- KI-PLAN -->
@@ -5693,9 +5698,13 @@ function computeNeedForRange(fromDay, toDay){
   });
   return items.sort((a,b)=> a.name.localeCompare(b.name,'de'));
 }
+/* Einkaufsliste rein über den Vorrat: Sobald der Bestand unter den Mindestbestand fällt (Verbrauch beim Abhaken
+   in "Heute"), kommt der Artikel auf die Liste – Menge = bis zum Mindestbestand auffüllen (Packungen runden auf). */
 function buildShoppingList(){
-  return computeNeedForRange(1, NEED_HORIZON_DAYS)
-    .map(i=> ({...i, daysUntil: daysUntilNeeded(i.name)}));
+  return pantry
+    .filter(p=> p.name && !p.ignore && (Number(p.mindestbestand)||0) > 0 && (Number(p.bestand)||0) < Number(p.mindestbestand))
+    .map(p=> ({ name:p.name.trim(), unit:p.unit, amount: Math.round((p.mindestbestand - (Number(p.bestand)||0))*100)/100, bestand:p.bestand }))
+    .sort((a,b)=> a.name.localeCompare(b.name,'de'));
 }
 /* "Bald fällig": Bedarf über die ganze Woche, abzüglich dem, was schon in der dringenden Liste steckt */
 function buildUpcomingList(){
@@ -5786,85 +5795,64 @@ function renderDashboardBadge(){
 /* Pro Vorrat-Artikel optional PackName ("Tüte") + PackSize (750, in der Einheit des Artikels).
    Ohne Mapping bleibt die normale Mengenangabe stehen. */
 function fmtAmt(x){ return String(Math.round((Number(x)||0)*100)/100).replace('.', ','); }
+const PACK_PLURAL = { 'Packung':'Packungen','Tüte':'Tüten','Dose':'Dosen','Flasche':'Flaschen','Schale':'Schalen','Tube':'Tuben','Glas':'Gläser','Netz':'Netze','Laib':'Laibe','Kopf':'Köpfe','Karton':'Kartons' };
+function packPlural(n, packName){ return n===1 ? packName : (PACK_PLURAL[packName] || packName); }
+function roundShopAmount(amount, unit){
+  const u = (unit||'').toLowerCase();
+  if(u==='g' || u==='ml') return Math.ceil(amount/50 - 1e-9)*50;   // auf 50 g/ml aufrunden
+  if(u==='kg' || u==='l') return Math.ceil(amount*10 - 1e-9)/10;
+  return Math.ceil(amount - 1e-9);                                  // Stück, Bund, … immer ganze Zahl
+}
 function packInfo(name, amount, unit){
   const p = pantryItem(name);
   if(p && p.packSize>0 && p.packName){
     const packs = Math.max(1, Math.ceil(amount/p.packSize - 1e-9));
     return { hasPack:true, packs, perPack:p.packSize, packName:p.packName,
-      label:`${packs} ${p.packName}`, sub:`à ${fmtAmt(p.packSize)} ${unit} · Bedarf ${fmtAmt(amount)} ${unit}` };
+      label:`${packs} ${packPlural(packs, p.packName)}`, sub:`à ${fmtAmt(p.packSize)} ${unit}` };
   }
-  return { hasPack:false, label:`${fmtAmt(amount)} ${unit}`, sub:'' };
+  if(!(amount>0)) return { hasPack:false, qty:0, label:'', sub:'' };   // eigener Artikel ohne Menge
+  const qty = roundShopAmount(amount, unit);
+  return { hasPack:false, qty, label:`${fmtAmt(qty)}${unit?' '+unit:''}`, sub:'' };
 }
-/* Fälligkeit: 1 = morgen, 2 = übermorgen, 3–7 = später, null = manuell (laut Rechnung nichts zu kaufen).
-   Zählt nur, wenn der Bestand für den Zeitraum wirklich nicht reicht – nicht schon, wenn die Zutat nur vorkommt. */
-function shopNeedIndex(){
-  const keys = list=> new Set(list.map(i=> i.name.trim().toLowerCase()));
-  return { d1: keys(computeNeedForRange(1, 1)), d2: keys(computeNeedForRange(1, NEED_HORIZON_DAYS)), week: keys(computeNeedForRange(1, UPCOMING_HORIZON_DAYS)) };
-}
-function shopDueDay(name, idx){
-  const k = name.trim().toLowerCase();
-  if(idx.d1.has(k)) return 1;
-  if(idx.d2.has(k)) return 2;
-  if(idx.week.has(k)) return daysUntilNeededInRange(name, NEED_HORIZON_DAYS+1, UPCOMING_HORIZON_DAYS);
-  return null;
-}
-function shopTagHtml(d){
-  if(d===1) return '<span class="shop-tag d1">morgen</span>';
-  if(d===2) return '<span class="shop-tag d2">übermorgen</span>';
-  if(d!==null) return `<span class="shop-tag">in ${d} Tagen</span>`;
-  return '<span class="shop-tag">manuell</span>';
-}
-function shopRowHtml(item, attrs, done, idx){
+function shopRowHtml(item, done){
   const info = packInfo(item.name, item.amount, item.unit);
-  const d = shopDueDay(item.name, idx);
-  return `<div class="shop-row ${done?'done':''}" ${attrs}>
+  const p = pantryItem(item.name);
+  const own = !p;
+  const why = own ? 'Eigener Artikel' : `Vorrat: ${fmtAmt(p.bestand)} ${p.unit} · Minimum: ${fmtAmt(p.mindestbestand)} ${p.unit}`;
+  return `<div class="shop-row ${done?'done':''}" data-id="${item.id}">
     <div class="shop-cb">${done?'✓':''}</div>
-    <div class="shop-main"><p class="shop-name"><b>${escapeAttr(info.label)}</b> ${escapeAttr(item.name)}</p>${info.sub?`<p class="shop-sub">${escapeAttr(info.sub)}</p>`:''}</div>
-    ${shopTagHtml(d)}
-    ${attrs.includes('data-id')?'<button class="shop-x" title="Von der Liste entfernen">✕</button>':''}
+    <div class="shop-main"><p class="shop-name">${info.label?`<b>${escapeAttr(info.label)}</b> `:''}${escapeAttr(item.name)}</p>
+      ${info.sub?`<p class="shop-sub">${escapeAttr(info.sub)}</p>`:''}<p class="shop-why">${escapeAttr(why)}</p></div>
+    ${own?'<button class="shop-x" title="Entfernen">✕</button>':''}
   </div>`;
 }
-let shopFilter = 2; // 1 = nur morgen, 2 = bis übermorgen (alles)
-document.querySelectorAll('.shop-sum-card').forEach(card=> card.addEventListener('click', ()=>{
-  shopFilter = Number(card.dataset.filter);
-  document.querySelectorAll('.shop-sum-card').forEach(c=> c.classList.toggle('active', c===card));
-  renderShopPreview();
-}));
 
-/* "offen" = noch kaufen (automatisch berechnet), "manuell" = noch kaufen (von Hand hinzugefügt, wird nicht automatisch entfernt),
+/* "offen" = noch kaufen (automatisch aus dem Vorrat), "manuell" = von Hand hinzugefügt (bleibt bis gekauft),
    "liste" = im Wagen (abgehakt, noch nicht auf den Vorrat gebucht) */
 function renderShopPreview(){
   const wrap = document.getElementById('shopPreview');
   const active = shoppingNeeds.filter(s=> s.status!=='gekauft');
-  const open = active.filter(s=> s.status==='offen' || s.status==='manuell');
+  const open = active.filter(s=> s.status!=='liste');
   const inCart = active.filter(s=> s.status==='liste');
 
-  const idx = shopNeedIndex();
-  const dueOf = new Map(active.map(s=> [s.id, shopDueDay(s.name, idx)]));
-  document.getElementById('sumMorgen').textContent = open.filter(s=> dueOf.get(s.id)===1).length;
-  document.getElementById('sumUebermorgen').textContent = open.length;
   document.getElementById('previewMeta').textContent = open.length ? open.length+' offen' : '';
+  document.getElementById('shopProgress').textContent = active.length ? `${inCart.length} von ${active.length} im Wagen` : '';
+  document.getElementById('shopBar').style.width = active.length ? (inCart.length/active.length*100)+'%' : '0';
 
-  const visibleOpen = shopFilter===1 ? open.filter(s=> dueOf.get(s.id)===1 || dueOf.get(s.id)===null) : open;
-  const totalShown = visibleOpen.length + inCart.length;
-  document.getElementById('shopProgress').textContent = totalShown ? `${inCart.length} von ${totalShown} im Wagen` : '';
+  if(!active.length){ wrap.innerHTML = '<div class="empty">Alles da – aktuell nichts zu kaufen.</div>'; return; }
 
-  if(!active.length){ wrap.innerHTML = '<div class="empty">Aktuell nichts zu besorgen.</div>'; return; }
-
-  const order = SHOP_CATEGORIES.map(c=>c.name).concat('Sonstiges');
+  const order = SHOP_CATEGORIES.map(c=>c.name).concat('Sonstiges', 'Eigene Artikel');
   const byCat = {};
-  visibleOpen.forEach(i=>{ const c = categoryFor(i.name); (byCat[c]=byCat[c]||[]).push(i); });
+  open.forEach(i=>{ const c = pantryItem(i.name) ? categoryFor(i.name) : 'Eigene Artikel'; (byCat[c]=byCat[c]||[]).push(i); });
   let html = '';
   order.filter(c=>byCat[c]).forEach(cat=>{
     html += `<p class="shop-cat">${cat}</p>`;
-    byCat[cat]
-      .sort((a,b)=>{ const da=dueOf.get(a.id)??999, db=dueOf.get(b.id)??999; return da!==db ? da-db : a.name.localeCompare(b.name,'de'); })
-      .forEach(i=>{ html += shopRowHtml(i, `data-id="${i.id}"`, false, idx); });
+    byCat[cat].sort((a,b)=> a.name.localeCompare(b.name,'de')).forEach(i=>{ html += shopRowHtml(i, false); });
   });
-  if(!visibleOpen.length) html += '<div class="empty" style="margin-top:.6rem;">Für morgen ist alles erledigt.</div>';
+  if(!open.length) html += '<div class="empty" style="margin-top:.6rem;">Alles im Wagen 🎉</div>';
   if(inCart.length){
     html += `<p class="shop-cat">Im Wagen (${inCart.length})</p>`;
-    inCart.sort((a,b)=> a.name.localeCompare(b.name,'de')).forEach(i=>{ html += shopRowHtml(i, `data-id="${i.id}"`, true, idx); });
+    inCart.sort((a,b)=> a.name.localeCompare(b.name,'de')).forEach(i=>{ html += shopRowHtml(i, true); });
   }
   wrap.innerHTML = html;
 
@@ -5874,43 +5862,37 @@ function renderShopPreview(){
     if(e.target.closest('.shop-x')){
       try{ if(item.id) await atDelete('ShoppingNeeds', item.id); }catch(err){ console.error(err); }
       shoppingNeeds = shoppingNeeds.filter(s=>s.id!==id);
+    }else if(e.target.closest('.shop-main')){
+      row.classList.toggle('open');   // Name antippen -> Vorrat/Minimum anzeigen
+      return;
     }else{
       if(item.status==='liste'){
         const stillNeeded = buildShoppingList().some(n=> n.name.trim().toLowerCase()===item.name.trim().toLowerCase());
         item.status = stillNeeded ? 'offen' : 'manuell';
       }else item.status = 'liste';
-      renderShopPreview(); renderDashboardBadge(); // sofort sichtbar, Airtable im Hintergrund
+      renderShopPreview(); renderDashboardBadge();
       try{ await atUpdate('ShoppingNeeds', item.id, { Status:item.status }); }catch(err){ console.error(err); setStatus(err.message); }
     }
-    renderShopPreview(); renderUpcoming(); renderDashboardBadge();
+    renderShopPreview(); renderDashboardBadge();
   }));
 }
+function renderUpcoming(){ /* entfällt – Liste ist jetzt rein bestandsgesteuert */ }
 
-/* "Später diese Woche" – optional mitnehmen; Antippen legt den Artikel direkt in den Wagen */
-function renderUpcoming(){
-  const wrap = document.getElementById('upcomingList');
-  const activeNames = new Set(shoppingNeeds.filter(s=> s.status!=='gekauft').map(s=> s.name.trim().toLowerCase()));
-  const list = buildUpcomingList().filter(i=> !activeNames.has(i.name.trim().toLowerCase()));
-  document.getElementById('upcomingSummary').textContent = `Später diese Woche (${list.length}) – optional mitnehmen`;
-  if(!list.length){ wrap.innerHTML = '<div class="empty" style="margin-top:.5rem;">Nichts Weiteres in den nächsten 7 Tagen absehbar.</div>'; return; }
-  const idx = shopNeedIndex();
-  wrap.innerHTML = list.map((item,i)=> shopRowHtml(item, `data-i="${i}"`, false, idx)).join('');
-  wrap.querySelectorAll('.shop-row').forEach(row=> row.addEventListener('click', async ()=>{
-    const item = list[Number(row.dataset.i)];
-    const key = item.name.trim().toLowerCase();
-    const existing = shoppingNeeds.find(s=> s.name.trim().toLowerCase()===key && s.status!=='gekauft');
-    try{
-      if(existing){
-        existing.status = 'liste'; existing.amount = item.amount;
-        await atUpdate('ShoppingNeeds', existing.id, { Status:'liste', Amount:item.amount });
-      }else{
-        const rec = await atCreate('ShoppingNeeds', { Name:item.name, Amount:item.amount, Unit:item.unit, Status:'liste' });
-        shoppingNeeds.push({ id:rec.id, name:item.name, unit:item.unit, amount:item.amount, status:'liste', boughtAmount:0 });
-      }
-    }catch(err){ console.error(err); setStatus('ShoppingNeeds-Tabelle fehlt (Felder: Name, Amount, Unit, Status, BoughtAmount)'); }
-    renderShopPreview(); renderUpcoming(); renderDashboardBadge();
-  }));
+/* Eigener Artikel (Milch, Klopapier …) */
+async function addOwnShopItem(){
+  const inp = document.getElementById('shopAddInput');
+  const name = inp.value.trim(); if(!name) return;
+  inp.value = '';
+  const key = name.toLowerCase();
+  if(shoppingNeeds.some(s=> s.name.trim().toLowerCase()===key && s.status!=='gekauft')) return;
+  try{
+    const rec = await atCreate('ShoppingNeeds', { Name:name, Amount:0, Unit:'', Status:'manuell' });
+    shoppingNeeds.push({ id:rec.id, name, unit:'', amount:0, status:'manuell', boughtAmount:0 });
+  }catch(err){ console.error(err); setStatus(err.message); }
+  renderShopPreview();
 }
+document.getElementById('shopAddBtn').addEventListener('click', addOwnShopItem);
+document.getElementById('shopAddInput').addEventListener('keydown', e=>{ if(e.key==='Enter') addOwnShopItem(); });
 
 /* Einkauf abschließen: Anzahl prüfen/anpassen -> Vorrat buchen -> Einträge entfernen */
 function openShopFinish(){
@@ -5926,9 +5908,9 @@ function openShopFinish(){
       const group = inCart ? 'Im Wagen' : 'Nicht abgehakt';
       const head = group!==lastGroup ? `<p class="shop-cat">${group}</p>` : '';
       lastGroup = group;
-      const planned = info.hasPack ? info.packs : Math.round(item.amount*100)/100;
+      const planned = info.hasPack ? info.packs : (info.qty || 1);
       const val = inCart ? planned : 0;
-      const unitLbl = info.hasPack ? info.packName : item.unit;
+      const unitLbl = info.hasPack ? info.packName : (item.unit || '×');
       const sub = info.hasPack ? `à ${fmtAmt(info.perPack)} ${item.unit}` : '';
       return `${head}<div class="finish-row" data-id="${item.id}" data-planned="${planned}" data-step="${info.hasPack?1:(item.unit==='g'||item.unit==='ml'?50:1)}">
         <p class="fr-name">${escapeAttr(item.name)}${sub?`<span class="fr-sub">${escapeAttr(sub)}</span>`:''}</p>

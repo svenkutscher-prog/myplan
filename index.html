@@ -1314,58 +1314,97 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script>
-/* ===== Airtable config =====
-   Repo containing this file MUST be a PRIVATE GitHub repo.
-   This token is visible to anyone who can view the page source. */
-const AIRTABLE_BASE = 'appMXs8muaZVg3xxN';
-const AIRTABLE_TOKEN = 'patxRn3XE4fIDytHi.21480c9d52102110c8d7d8fcc9f791cc4eb7402d079db12b22a20d1d8c5db7cd';
-const AIRTABLE_ACCOUNT_EMAIL = 'the.sphynx.project@gmail.com';
-document.getElementById('airtableAccountNote').textContent = 'Airtable: ' + AIRTABLE_ACCOUNT_EMAIL;
-const AT_URL = (table) => `https://api.airtable.com/v0/${AIRTABLE_BASE}/${encodeURIComponent(table)}`;
-const AT_HEADERS = { Authorization: `Bearer ${AIRTABLE_TOKEN}`, 'Content-Type': 'application/json' };
+/* ===== Datenbank: Supabase =====
+   Alle bisherigen Airtable-Tabellen liegen in EINER Supabase-Tabelle "records" (tbl, id, fields).
+   atList/atCreate/atUpdate/atDelete behalten Namen und Rückgabeformat ({id, fields}),
+   damit der restliche Code unverändert bleibt. Einrichtung: supabase_setup.sql */
+const SUPABASE_URL = 'https://gfpmqksvfjssgulrubdd.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_jYwtERZ86B8fwKItTErRrg_1GeakHK-';
+const SB_REST = SUPABASE_URL + '/rest/v1';
+const SB_HEADERS = { apikey: SUPABASE_KEY, 'Content-Type': 'application/json' };
+document.getElementById('airtableAccountNote').textContent = 'Datenbank: Supabase';
+
+const sbRec = r => ({ id: r.id, fields: r.fields || {}, createdTime: r.created_at });
+const sbStripNulls = o => Object.fromEntries(Object.entries(o || {}).filter(([k,v])=> v !== null && v !== undefined));
+async function sbError(res){
+  try{ const b = await res.json(); return b.message || b.hint || b.details || JSON.stringify(b); }
+  catch(e){ return `HTTP ${res.status}`; }
+}
+const sbIn = ids => 'in.(' + ids.map(id=> '"' + String(id).replace(/"/g,'') + '"').join(',') + ')';
 
 async function atList(table){
-  let records = []; let offset = null;
-  do{
-    const url = AT_URL(table) + (offset ? `?offset=${offset}` : '');
-    const res = await fetch(url, { headers: AT_HEADERS });
-    if(!res.ok) throw new Error('Airtable-Fehler beim Laden von '+table);
-    const data = await res.json();
-    records = records.concat(data.records || []);
-    offset = data.offset;
-  } while(offset);
+  let records = [], from = 0; const page = 1000;
+  while(true){
+    const url = `${SB_REST}/records?select=id,fields,created_at&tbl=eq.${encodeURIComponent(table)}&order=created_at.asc,id.asc&limit=${page}&offset=${from}`;
+    const res = await fetch(url, { headers: SB_HEADERS });
+    if(!res.ok) throw new Error('Datenbank-Fehler beim Laden von '+table+': '+await sbError(res));
+    const rows = await res.json();
+    records = records.concat(rows.map(sbRec));
+    if(rows.length < page) break;
+    from += page;
+  }
   return records;
 }
-async function atErrorMessage(res){
-  try{
-    const body = await res.json();
-    return body?.error?.message || body?.error?.type || JSON.stringify(body);
-  }catch(e){
-    try{ return await res.text(); }catch(e2){ return `HTTP ${res.status}`; }
-  }
-}
 async function atCreate(table, fields){
-  const res = await fetch(AT_URL(table), { method:'POST', headers: AT_HEADERS, body: JSON.stringify({ records:[{fields}], typecast:true }) });
-  if(!res.ok){ const msg = await atErrorMessage(res); console.error('Airtable-Fehler (Create)', table, fields, msg); throw new Error(`Airtable-Fehler beim Anlegen in ${table}: ${msg}`); }
-  const data = await res.json();
-  return data.records[0];
+  const res = await fetch(`${SB_REST}/records`, { method:'POST', headers:{ ...SB_HEADERS, Prefer:'return=representation' },
+    body: JSON.stringify({ tbl: table, fields: sbStripNulls(fields) }) });
+  if(!res.ok){ const msg = await sbError(res); console.error('DB-Fehler (Create)', table, fields, msg); throw new Error(`Fehler beim Anlegen in ${table}: ${msg}`); }
+  const rows = await res.json();
+  return sbRec(rows[0]);
 }
 async function atUpdate(table, id, fields){
-  const res = await fetch(AT_URL(table), { method:'PATCH', headers: AT_HEADERS, body: JSON.stringify({ records:[{id, fields}], typecast:true }) });
-  if(!res.ok){ const msg = await atErrorMessage(res); console.error('Airtable-Fehler (Update)', table, fields, msg); throw new Error(`Airtable-Fehler beim Aktualisieren in ${table}: ${msg}`); }
+  const res = await fetch(`${SB_REST}/rpc/patch_record`, { method:'POST', headers: SB_HEADERS,
+    body: JSON.stringify({ p_id: id, p_fields: fields || {} }) });
+  if(!res.ok){ const msg = await sbError(res); console.error('DB-Fehler (Update)', table, fields, msg); throw new Error(`Fehler beim Aktualisieren in ${table}: ${msg}`); }
 }
 async function atDelete(table, id){
-  const res = await fetch(`${AT_URL(table)}/${id}`, { method:'DELETE', headers: AT_HEADERS });
-  if(!res.ok) throw new Error('Airtable-Fehler beim Löschen in '+table);
+  const res = await fetch(`${SB_REST}/records?id=eq.${encodeURIComponent(id)}`, { method:'DELETE', headers: SB_HEADERS });
+  if(!res.ok) throw new Error('Fehler beim Löschen in '+table+': '+await sbError(res));
 }
-/* Löscht mehrere Records auf einmal (Airtable erlaubt max. 10 IDs pro Delete-Call) */
+/* Löscht mehrere Records auf einmal */
 async function atBatchDelete(table, ids){
-  for(let i=0;i<ids.length;i+=10){
-    const chunk = ids.slice(i,i+10);
-    const qs = chunk.map(id=> `records[]=${encodeURIComponent(id)}`).join('&');
-    const res = await fetch(`${AT_URL(table)}?${qs}`, { method:'DELETE', headers: AT_HEADERS });
-    if(!res.ok) throw new Error('Airtable-Fehler beim Löschen in '+table);
+  for(let i=0;i<ids.length;i+=100){
+    const chunk = ids.slice(i,i+100);
+    const res = await fetch(`${SB_REST}/records?id=${encodeURIComponent(sbIn(chunk))}`, { method:'DELETE', headers: SB_HEADERS });
+    if(!res.ok) throw new Error('Fehler beim Löschen in '+table+': '+await sbError(res));
   }
+}
+
+/* ===== Einmalige Datenübernahme aus Airtable =====
+   In der Konsole aufrufen:  await migrateFromAirtable()
+   Liest alle Tabellen aus Airtable und schreibt sie nach Supabase (IDs bleiben gleich).
+   Mehrfaches Ausführen ist unschädlich: vorhandene Datensätze werden überschrieben, nicht verdoppelt. */
+const AIRTABLE_BASE = 'appMXs8muaZVg3xxN';
+const AIRTABLE_TOKEN = 'patxRn3XE4fIDytHi.21480c9d52102110c8d7d8fcc9f791cc4eb7402d079db12b22a20d1d8c5db7cd';
+const AIRTABLE_TABLES = ['Pantry','Dishes','WeekPlan','WeekPlanAI','WeekVersion','LogEntries','ShoppingNeeds','Profile',
+  'DayBounds','Weights','Steps','Snacks','PortionSplits','DaySwaps','RoutineTasks','RoutineLog','Bonus','BonusLog'];
+async function migrateFromAirtable(){
+  const atHeaders = { Authorization: `Bearer ${AIRTABLE_TOKEN}` };
+  const summary = [];
+  for(const table of AIRTABLE_TABLES){
+    let recs = [], offset = null;
+    try{
+      do{
+        const url = `https://api.airtable.com/v0/${AIRTABLE_BASE}/${encodeURIComponent(table)}` + (offset ? `?offset=${offset}` : '');
+        const res = await fetch(url, { headers: atHeaders });
+        if(!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        recs = recs.concat(data.records || []);
+        offset = data.offset;
+      } while(offset);
+    }catch(e){ summary.push({ Tabelle:table, Airtable:'Fehler: '+e.message, Supabase:'–' }); continue; }
+    const rows = recs.map(r=> ({ id:r.id, tbl:table, fields:r.fields||{}, created_at:r.createdTime }));
+    let ok = 0, err = '';
+    for(let i=0;i<rows.length;i+=500){
+      const res = await fetch(`${SB_REST}/records`, { method:'POST',
+        headers:{ ...SB_HEADERS, Prefer:'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify(rows.slice(i,i+500)) });
+      if(res.ok) ok += Math.min(500, rows.length-i); else { err = await sbError(res); break; }
+    }
+    summary.push({ Tabelle:table, Airtable:recs.length, Supabase: err ? 'Fehler: '+err : ok });
+  }
+  console.table(summary);
+  console.log('Fertig. Danach in der App auf "Neu laden" tippen (oder: loadAll(true)).');
+  return summary;
 }
 /* LogEntries anlegen mit Source-Feld (snack/manual/quick) - fällt automatisch ohne Source zurück,
    falls die Spalte in Airtable noch nicht existiert, damit das Loggen nie komplett fehlschlägt. */

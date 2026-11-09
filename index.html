@@ -597,6 +597,38 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
 .need-row.upcoming{border-color:var(--line);background:var(--card);}
 .urgency-badge{display:inline-block;font-size:10px;font-weight:500;color:var(--ink-soft);background:var(--bg);border-radius:20px;padding:1px 7px;margin-left:6px;vertical-align:middle;}
 .urgency-badge.urgent{color:#fff;background:var(--coral);}
+/* Einkaufsliste – neues Layout (Zusammenfassung, Abhaken, Packungen) */
+.shop-summary{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:.5rem;}
+.shop-sum-card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;cursor:pointer;}
+.shop-sum-card.active{border:2px solid var(--olive);padding:9px 11px;}
+.shop-sum-card .ss-label{margin:0;font-size:12px;font-weight:500;}
+.shop-sum-card.morgen .ss-label{color:var(--coral);}
+.shop-sum-card.uebermorgen .ss-label{color:var(--mustard);}
+.shop-sum-card .ss-val{margin:2px 0 0;font-family:'Fraunces',serif;font-size:26px;font-weight:600;color:var(--ink);}
+.shop-sum-card .ss-sub{margin:0;font-size:11.5px;color:var(--ink-soft);}
+.shop-progress{font-size:12px;color:var(--ink-soft);margin:.3rem 0 .2rem;}
+.shop-cat{font-size:12px;font-weight:500;color:var(--ink-soft);margin:14px 0 4px;}
+.shop-row{display:flex;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid var(--line);cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.shop-cb{width:24px;height:24px;border-radius:50%;border:2px solid var(--ink-soft);flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;}
+.shop-row.done .shop-cb{background:var(--olive);border-color:var(--olive);}
+.shop-row.done .shop-name{text-decoration:line-through;color:var(--ink-soft);}
+.shop-main{flex:1;min-width:0;}
+.shop-name{margin:0;font-size:15px;color:var(--ink);}
+.shop-name b{font-weight:600;}
+.shop-sub{margin:1px 0 0;font-size:12px;color:var(--ink-soft);}
+.shop-tag{font-size:10.5px;font-weight:500;border-radius:20px;padding:2px 8px;flex-shrink:0;background:var(--bg);color:var(--ink-soft);}
+.shop-tag.d1{background:var(--coral-bg);color:var(--coral);}
+.shop-tag.d2{background:var(--mustard-bg);color:#8A5A1C;}
+.shop-x{background:none;border:none;color:var(--ink-soft);font-size:13px;cursor:pointer;padding:4px;flex-shrink:0;}
+.shop-later{margin-top:14px;border:1px dashed var(--line);border-radius:10px;padding:8px 12px;background:var(--card);}
+.shop-later summary{font-size:13px;color:var(--ink-soft);cursor:pointer;}
+.finish-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line);}
+.finish-row .fr-name{flex:1;min-width:0;font-size:14px;margin:0;}
+.finish-row .fr-sub{display:block;font-size:11.5px;color:var(--ink-soft);}
+.finish-row input{width:64px;font-family:'IBM Plex Mono',monospace;font-size:14px;text-align:center;border:1px solid var(--line);border-radius:7px;padding:6px 3px;}
+.finish-row .fr-unit{font-size:12px;color:var(--ink-soft);min-width:56px;}
+.p-detail.open{flex-wrap:wrap;}
+.p-pack-row{flex-basis:100%;display:flex;gap:6px;}
 .shoplist-text{width:100%;font-family:'IBM Plex Mono',monospace;font-size:12.5px;line-height:1.6;border:1px solid var(--line);border-radius:10px;padding:.8rem .9rem;background:#fff;color:var(--ink);resize:vertical;}
 .copy-status{font-size:12px;color:var(--olive-dark);margin:.4rem 0 0;min-height:14px;}
 </style>
@@ -884,11 +916,17 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
   <!-- EINKAUFEN -->
   <div class="panel" id="panelEinkaufen">
     <h2 class="section">Einkaufsliste <span class="section-note" id="previewMeta"></span> <button class="btn" id="refreshNeedsBtn" style="width:auto;padding:.3rem .7rem;font-size:12px;">↻ Aktualisieren</button></h2>
+    <div class="shop-summary">
+      <div class="shop-sum-card morgen" data-filter="1"><p class="ss-label">⚠︎ Für morgen</p><p class="ss-val" id="sumMorgen">0</p><p class="ss-sub">noch zu kaufen</p></div>
+      <div class="shop-sum-card uebermorgen active" data-filter="2"><p class="ss-label">📅 Bis übermorgen</p><p class="ss-val" id="sumUebermorgen">0</p><p class="ss-sub">noch zu kaufen</p></div>
+    </div>
+    <p class="shop-progress" id="shopProgress"></p>
     <div id="shopPreview"></div>
-    <button class="btn" id="exportBtn" style="margin-top:.6rem;">Bestätigte als Text kopieren</button>
 
-    <h2 class="section">Bald fällig <span class="section-note">Tag 3–7, zählt nicht im Badge</span></h2>
-    <div id="upcomingList"></div>
+    <details class="shop-later"><summary id="upcomingSummary">Später diese Woche – optional mitnehmen</summary><div id="upcomingList"></div></details>
+
+    <button class="btn primary" id="finishShopBtn" style="margin-top:.9rem;">✓ Einkauf abschließen – Vorrat buchen</button>
+    <button class="btn" id="exportBtn" style="margin-top:.5rem;">Liste als Text kopieren</button>
   </div>
 
   <!-- KI-PLAN -->
@@ -1204,10 +1242,19 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
 
 <div class="modal-bg" id="modalBg">
   <div class="modal">
-    <h2>Einkaufsliste (ganze Woche)</h2>
+    <h2>Einkaufsliste</h2>
     <textarea id="shopListText" class="shoplist-text" rows="16" readonly></textarea>
     <p class="copy-status" id="copyStatus"></p>
     <div class="modal-actions"><button class="btn" id="closeModal">Schließen</button><button class="btn primary" id="copyListBtn">In Zwischenablage kopieren</button></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="shopFinishBg">
+  <div class="modal">
+    <h2>Einkauf abschließen</h2>
+    <p class="section-note" style="margin:0 0 .6rem;">Prüfe die eingekaufte Anzahl. Alles mit Anzahl &gt; 0 wird auf den Vorrat gebucht und von der Liste entfernt.</p>
+    <div id="shopFinishList"></div>
+    <div class="modal-actions"><button class="btn" id="shopFinishCancel">Abbrechen</button><button class="btn primary" id="shopFinishSave">Buchen</button></div>
   </div>
 </div>
 
@@ -1577,7 +1624,7 @@ let weights = [];     // {id, date, kg}
 let steps = [];       // {id, date, steps, kcal}
 let dayBounds = [];   // {id, date, startTag, endTag}
 let pantry = [];      // {id|null, name, staple}  id null = noch nicht in Airtable angelegt
-let shoppingNeeds = []; // {id, name, unit, amount, status:'offen'|'liste'|'gekauft', boughtAmount}
+let shoppingNeeds = []; // {id, name, unit, amount, status:'offen'|'manuell'|'liste'(=im Wagen)|'gekauft', boughtAmount}
 let snacks = []; // {id, name, kcal}
 let daySwaps = []; // {id, date, slotId, dishName} - Gericht nur für einen bestimmten Tag getauscht, ohne den Wochenplan zu ändern
 let portionSplits = []; // {id, date, slotId, secondTime} - Portion für einen Tag in 2 Hälften geteilt (je 50%), zweite Hälfte zu eigener Uhrzeit
@@ -2606,7 +2653,7 @@ async function adjustPantryForDish(dish, sign, ratio){
 function syncPantry(pRecs){
   const byName = new Map();
   pRecs.forEach(r=> byName.set((r.fields.Name||'').trim().toLowerCase(),
-    { id:r.id, name:r.fields.Name||'', unit:r.fields.Unit||'', bestand:Number(r.fields.Bestand)||0, mindestbestand:Number(r.fields.Mindestbestand)||0, ignore: !!r.fields.Ignore, kcalPerUnit:Number(r.fields.KcalPerUnit)||0, fiberPerUnit:Number(r.fields.FiberPerUnit)||0, proteinPerUnit:Number(r.fields.ProteinPerUnit)||0, fatPerUnit:Number(r.fields.FatPerUnit)||0, satietyIndex: (r.fields.SatietyIndex!==undefined && r.fields.SatietyIndex!==null && r.fields.SatietyIndex!=='') ? Number(r.fields.SatietyIndex) : null, novaGroup: (r.fields.NovaGroup!==undefined && r.fields.NovaGroup!==null && r.fields.NovaGroup!=='') ? Number(r.fields.NovaGroup) : null }));
+    { id:r.id, name:r.fields.Name||'', unit:r.fields.Unit||'', bestand:Number(r.fields.Bestand)||0, mindestbestand:Number(r.fields.Mindestbestand)||0, ignore: !!r.fields.Ignore, kcalPerUnit:Number(r.fields.KcalPerUnit)||0, fiberPerUnit:Number(r.fields.FiberPerUnit)||0, proteinPerUnit:Number(r.fields.ProteinPerUnit)||0, fatPerUnit:Number(r.fields.FatPerUnit)||0, satietyIndex: (r.fields.SatietyIndex!==undefined && r.fields.SatietyIndex!==null && r.fields.SatietyIndex!=='') ? Number(r.fields.SatietyIndex) : null, novaGroup: (r.fields.NovaGroup!==undefined && r.fields.NovaGroup!==null && r.fields.NovaGroup!=='') ? Number(r.fields.NovaGroup) : null, packName: r.fields.PackName||'', packSize: Number(r.fields.PackSize)||0 }));
   const seen = new Set();
   const merged = [];
   dishes.forEach(d=> d.ingredients.forEach(ing=>{
@@ -2669,7 +2716,7 @@ function pantryItem(name){
 }
 async function savePantryItem(p){
   // "Ignore" ist in Airtable ein Single-Select mit der einzigen Option "checked" (kein echtes Checkbox-Feld) -> kein Boolean, sondern Text bzw. null
-  const fields = { Bestand:p.bestand, Mindestbestand:p.mindestbestand, Unit:p.unit, KcalPerUnit:p.kcalPerUnit, FiberPerUnit:p.fiberPerUnit, ProteinPerUnit:p.proteinPerUnit, FatPerUnit:p.fatPerUnit, Ignore: p.ignore ? 'checked' : null, SatietyIndex: p.satietyIndex, NovaGroup: p.novaGroup };
+  const fields = { Bestand:p.bestand, Mindestbestand:p.mindestbestand, Unit:p.unit, KcalPerUnit:p.kcalPerUnit, FiberPerUnit:p.fiberPerUnit, ProteinPerUnit:p.proteinPerUnit, FatPerUnit:p.fatPerUnit, Ignore: p.ignore ? 'checked' : null, SatietyIndex: p.satietyIndex, NovaGroup: p.novaGroup, PackName: p.packName||null, PackSize: p.packSize||null };
   try{
     if(!p.id){
       if(!p._creating){
@@ -2682,7 +2729,7 @@ async function savePantryItem(p){
     if(p.id) await atUpdate('Pantry', p.id, fields);
   }catch(e){
     // Felder "SatietyIndex"/"NovaGroup"/"FatPerUnit" existieren in Airtable evtl. noch nicht -> ohne erneut versuchen, sonst geht Speichern komplett nicht
-    const { SatietyIndex, NovaGroup, FatPerUnit, ...fieldsWithoutNew } = fields;
+    const { SatietyIndex, NovaGroup, FatPerUnit, PackName, PackSize, ...fieldsWithoutNew } = fields;
     if(!p.id){
       if(!p._creating){
         p._creating = atCreate('Pantry', { Name:p.name, ...fieldsWithoutNew })
@@ -2929,6 +2976,10 @@ function pantryRowHtml(p, i){
         <button type="button" class="p-dprompt pf-prompt" title="Nährwerte per ChatGPT schätzen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></button>
         <div class="toggle on" style="align-self:center;" title="Prüfen"><div class="knob"></div></div>
         <button type="button" class="p-delete-btn" title="Zutat löschen">🗑️</button>
+        <div class="p-pack-row">
+          <div class="p-dfield"><label>Einkauf als (z.B. Tüte, Becher)</label><input type="text" class="pf-packname" value="${escapeAttr(p.packName||'')}" placeholder="Tüte"></div>
+          <div class="p-dfield"><label>Inhalt pro Packung${unitLabel?` (${unitLabel})`:''}</label><input type="number" step="any" class="pf-packsize" value="${p.packSize||''}" placeholder="750"></div>
+        </div>
       </div>
     </div>`;
 }
@@ -2956,6 +3007,9 @@ function renderPantry(){
     const bestandEl = row.querySelector('.pf-bestand'), minEl = row.querySelector('.pf-min');
     if(bestandEl) bestandEl.addEventListener('change', e=>{ p.bestand = Number(e.target.value)||0; row.classList.toggle('low', p.bestand<p.mindestbestand); savePantryItem(p).catch(err=>{ console.error(err); setStatus(err.message); }); });
     if(minEl) minEl.addEventListener('change', e=>{ p.mindestbestand = Number(e.target.value)||0; row.classList.toggle('low', p.bestand<p.mindestbestand); savePantryItem(p).catch(err=>{ console.error(err); setStatus(err.message); }); });
+    const packNameEl = row.querySelector('.pf-packname'), packSizeEl = row.querySelector('.pf-packsize');
+    if(packNameEl) packNameEl.addEventListener('change', e=>{ p.packName = e.target.value.trim(); savePantryItem(p).catch(err=>{ console.error(err); setStatus(err.message); }); });
+    if(packSizeEl) packSizeEl.addEventListener('change', e=>{ p.packSize = Number(e.target.value)||0; savePantryItem(p).catch(err=>{ console.error(err); setStatus(err.message); }); });
     const unitEl = row.querySelector('.pf-unit');
     if(unitEl) unitEl.addEventListener('change', e=>{ p.unit = e.target.value; savePantryItem(p).catch(err=>{ console.error(err); setStatus(err.message); }); renderPantry(); });
     const cartBtn = row.querySelector('.p-cart-btn');
@@ -2965,11 +3019,11 @@ function renderPantry(){
       let existing = shoppingNeeds.find(s=> s.name.trim().toLowerCase()===key && s.status!=='gekauft');
       try{
         if(existing){
-          existing.status = 'liste'; existing.amount = amount; existing.unit = p.unit;
-          await atUpdate('ShoppingNeeds', existing.id, { Status:'liste', Amount:amount, Unit:p.unit });
+          existing.status = 'manuell'; existing.amount = amount; existing.unit = p.unit;
+          await atUpdate('ShoppingNeeds', existing.id, { Status:'manuell', Amount:amount, Unit:p.unit });
         }else{
-          const rec = await atCreate('ShoppingNeeds', { Name:p.name, Amount:amount, Unit:p.unit, Status:'liste' });
-          shoppingNeeds.push({ id:rec.id, name:p.name, unit:p.unit, amount:amount, status:'liste', boughtAmount:0 });
+          const rec = await atCreate('ShoppingNeeds', { Name:p.name, Amount:amount, Unit:p.unit, Status:'manuell' });
+          shoppingNeeds.push({ id:rec.id, name:p.name, unit:p.unit, amount:amount, status:'manuell', boughtAmount:0 });
         }
         setStatus('"'+p.name+'" zur Einkaufsliste hinzugefügt');
       }catch(err){ console.error(err); setStatus('ShoppingNeeds-Tabelle fehlt (Felder: Name, Amount, Unit, Status, BoughtAmount)'); }
@@ -5645,7 +5699,7 @@ function categoryFor(name){
   return 'Sonstiges';
 }
 function shoppingListText(items){
-  if(!items.length) return 'Nichts Bestätigtes offen.';
+  if(!items.length) return 'Nichts offen.';
   const byCat = {};
   items.forEach(i=>{ const c = categoryFor(i.name); (byCat[c]=byCat[c]||[]).push(i); });
   const order = SHOP_CATEGORIES.map(c=>c.name).concat('Sonstiges');
@@ -5655,7 +5709,7 @@ function shoppingListText(items){
     byCat[cat].forEach(i=>{
       const days = daysUntilNeeded(i.name);
       const dueLabel = days===null ? '' : (days===1 ? ' (morgen)' : ` (in ${days} Tagen)`);
-      text += `- ${i.name}: ${i.amount} ${i.unit}${dueLabel}\n`;
+      text += `- ${packInfo(i.name, i.amount, i.unit).label} ${i.name}${dueLabel}\n`;
     });
     text += '\n';
   });
@@ -5708,84 +5762,113 @@ function renderDashboardBadge(){
   const badge = document.getElementById('dashBadge');
   badge.textContent = n; badge.style.display = n>0 ? 'inline-block' : 'none';
 }
+/* ===== Einkaufsliste: Packungs-Übersetzung (Gramm -> "1 Tüte") ===== */
+/* Pro Vorrat-Artikel optional PackName ("Tüte") + PackSize (750, in der Einheit des Artikels).
+   Ohne Mapping bleibt die normale Mengenangabe stehen. */
+function fmtAmt(x){ return String(Math.round((Number(x)||0)*100)/100).replace('.', ','); }
+function packInfo(name, amount, unit){
+  const p = pantryItem(name);
+  if(p && p.packSize>0 && p.packName){
+    const packs = Math.max(1, Math.ceil(amount/p.packSize - 1e-9));
+    return { hasPack:true, packs, perPack:p.packSize, packName:p.packName,
+      label:`${packs} ${p.packName}`, sub:`à ${fmtAmt(p.packSize)} ${unit} · Bedarf ${fmtAmt(amount)} ${unit}` };
+  }
+  return { hasPack:false, label:`${fmtAmt(amount)} ${unit}`, sub:'' };
+}
+/* Fälligkeit: 1 = morgen, 2 = übermorgen, 3–7 = später, null = manuell/unbekannt */
+function shopDueDay(name){
+  const d = daysUntilNeeded(name);
+  return d!==null ? d : daysUntilNeededInRange(name, NEED_HORIZON_DAYS+1, UPCOMING_HORIZON_DAYS);
+}
+function shopTagHtml(d){
+  if(d===1) return '<span class="shop-tag d1">morgen</span>';
+  if(d===2) return '<span class="shop-tag d2">übermorgen</span>';
+  if(d!==null) return `<span class="shop-tag">in ${d} Tagen</span>`;
+  return '<span class="shop-tag">manuell</span>';
+}
+function shopRowHtml(item, attrs, done){
+  const info = packInfo(item.name, item.amount, item.unit);
+  const d = shopDueDay(item.name);
+  return `<div class="shop-row ${done?'done':''}" ${attrs}>
+    <div class="shop-cb">${done?'✓':''}</div>
+    <div class="shop-main"><p class="shop-name"><b>${escapeAttr(info.label)}</b> ${escapeAttr(item.name)}</p>${info.sub?`<p class="shop-sub">${escapeAttr(info.sub)}</p>`:''}</div>
+    ${shopTagHtml(d)}
+    ${attrs.includes('data-id')?'<button class="shop-x" title="Von der Liste entfernen">✕</button>':''}
+  </div>`;
+}
+let shopFilter = 2; // 1 = nur morgen, 2 = bis übermorgen (alles)
+document.querySelectorAll('.shop-sum-card').forEach(card=> card.addEventListener('click', ()=>{
+  shopFilter = Number(card.dataset.filter);
+  document.querySelectorAll('.shop-sum-card').forEach(c=> c.classList.toggle('active', c===card));
+  renderShopPreview();
+}));
+
+/* "offen" = noch kaufen (automatisch berechnet), "manuell" = noch kaufen (von Hand hinzugefügt, wird nicht automatisch entfernt),
+   "liste" = im Wagen (abgehakt, noch nicht auf den Vorrat gebucht) */
 function renderShopPreview(){
   const wrap = document.getElementById('shopPreview');
-  const order = { offen:0, liste:1, gekauft:2 };
-  const list = [...shoppingNeeds].sort((a,b)=>{
-    if(order[a.status]!==order[b.status]) return order[a.status]-order[b.status];
-    if(a.status!=='gekauft'){
-      const da = daysUntilNeeded(a.name), db = daysUntilNeeded(b.name);
-      const va = da===null?999:da, vb = db===null?999:db;
-      if(va!==vb) return va-vb;
-    }
-    return a.name.localeCompare(b.name,'de');
+  const active = shoppingNeeds.filter(s=> s.status!=='gekauft');
+  const open = active.filter(s=> s.status==='offen' || s.status==='manuell');
+  const inCart = active.filter(s=> s.status==='liste');
+
+  const dueOf = new Map(active.map(s=> [s.id, daysUntilNeeded(s.name)]));
+  document.getElementById('sumMorgen').textContent = open.filter(s=> dueOf.get(s.id)===1).length;
+  document.getElementById('sumUebermorgen').textContent = open.length;
+  document.getElementById('previewMeta').textContent = open.length ? open.length+' offen' : '';
+
+  const visibleOpen = shopFilter===1 ? open.filter(s=> dueOf.get(s.id)===1 || dueOf.get(s.id)===null) : open;
+  const totalShown = visibleOpen.length + inCart.length;
+  document.getElementById('shopProgress').textContent = totalShown ? `${inCart.length} von ${totalShown} im Wagen` : '';
+
+  if(!active.length){ wrap.innerHTML = '<div class="empty">Aktuell nichts zu besorgen.</div>'; return; }
+
+  const order = SHOP_CATEGORIES.map(c=>c.name).concat('Sonstiges');
+  const byCat = {};
+  visibleOpen.forEach(i=>{ const c = categoryFor(i.name); (byCat[c]=byCat[c]||[]).push(i); });
+  let html = '';
+  order.filter(c=>byCat[c]).forEach(cat=>{
+    html += `<p class="shop-cat">${cat}</p>`;
+    byCat[cat]
+      .sort((a,b)=>{ const da=dueOf.get(a.id)??999, db=dueOf.get(b.id)??999; return da!==db ? da-db : a.name.localeCompare(b.name,'de'); })
+      .forEach(i=>{ html += shopRowHtml(i, `data-id="${i.id}"`, false); });
   });
-  document.getElementById('previewMeta').textContent = list.length ? list.filter(s=>s.status==='offen').length+' offen' : '';
-  if(!list.length){ wrap.innerHTML = '<div class="empty">Aktuell nichts zu besorgen.</div>'; return; }
-  wrap.innerHTML = list.map(item=>{
-    const days = item.status==='gekauft' ? null : daysUntilNeeded(item.name);
-    const urgencyLabel = days===null ? '' : (days===1 ? 'morgen benötigt' : `in ${days} Tagen benötigt`);
-    const urgencyBadge = urgencyLabel ? `<span class="urgency-badge${days<=2?' urgent':''}">${urgencyLabel}</span>` : '';
-    let actions = '';
-    if(item.status==='offen'){
-      actions = `<div class="need-actions"><span class="need-status">offen</span><button class="mini-btn add-list-btn">Zur Einkaufsliste hinzufügen</button></div>`;
-    }else if(item.status==='liste'){
-      actions = `<div class="need-actions"><span class="need-status">auf Einkaufsliste</span><input type="number" step="any" class="bought-input" value="${item.amount}"><button class="mini-btn bought-btn">Eingekauft</button></div>`;
-    }else{
-      actions = `<div class="need-actions"><span class="need-status">✓ eingekauft: ${item.boughtAmount} ${item.unit}</span></div>`;
-    }
-    return `<div class="need-row ${item.status}" data-id="${item.id}">
-      <div class="need-top"><p class="need-name">${escapeAttr(item.name)} ${urgencyBadge}</p><span class="need-amt">Kaufen: ${item.amount} ${item.unit}</span></div>
-      ${actions}
-      <button class="dismiss-btn" title="Eintrag entfernen">✕ entfernen</button>
-    </div>`;
-  }).join('');
-  wrap.querySelectorAll('.dismiss-btn').forEach(btn=> btn.addEventListener('click', async e=>{
-    const id = e.target.closest('.need-row').dataset.id;
-    const item = shoppingNeeds.find(s=>s.id===id); if(!item) return;
-    try{ if(item.id) await atDelete('ShoppingNeeds', item.id); }catch(err){ console.error(err); }
-    shoppingNeeds = shoppingNeeds.filter(s=>s.id!==id);
-    renderShopPreview(); renderUpcoming(); renderDashboardBadge();
-  }));
-  wrap.querySelectorAll('.add-list-btn').forEach(btn=> btn.addEventListener('click', async e=>{
-    const id = e.target.closest('.need-row').dataset.id;
-    const item = shoppingNeeds.find(s=>s.id===id); if(!item) return;
-    item.status = 'liste';
-    try{ await atUpdate('ShoppingNeeds', item.id, { Status:'liste' }); }catch(err){ console.error(err); }
-    renderShopPreview(); renderUpcoming(); renderDashboardBadge();
-  }));
-  wrap.querySelectorAll('.bought-btn').forEach(btn=> btn.addEventListener('click', async e=>{
-    const row = e.target.closest('.need-row');
+  if(!visibleOpen.length) html += '<div class="empty" style="margin-top:.6rem;">Für morgen ist alles erledigt.</div>';
+  if(inCart.length){
+    html += `<p class="shop-cat">Im Wagen (${inCart.length})</p>`;
+    inCart.sort((a,b)=> a.name.localeCompare(b.name,'de')).forEach(i=>{ html += shopRowHtml(i, `data-id="${i.id}"`, true); });
+  }
+  wrap.innerHTML = html;
+
+  wrap.querySelectorAll('.shop-row').forEach(row=> row.addEventListener('click', async e=>{
     const id = row.dataset.id;
     const item = shoppingNeeds.find(s=>s.id===id); if(!item) return;
-    const amount = Number(row.querySelector('.bought-input').value)||0;
-    const p = pantryItem(item.name);
-    if(p){ p.bestand = Math.round((p.bestand+amount)*100)/100; try{ await savePantryItem(p); }catch(err){ console.error(err); setStatus(err.message); } }
-    // Erledigt = Zweck erfüllt (Bestand aktualisiert) -> Eintrag komplett entfernen statt nur zu markieren,
-    // sonst sammeln sich "gekauft"-Karteileichen an und erzeugen bei jedem Abgleich neue Dubletten
-    try{ if(item.id) await atDelete('ShoppingNeeds', item.id); }catch(err){ console.error(err); }
-    shoppingNeeds = shoppingNeeds.filter(s=>s.id!==id);
+    if(e.target.closest('.shop-x')){
+      try{ if(item.id) await atDelete('ShoppingNeeds', item.id); }catch(err){ console.error(err); }
+      shoppingNeeds = shoppingNeeds.filter(s=>s.id!==id);
+    }else{
+      if(item.status==='liste'){
+        const stillNeeded = buildShoppingList().some(n=> n.name.trim().toLowerCase()===item.name.trim().toLowerCase());
+        item.status = stillNeeded ? 'offen' : 'manuell';
+      }else item.status = 'liste';
+      renderShopPreview(); renderDashboardBadge(); // sofort sichtbar, Airtable im Hintergrund
+      try{ await atUpdate('ShoppingNeeds', item.id, { Status:item.status }); }catch(err){ console.error(err); setStatus(err.message); }
+    }
     renderShopPreview(); renderUpcoming(); renderDashboardBadge();
   }));
 }
 
-/* "Bald fällig" – rein informativ, kein Status-Tracking, kein Badge */
+/* "Später diese Woche" – optional mitnehmen; Antippen legt den Artikel direkt in den Wagen */
 function renderUpcoming(){
   const wrap = document.getElementById('upcomingList');
-  const list = buildUpcomingList();
-  if(!list.length){ wrap.innerHTML = '<div class="empty">Nichts Weiteres in den nächsten 7 Tagen absehbar.</div>'; return; }
-  wrap.innerHTML = list.map((item,i)=>{
-    const label = item.daysUntil===null ? '' : `in ${item.daysUntil} Tagen benötigt`;
-    return `<div class="need-row upcoming" data-i="${i}">
-      <div class="need-top"><p class="need-name">${escapeAttr(item.name)} ${label?`<span class="urgency-badge">${label}</span>`:''}</p><span class="need-amt">Kaufen: ${item.amount} ${item.unit}</span></div>
-      <div class="need-actions"><button class="mini-btn secondary add-upcoming-btn">Zur Einkaufsliste hinzufügen</button></div>
-    </div>`;
-  }).join('');
-  wrap.querySelectorAll('.add-upcoming-btn').forEach(btn=> btn.addEventListener('click', async e=>{
-    const i = Number(e.target.closest('.need-row').dataset.i);
-    const item = list[i];
+  const activeNames = new Set(shoppingNeeds.filter(s=> s.status!=='gekauft').map(s=> s.name.trim().toLowerCase()));
+  const list = buildUpcomingList().filter(i=> !activeNames.has(i.name.trim().toLowerCase()));
+  document.getElementById('upcomingSummary').textContent = `Später diese Woche (${list.length}) – optional mitnehmen`;
+  if(!list.length){ wrap.innerHTML = '<div class="empty" style="margin-top:.5rem;">Nichts Weiteres in den nächsten 7 Tagen absehbar.</div>'; return; }
+  wrap.innerHTML = list.map((item,i)=> shopRowHtml(item, `data-i="${i}"`, false)).join('');
+  wrap.querySelectorAll('.shop-row').forEach(row=> row.addEventListener('click', async ()=>{
+    const item = list[Number(row.dataset.i)];
     const key = item.name.trim().toLowerCase();
-    let existing = shoppingNeeds.find(s=> s.name.trim().toLowerCase()===key && s.status!=='gekauft');
+    const existing = shoppingNeeds.find(s=> s.name.trim().toLowerCase()===key && s.status!=='gekauft');
     try{
       if(existing){
         existing.status = 'liste'; existing.amount = item.amount;
@@ -5799,8 +5882,57 @@ function renderUpcoming(){
   }));
 }
 
+/* Einkauf abschließen: Anzahl prüfen/anpassen -> Vorrat buchen -> Einträge entfernen */
+function openShopFinish(){
+  const active = shoppingNeeds.filter(s=> s.status!=='gekauft');
+  const listEl = document.getElementById('shopFinishList');
+  if(!active.length){ listEl.innerHTML = '<div class="empty">Nichts auf der Liste.</div>'; }
+  else{
+    const sorted = [...active].sort((a,b)=> (a.status==='liste'?0:1)-(b.status==='liste'?0:1) || a.name.localeCompare(b.name,'de'));
+    let lastGroup = '';
+    listEl.innerHTML = sorted.map(item=>{
+      const info = packInfo(item.name, item.amount, item.unit);
+      const inCart = item.status==='liste';
+      const group = inCart ? 'Im Wagen' : 'Nicht abgehakt';
+      const head = group!==lastGroup ? `<p class="shop-cat">${group}</p>` : '';
+      lastGroup = group;
+      const val = inCart ? (info.hasPack ? info.packs : Math.round(item.amount*100)/100) : 0;
+      const unitLbl = info.hasPack ? escapeAttr(info.packName) : escapeAttr(item.unit);
+      const sub = info.hasPack ? `à ${fmtAmt(info.perPack)} ${item.unit}` : '';
+      return `${head}<div class="finish-row" data-id="${item.id}">
+        <p class="fr-name">${escapeAttr(item.name)}${sub?`<span class="fr-sub">${escapeAttr(sub)}</span>`:''}</p>
+        <input type="number" step="any" min="0" class="fr-qty" value="${val}">
+        <span class="fr-unit">${unitLbl}</span>
+      </div>`;
+    }).join('');
+  }
+  document.getElementById('shopFinishBg').classList.add('open');
+}
+document.getElementById('finishShopBtn').addEventListener('click', openShopFinish);
+document.getElementById('shopFinishCancel').addEventListener('click', ()=> document.getElementById('shopFinishBg').classList.remove('open'));
+document.getElementById('shopFinishSave').addEventListener('click', async e=>{
+  const btn = e.currentTarget; btn.disabled = true; btn.textContent = '… bucht';
+  try{
+    const rows = [...document.querySelectorAll('#shopFinishList .finish-row')];
+    for(const row of rows){
+      const qty = Number(row.querySelector('.fr-qty').value)||0;
+      if(qty<=0) continue; // nicht gekauft -> bleibt auf der Liste
+      const item = shoppingNeeds.find(s=>s.id===row.dataset.id); if(!item) continue;
+      const info = packInfo(item.name, item.amount, item.unit);
+      const amount = info.hasPack ? qty*info.perPack : qty;
+      const p = pantryItem(item.name);
+      if(p){ p.bestand = Math.round((p.bestand+amount)*100)/100; try{ await savePantryItem(p); }catch(err){ console.error(err); setStatus(err.message); } }
+      try{ if(item.id) await atDelete('ShoppingNeeds', item.id); }catch(err){ console.error(err); }
+      shoppingNeeds = shoppingNeeds.filter(s=>s.id!==item.id);
+    }
+    document.getElementById('shopFinishBg').classList.remove('open');
+    setStatus('Einkauf auf den Vorrat gebucht');
+    await computeShoppingNeeds(); // Liste neu berechnen (was jetzt noch fehlt)
+  }finally{ btn.disabled = false; btn.textContent = 'Buchen'; }
+});
+
 document.getElementById('exportBtn').addEventListener('click', ()=>{
-  const items = shoppingNeeds.filter(s=> s.status==='liste');
+  const items = shoppingNeeds.filter(s=> s.status==='offen' || s.status==='manuell');
   document.getElementById('shopListText').value = shoppingListText(items);
   document.getElementById('copyStatus').textContent = '';
   document.getElementById('modalBg').classList.add('open');
@@ -5872,6 +6004,3 @@ document.addEventListener('touchend', e=>{
 
 </body>
 </html>
-
-
-

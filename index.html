@@ -452,7 +452,7 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
 .p-name-wrap{flex:1;min-width:0;}
 .p-name{margin:0;font-size:13.5px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .p-mini{width:56px;flex-shrink:0;}
-.p-mini label{display:block;font-size:7.5px;color:var(--ink-soft);text-align:center;margin-bottom:1px;white-space:nowrap;}
+.p-mini label{display:block;font-size:7.5px;color:var(--ink-soft);text-align:center;margin-bottom:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .p-mini input{width:100%;border:1px solid var(--line);border-radius:7px;background:#fff;font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--ink);padding:4px 2px;text-align:center;}
 .p-expand-btn{width:26px;height:26px;border-radius:7px;background:transparent;border:1px solid var(--line);color:var(--ink-soft);flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer;}
 .p-expand-btn.open{background:var(--olive);border-color:var(--olive);color:#fff;}
@@ -2986,7 +2986,8 @@ function pantryRowHtml(p, i){
      Bei Stück & Co. bleibt die Eingabe in der Einheit (10 Tomaten zählt man, nicht 0,5 Schalen). */
   const hasPack = p.packSize>0 && !!p.packName && ['g','ml','kg','l'].includes((p.unit||'').toLowerCase());
   const fac = hasPack ? p.packSize : 1;
-  const qLabel = hasPack ? packPlural(2, p.packName) : unitLabel;
+  const PACK_SHORT = { 'Packungen':'Pck.', 'Flaschen':'Fl.', 'Kartons':'Kart.', 'Beutel':'Btl.', 'Becher':'Bech.' };
+  const qLabel = hasPack ? (PACK_SHORT[packPlural(2, p.packName)] || packPlural(2, p.packName)) : unitLabel;
   const qVal = v=> hasPack ? Math.round((Number(v)||0)/fac*100)/100 : v;
   const qTitle = v=> hasPack ? ` title="= ${fmtAmt(v)} ${unitLabel}"` : '';
   const mengeFields = `
@@ -5705,13 +5706,32 @@ function computeNeedForRange(fromDay, toDay){
   });
   return items.sort((a,b)=> a.name.localeCompare(b.name,'de'));
 }
-/* Einkaufsliste rein über den Vorrat: Sobald der Bestand unter den Mindestbestand fällt (Verbrauch beim Abhaken
-   in "Heute"), kommt der Artikel auf die Liste – Menge = bis zum Mindestbestand auffüllen (Packungen runden auf). */
+/* Wocheneinkauf: Vorrat + Wochenplan.
+   Menge = max(Bedarf der nächsten SHOP_PLAN_DAYS Tage − Bestand,  Mindestbestand − Bestand)  (Packungen runden auf).
+   -> Der Plan wird gedeckt, und es ist mindestens das Minimum da – das Minimum kommt aber nicht obendrauf.
+   Zusätzlich: Artikel, die in keinem geplanten Gericht vorkommen, aber schon unter dem Minimum liegen. */
+const SHOP_PLAN_DAYS = 7;
+let shopNeedInfo = new Map();   // name(lowercase) -> { benoetigt, bestand, minimum } für die "Warum?"-Anzeige
 function buildShoppingList(){
-  return pantry
-    .filter(p=> p.name && !p.ignore && (Number(p.mindestbestand)||0) > 0 && (Number(p.bestand)||0) < Number(p.mindestbestand))
-    .map(p=> ({ name:p.name.trim(), unit:p.unit, amount: Math.round((p.mindestbestand - (Number(p.bestand)||0))*100)/100, bestand:p.bestand }))
-    .sort((a,b)=> a.name.localeCompare(b.name,'de'));
+  shopNeedInfo = new Map();
+  const items = [];
+  const names = new Set();
+  computeNeedForRange(1, SHOP_PLAN_DAYS).forEach(i=>{
+    const k = i.name.trim().toLowerCase(); names.add(k);
+    const p = pantryItem(i.name);
+    const bestand = p ? (Number(p.bestand)||0) : 0, minimum = p ? (Number(p.mindestbestand)||0) : 0;
+    const kaufen = Math.round(Math.max(i.benoetigt - bestand, minimum - bestand)*100)/100;
+    if(kaufen <= 0) return;
+    shopNeedInfo.set(k, { benoetigt:i.benoetigt, bestand, minimum });
+    items.push({ ...i, amount:kaufen });
+  });
+  pantry
+    .filter(p=> p.name && !p.ignore && !names.has(p.name.trim().toLowerCase()) && (Number(p.mindestbestand)||0) > 0 && (Number(p.bestand)||0) < Number(p.mindestbestand))
+    .forEach(p=>{
+      shopNeedInfo.set(p.name.trim().toLowerCase(), { benoetigt:0, bestand:p.bestand, minimum:p.mindestbestand });
+      items.push({ name:p.name.trim(), unit:p.unit, amount: Math.round((p.mindestbestand - (Number(p.bestand)||0))*100)/100, bestand:p.bestand });
+    });
+  return items.sort((a,b)=> a.name.localeCompare(b.name,'de'));
 }
 /* "Bald fällig": Bedarf über die ganze Woche, abzüglich dem, was schon in der dringenden Liste steckt */
 function buildUpcomingList(){
@@ -5825,7 +5845,9 @@ function shopRowHtml(item, done){
   const info = packInfo(item.name, item.amount, item.unit);
   const p = pantryItem(item.name);
   const own = !p;
-  const why = own ? 'Eigener Artikel' : `Vorrat: ${fmtAmt(p.bestand)} ${p.unit} · Minimum: ${fmtAmt(p.mindestbestand)} ${p.unit}`;
+  const ni = shopNeedInfo.get(item.name.trim().toLowerCase());
+  const why = own ? 'Eigener Artikel'
+    : `Vorrat: ${fmtAmt(p.bestand)} ${p.unit}${ni && ni.benoetigt>0 ? ` · Plan nächste ${SHOP_PLAN_DAYS} Tage: ${fmtAmt(ni.benoetigt)} ${p.unit}` : ''} · Minimum: ${fmtAmt(p.mindestbestand)} ${p.unit}`;
   return `<div class="shop-row ${done?'done':''}" data-id="${item.id}">
     <div class="shop-cb">${done?'✓':''}</div>
     <div class="shop-main"><p class="shop-name">${info.label?`<b>${escapeAttr(info.label)}</b> `:''}${escapeAttr(item.name)}</p>

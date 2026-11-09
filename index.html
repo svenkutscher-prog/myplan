@@ -643,6 +643,7 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
 .shop-bar{height:6px;border-radius:3px;background:var(--line);overflow:hidden;margin:2px 0 10px;}
 .shop-bar div{height:100%;width:0;background:var(--olive);transition:width .2s;}
 .shop-add{display:flex;gap:8px;margin-bottom:4px;}
+.shop-reset{display:block;margin:1rem auto 0;background:none;border:none;color:var(--ink-soft);font-size:12px;text-decoration:underline;cursor:pointer;}
 .shop-add input{flex:1;min-width:0;font-size:15px;border:1px solid var(--line);border-radius:8px;padding:9px 10px;background:var(--card);}
 .shop-add .btn{width:auto;padding:0 14px;}
 .shop-home{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:3px 0 0;font-size:12px;color:var(--ink-soft);}
@@ -943,6 +944,7 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
     <div id="shopPreview"></div>
 
     <button class="btn primary" id="finishShopBtn" style="margin-top:1.2rem;">✓ Einkauf abschließen – Vorrat buchen</button>
+    <button type="button" class="shop-reset" id="shopResetBtn">↺ Liste neu aufbauen</button>
     <!-- bleiben unsichtbar, damit bestehende Handler weiter funktionieren -->
     <button class="btn" id="refreshNeedsBtn" style="display:none;">↻</button>
     <button class="btn" id="exportBtn" style="display:none;">Text</button>
@@ -5939,6 +5941,20 @@ async function addOwnShopItem(){
   renderShopPreview();
 }
 document.getElementById('shopAddBtn').addEventListener('click', addOwnShopItem);
+
+/* Clean-up: alle Einträge löschen und frisch aus Vorrat + Wochenplan berechnen.
+   Eigene Artikel (nicht im Vorrat), die noch offen sind, bleiben erhalten. */
+document.getElementById('shopResetBtn').addEventListener('click', async e=>{
+  if(!confirm('Liste neu aufbauen?\n\nAlle Einträge – auch „Im Wagen“ – werden gelöscht und frisch aus Vorrat und Wochenplan berechnet. Eigene offene Artikel bleiben erhalten.\n\nNichts wird auf den Vorrat gebucht.')) return;
+  const btn = e.currentTarget; btn.disabled = true; btn.textContent = '… baut neu auf';
+  try{
+    const weg = shoppingNeeds.filter(s=> pantryItem(s.name) || s.status==='liste');
+    for(const s of weg){ try{ if(s.id) await atDelete('ShoppingNeeds', s.id); }catch(err){ console.error(s.name, err); } }
+    shoppingNeeds = shoppingNeeds.filter(s=> !weg.includes(s));
+    await computeShoppingNeeds();
+    setStatus(`Einkaufsliste neu aufgebaut (${weg.length} alte Einträge entfernt)`);
+  }finally{ btn.disabled = false; btn.textContent = '↺ Liste neu aufbauen'; }
+});
 document.getElementById('shopAddInput').addEventListener('keydown', e=>{ if(e.key==='Enter') addOwnShopItem(); });
 
 /* Einkauf abschließen: Anzahl prüfen/anpassen -> Vorrat buchen -> Einträge entfernen */

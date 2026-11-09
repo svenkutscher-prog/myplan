@@ -625,10 +625,23 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
 .finish-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line);}
 .finish-row .fr-name{flex:1;min-width:0;font-size:14px;margin:0;}
 .finish-row .fr-sub{display:block;font-size:11.5px;color:var(--ink-soft);}
-.finish-row input{width:64px;font-family:'IBM Plex Mono',monospace;font-size:14px;text-align:center;border:1px solid var(--line);border-radius:7px;padding:6px 3px;}
-.finish-row .fr-unit{font-size:12px;color:var(--ink-soft);min-width:56px;}
+.finish-head{display:flex;gap:8px;font-size:11px;color:var(--ink-soft);text-transform:uppercase;padding-bottom:4px;border-bottom:1px solid var(--line);}
+.finish-head span:first-child{flex:1;}
+.finish-head span:nth-child(2){width:70px;}
+.finish-head span:nth-child(3){width:150px;text-align:center;}
+.finish-row{flex-wrap:wrap;}
+.finish-row .fr-planned{width:70px;font-size:12.5px;color:var(--ink-soft);}
+.fr-qtywrap{display:flex;align-items:center;gap:4px;}
+.fr-qtywrap input{width:52px;font-family:'IBM Plex Mono',monospace;font-size:14px;text-align:center;border:1px solid var(--line);border-radius:7px;padding:6px 2px;}
+.fr-step{width:30px;height:30px;border-radius:7px;border:1px solid var(--line);background:#fff;color:var(--ink);font-size:16px;cursor:pointer;}
+.fr-check{flex-basis:100%;text-align:right;font-size:11.5px;font-weight:500;}
+.finish-row.ok .fr-check{color:var(--olive);}
+.finish-row.diff .fr-check{color:var(--mustard);}
+.finish-row.diff .fr-qtywrap input{border-color:var(--mustard);background:var(--mustard-bg);}
+.finish-row.none .fr-check{color:var(--ink-soft);}
 .p-detail.open{flex-wrap:wrap;}
 .p-pack-row{flex-basis:100%;display:flex;gap:6px;}
+.p-dfield select.pf-packname{width:100%;border:none;background:transparent;font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--ink);padding:0;}
 .shoplist-text{width:100%;font-family:'IBM Plex Mono',monospace;font-size:12.5px;line-height:1.6;border:1px solid var(--line);border-radius:10px;padding:.8rem .9rem;background:#fff;color:var(--ink);resize:vertical;}
 .copy-status{font-size:12px;color:var(--olive-dark);margin:.4rem 0 0;min-height:14px;}
 </style>
@@ -2926,6 +2939,13 @@ function buildPantryPrompt(p){
 function unitAbbr(u){
   return u==='Stück' ? 'Stk' : (u||'');
 }
+/* Auswahl für "Einkauf als" (Packungs-Einheit im Laden) */
+const PACK_NAMES = ['Packung','Tüte','Beutel','Becher','Glas','Dose','Flasche','Netz','Schale','Bund','Stück','Laib','Kopf','Tube','Karton'];
+function packNameOptions(current){
+  const list = (current && !PACK_NAMES.includes(current)) ? [current, ...PACK_NAMES] : PACK_NAMES;
+  return `<option value="" ${!current?'selected':''}>– keine (Menge anzeigen) –</option>` +
+    list.map(n=>`<option value="${escapeAttr(n)}" ${n===current?'selected':''}>${escapeAttr(n)}</option>`).join('');
+}
 let pantryExpanded = {}; // { "Zutatname": true/false } rein lokal, nicht persistiert
 let pantryViewMode = 'menge'; // 'menge' | 'naehrwerte'
 function pantryRowHtml(p, i){
@@ -2977,7 +2997,7 @@ function pantryRowHtml(p, i){
         <div class="toggle on" style="align-self:center;" title="Prüfen"><div class="knob"></div></div>
         <button type="button" class="p-delete-btn" title="Zutat löschen">🗑️</button>
         <div class="p-pack-row">
-          <div class="p-dfield"><label>Einkauf als (z.B. Tüte, Becher)</label><input type="text" class="pf-packname" value="${escapeAttr(p.packName||'')}" placeholder="Tüte"></div>
+          <div class="p-dfield"><label>Einkauf als</label><select class="pf-packname">${packNameOptions(p.packName)}</select></div>
           <div class="p-dfield"><label>Inhalt pro Packung${unitLabel?` (${unitLabel})`:''}</label><input type="number" step="any" class="pf-packsize" value="${p.packSize||''}" placeholder="750"></div>
         </div>
       </div>
@@ -5775,10 +5795,18 @@ function packInfo(name, amount, unit){
   }
   return { hasPack:false, label:`${fmtAmt(amount)} ${unit}`, sub:'' };
 }
-/* Fälligkeit: 1 = morgen, 2 = übermorgen, 3–7 = später, null = manuell/unbekannt */
-function shopDueDay(name){
-  const d = daysUntilNeeded(name);
-  return d!==null ? d : daysUntilNeededInRange(name, NEED_HORIZON_DAYS+1, UPCOMING_HORIZON_DAYS);
+/* Fälligkeit: 1 = morgen, 2 = übermorgen, 3–7 = später, null = manuell (laut Rechnung nichts zu kaufen).
+   Zählt nur, wenn der Bestand für den Zeitraum wirklich nicht reicht – nicht schon, wenn die Zutat nur vorkommt. */
+function shopNeedIndex(){
+  const keys = list=> new Set(list.map(i=> i.name.trim().toLowerCase()));
+  return { d1: keys(computeNeedForRange(1, 1)), d2: keys(computeNeedForRange(1, NEED_HORIZON_DAYS)), week: keys(computeNeedForRange(1, UPCOMING_HORIZON_DAYS)) };
+}
+function shopDueDay(name, idx){
+  const k = name.trim().toLowerCase();
+  if(idx.d1.has(k)) return 1;
+  if(idx.d2.has(k)) return 2;
+  if(idx.week.has(k)) return daysUntilNeededInRange(name, NEED_HORIZON_DAYS+1, UPCOMING_HORIZON_DAYS);
+  return null;
 }
 function shopTagHtml(d){
   if(d===1) return '<span class="shop-tag d1">morgen</span>';
@@ -5786,9 +5814,9 @@ function shopTagHtml(d){
   if(d!==null) return `<span class="shop-tag">in ${d} Tagen</span>`;
   return '<span class="shop-tag">manuell</span>';
 }
-function shopRowHtml(item, attrs, done){
+function shopRowHtml(item, attrs, done, idx){
   const info = packInfo(item.name, item.amount, item.unit);
-  const d = shopDueDay(item.name);
+  const d = shopDueDay(item.name, idx);
   return `<div class="shop-row ${done?'done':''}" ${attrs}>
     <div class="shop-cb">${done?'✓':''}</div>
     <div class="shop-main"><p class="shop-name"><b>${escapeAttr(info.label)}</b> ${escapeAttr(item.name)}</p>${info.sub?`<p class="shop-sub">${escapeAttr(info.sub)}</p>`:''}</div>
@@ -5811,7 +5839,8 @@ function renderShopPreview(){
   const open = active.filter(s=> s.status==='offen' || s.status==='manuell');
   const inCart = active.filter(s=> s.status==='liste');
 
-  const dueOf = new Map(active.map(s=> [s.id, daysUntilNeeded(s.name)]));
+  const idx = shopNeedIndex();
+  const dueOf = new Map(active.map(s=> [s.id, shopDueDay(s.name, idx)]));
   document.getElementById('sumMorgen').textContent = open.filter(s=> dueOf.get(s.id)===1).length;
   document.getElementById('sumUebermorgen').textContent = open.length;
   document.getElementById('previewMeta').textContent = open.length ? open.length+' offen' : '';
@@ -5830,12 +5859,12 @@ function renderShopPreview(){
     html += `<p class="shop-cat">${cat}</p>`;
     byCat[cat]
       .sort((a,b)=>{ const da=dueOf.get(a.id)??999, db=dueOf.get(b.id)??999; return da!==db ? da-db : a.name.localeCompare(b.name,'de'); })
-      .forEach(i=>{ html += shopRowHtml(i, `data-id="${i.id}"`, false); });
+      .forEach(i=>{ html += shopRowHtml(i, `data-id="${i.id}"`, false, idx); });
   });
   if(!visibleOpen.length) html += '<div class="empty" style="margin-top:.6rem;">Für morgen ist alles erledigt.</div>';
   if(inCart.length){
     html += `<p class="shop-cat">Im Wagen (${inCart.length})</p>`;
-    inCart.sort((a,b)=> a.name.localeCompare(b.name,'de')).forEach(i=>{ html += shopRowHtml(i, `data-id="${i.id}"`, true); });
+    inCart.sort((a,b)=> a.name.localeCompare(b.name,'de')).forEach(i=>{ html += shopRowHtml(i, `data-id="${i.id}"`, true, idx); });
   }
   wrap.innerHTML = html;
 
@@ -5864,7 +5893,8 @@ function renderUpcoming(){
   const list = buildUpcomingList().filter(i=> !activeNames.has(i.name.trim().toLowerCase()));
   document.getElementById('upcomingSummary').textContent = `Später diese Woche (${list.length}) – optional mitnehmen`;
   if(!list.length){ wrap.innerHTML = '<div class="empty" style="margin-top:.5rem;">Nichts Weiteres in den nächsten 7 Tagen absehbar.</div>'; return; }
-  wrap.innerHTML = list.map((item,i)=> shopRowHtml(item, `data-i="${i}"`, false)).join('');
+  const idx = shopNeedIndex();
+  wrap.innerHTML = list.map((item,i)=> shopRowHtml(item, `data-i="${i}"`, false, idx)).join('');
   wrap.querySelectorAll('.shop-row').forEach(row=> row.addEventListener('click', async ()=>{
     const item = list[Number(row.dataset.i)];
     const key = item.name.trim().toLowerCase();
@@ -5890,21 +5920,41 @@ function openShopFinish(){
   else{
     const sorted = [...active].sort((a,b)=> (a.status==='liste'?0:1)-(b.status==='liste'?0:1) || a.name.localeCompare(b.name,'de'));
     let lastGroup = '';
-    listEl.innerHTML = sorted.map(item=>{
+    listEl.innerHTML = '<div class="finish-head"><span>Produkt</span><span>Geplant</span><span>Eingekauft</span></div>' + sorted.map(item=>{
       const info = packInfo(item.name, item.amount, item.unit);
       const inCart = item.status==='liste';
       const group = inCart ? 'Im Wagen' : 'Nicht abgehakt';
       const head = group!==lastGroup ? `<p class="shop-cat">${group}</p>` : '';
       lastGroup = group;
-      const val = inCart ? (info.hasPack ? info.packs : Math.round(item.amount*100)/100) : 0;
-      const unitLbl = info.hasPack ? escapeAttr(info.packName) : escapeAttr(item.unit);
+      const planned = info.hasPack ? info.packs : Math.round(item.amount*100)/100;
+      const val = inCart ? planned : 0;
+      const unitLbl = info.hasPack ? info.packName : item.unit;
       const sub = info.hasPack ? `à ${fmtAmt(info.perPack)} ${item.unit}` : '';
-      return `${head}<div class="finish-row" data-id="${item.id}">
+      return `${head}<div class="finish-row" data-id="${item.id}" data-planned="${planned}" data-step="${info.hasPack?1:(item.unit==='g'||item.unit==='ml'?50:1)}">
         <p class="fr-name">${escapeAttr(item.name)}${sub?`<span class="fr-sub">${escapeAttr(sub)}</span>`:''}</p>
-        <input type="number" step="any" min="0" class="fr-qty" value="${val}">
-        <span class="fr-unit">${unitLbl}</span>
+        <span class="fr-planned">${fmtAmt(planned)} ${escapeAttr(unitLbl)}</span>
+        <div class="fr-qtywrap"><button type="button" class="fr-step" data-d="-1">−</button><input type="number" step="any" min="0" class="fr-qty" value="${val}"><button type="button" class="fr-step" data-d="1">+</button></div>
+        <span class="fr-check"></span>
       </div>`;
     }).join('');
+    const mark = row=>{
+      const qty = Number(row.querySelector('.fr-qty').value)||0;
+      const planned = Number(row.dataset.planned)||0;
+      const el = row.querySelector('.fr-check');
+      row.classList.remove('ok','diff','none');
+      if(qty<=0){ el.textContent = 'bleibt'; row.classList.add('none'); }
+      else if(Math.abs(qty-planned)<0.001){ el.textContent = '✓ stimmt'; row.classList.add('ok'); }
+      else{ const d = Math.round((qty-planned)*100)/100; el.textContent = (d>0?'+':'')+fmtAmt(d); row.classList.add('diff'); }
+    };
+    listEl.querySelectorAll('.finish-row').forEach(row=>{
+      mark(row);
+      row.querySelector('.fr-qty').addEventListener('input', ()=> mark(row));
+      row.querySelectorAll('.fr-step').forEach(b=> b.addEventListener('click', ()=>{
+        const inp = row.querySelector('.fr-qty');
+        inp.value = Math.max(0, Math.round(((Number(inp.value)||0) + Number(b.dataset.d)*Number(row.dataset.step))*100)/100);
+        mark(row);
+      }));
+    });
   }
   document.getElementById('shopFinishBg').classList.add('open');
 }

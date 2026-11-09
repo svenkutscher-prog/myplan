@@ -2982,8 +2982,9 @@ function pantryRowHtml(p, i){
       </div>
     </div>`;
   }
-  /* Mit Packungs-Mapping: Bestand/Minimum in Packungen eingeben (intern weiter in Gramm/Einheit gespeichert) */
-  const hasPack = p.packSize>0 && !!p.packName;
+  /* Mit Packungs-Mapping bei Mengen-Einheiten (g/ml/kg/l): Bestand/Minimum in Packungen eingeben (intern weiter in der Einheit gespeichert).
+     Bei Stück & Co. bleibt die Eingabe in der Einheit (10 Tomaten zählt man, nicht 0,5 Schalen). */
+  const hasPack = p.packSize>0 && !!p.packName && ['g','ml','kg','l'].includes((p.unit||'').toLowerCase());
   const fac = hasPack ? p.packSize : 1;
   const qLabel = hasPack ? packPlural(2, p.packName) : unitLabel;
   const qVal = v=> hasPack ? Math.round((Number(v)||0)/fac*100)/100 : v;

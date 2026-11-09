@@ -2982,9 +2982,15 @@ function pantryRowHtml(p, i){
       </div>
     </div>`;
   }
+  /* Mit Packungs-Mapping: Bestand/Minimum in Packungen eingeben (intern weiter in Gramm/Einheit gespeichert) */
+  const hasPack = p.packSize>0 && !!p.packName;
+  const fac = hasPack ? p.packSize : 1;
+  const qLabel = hasPack ? packPlural(2, p.packName) : unitLabel;
+  const qVal = v=> hasPack ? Math.round((Number(v)||0)/fac*100)/100 : v;
+  const qTitle = v=> hasPack ? ` title="= ${fmtAmt(v)} ${unitLabel}"` : '';
   const mengeFields = `
-        <div class="p-mini"><label>Best.${unitLabel?` (${unitLabel})`:''}</label><input type="number" step="any" class="pf-bestand" value="${p.bestand}"></div>
-        <div class="p-mini"><label>Min.${unitLabel?` (${unitLabel})`:''}</label><input type="number" step="any" class="pf-min" value="${p.mindestbestand}"></div>`;
+        <div class="p-mini"><label>Best.${qLabel?` (${qLabel})`:''}</label><input type="number" step="any" class="pf-bestand" data-factor="${fac}" value="${qVal(p.bestand)}"${qTitle(p.bestand)}></div>
+        <div class="p-mini"><label>Min.${qLabel?` (${qLabel})`:''}</label><input type="number" step="any" class="pf-min" data-factor="${fac}" value="${qVal(p.mindestbestand)}"${qTitle(p.mindestbestand)}></div>`;
   return `
     <div class="p-card ${p.bestand<p.mindestbestand?'low':''}" data-i="${i}">
       <div class="p-row">
@@ -3030,11 +3036,11 @@ function renderPantry(){
   wrap.querySelectorAll('.p-card').forEach(row=>{
     const i = Number(row.dataset.i); const p = pantry[i];
     const bestandEl = row.querySelector('.pf-bestand'), minEl = row.querySelector('.pf-min');
-    if(bestandEl) bestandEl.addEventListener('change', e=>{ p.bestand = Number(e.target.value)||0; row.classList.toggle('low', p.bestand<p.mindestbestand); savePantryItem(p).catch(err=>{ console.error(err); setStatus(err.message); }); });
-    if(minEl) minEl.addEventListener('change', e=>{ p.mindestbestand = Number(e.target.value)||0; row.classList.toggle('low', p.bestand<p.mindestbestand); savePantryItem(p).catch(err=>{ console.error(err); setStatus(err.message); }); });
+    if(bestandEl) bestandEl.addEventListener('change', e=>{ p.bestand = Math.round((Number(e.target.value)||0)*(Number(e.target.dataset.factor)||1)*100)/100; row.classList.toggle('low', p.bestand<p.mindestbestand); savePantryItem(p).catch(err=>{ console.error(err); setStatus(err.message); }); });
+    if(minEl) minEl.addEventListener('change', e=>{ p.mindestbestand = Math.round((Number(e.target.value)||0)*(Number(e.target.dataset.factor)||1)*100)/100; row.classList.toggle('low', p.bestand<p.mindestbestand); savePantryItem(p).catch(err=>{ console.error(err); setStatus(err.message); }); });
     const packNameEl = row.querySelector('.pf-packname'), packSizeEl = row.querySelector('.pf-packsize');
-    if(packNameEl) packNameEl.addEventListener('change', e=>{ p.packName = e.target.value.trim(); savePantryItem(p).catch(err=>{ console.error(err); setStatus(err.message); }); });
-    if(packSizeEl) packSizeEl.addEventListener('change', e=>{ p.packSize = Number(e.target.value)||0; savePantryItem(p).catch(err=>{ console.error(err); setStatus(err.message); }); });
+    if(packNameEl) packNameEl.addEventListener('change', e=>{ p.packName = e.target.value.trim(); savePantryItem(p).catch(err=>{ console.error(err); setStatus(err.message); }); renderPantry(); });
+    if(packSizeEl) packSizeEl.addEventListener('change', e=>{ p.packSize = Number(e.target.value)||0; savePantryItem(p).catch(err=>{ console.error(err); setStatus(err.message); }); renderPantry(); });
     const unitEl = row.querySelector('.pf-unit');
     if(unitEl) unitEl.addEventListener('change', e=>{ p.unit = e.target.value; savePantryItem(p).catch(err=>{ console.error(err); setStatus(err.message); }); renderPantry(); });
     const cartBtn = row.querySelector('.p-cart-btn');

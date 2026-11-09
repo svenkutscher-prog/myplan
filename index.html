@@ -6094,6 +6094,8 @@ document.addEventListener('touchend', e=>{
      const ziel = location.hash.slice(1);
      const tab = ziel && document.querySelector('.tab[data-tab="' + ziel + '"]');
      if (tab) tab.click();
+     // Einkaufsliste bei jedem Start neu berechnen, damit ShoppingNeeds (und das Badge auf der Startseite) aktuell sind
+     else computeShoppingNeeds().catch(err=> console.error(err));
    });
 </script>
 

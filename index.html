@@ -645,8 +645,9 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
 .shop-add{display:flex;gap:8px;margin-bottom:4px;}
 .shop-add input{flex:1;min-width:0;font-size:15px;border:1px solid var(--line);border-radius:8px;padding:9px 10px;background:var(--card);}
 .shop-add .btn{width:auto;padding:0 14px;}
-.shop-why{display:none;margin:2px 0 0;font-size:12px;color:var(--ink-soft);}
-.shop-row.open .shop-why{display:block;}
+.shop-home{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:3px 0 0;font-size:12px;color:var(--ink-soft);}
+.shop-chip{font-size:11px;padding:1px 8px;border-radius:20px;background:var(--bg);border:1px solid var(--line);color:var(--ink-soft);}
+.shop-chip.zero{background:var(--coral-bg);border-color:transparent;color:var(--coral);}
 .p-pack-row{flex-basis:100%;display:flex;gap:6px;}
 .p-dfield select.pf-packname{width:100%;border:none;background:transparent;font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--ink);padding:0;}
 .shoplist-text{width:100%;font-family:'IBM Plex Mono',monospace;font-size:12.5px;line-height:1.6;border:1px solid var(--line);border-radius:10px;padding:.8rem .9rem;background:#fff;color:var(--ink);resize:vertical;}
@@ -5841,17 +5842,37 @@ function packInfo(name, amount, unit){
   const qty = roundShopAmount(amount, unit);
   return { hasPack:false, qty, label:`${fmtAmt(qty)}${unit?' '+unit:''}`, sub:'' };
 }
+/* Menge so formatieren, wie im Vorrat gezählt wird: g/ml-Artikel mit Packung in Packungen (auf ½ gerundet), sonst in der Einheit */
+function homeQtyLabel(amount, p){
+  const u = (p.unit||'').toLowerCase();
+  if(p.packSize>0 && p.packName && ['g','ml','kg','l'].includes(u)){
+    const r = Math.round(amount/p.packSize*2)/2;
+    if(r<=0) return `weniger als ½ ${p.packName}`;
+    const whole = Math.floor(r), half = r-whole>0;
+    const num = whole ? `${whole}${half?'½':''}` : '½';
+    return `${num} ${r>1 ? packPlural(2, p.packName) : p.packName}`;
+  }
+  const v = (u==='g'||u==='ml') ? Math.round(amount/10)*10 : Math.round(amount*10)/10;
+  return `${fmtAmt(v)} ${p.unit}`;
+}
 function shopRowHtml(item, done){
   const info = packInfo(item.name, item.amount, item.unit);
   const p = pantryItem(item.name);
   const own = !p;
-  const ni = shopNeedInfo.get(item.name.trim().toLowerCase());
-  const why = own ? 'Eigener Artikel'
-    : `Vorrat: ${fmtAmt(p.bestand)} ${p.unit}${ni && ni.benoetigt>0 ? ` · Plan nächste ${SHOP_PLAN_DAYS} Tage: ${fmtAmt(ni.benoetigt)} ${p.unit}` : ''} · Minimum: ${fmtAmt(p.mindestbestand)} ${p.unit}`;
+  let home = '';
+  if(!done && p){
+    const b = Number(p.bestand)||0;
+    const ni = shopNeedInfo.get(item.name.trim().toLowerCase());
+    const chip = b>0 ? `<span class="shop-chip">🏠 zuhause: ${escapeAttr(homeQtyLabel(b, p))}</span>` : '<span class="shop-chip zero">🏠 zuhause: nichts</span>';
+    const need = ni && ni.benoetigt>0
+      ? `${SHOP_PLAN_DAYS===7 ? 'Woche braucht' : `nächste ${SHOP_PLAN_DAYS} Tage:`} ${escapeAttr(homeQtyLabel(ni.benoetigt, p))}`
+      : 'Mindestbestand';
+    home = `<p class="shop-home">${chip}<span>${need}</span></p>`;
+  }
   return `<div class="shop-row ${done?'done':''}" data-id="${item.id}">
     <div class="shop-cb">${done?'✓':''}</div>
     <div class="shop-main"><p class="shop-name">${info.label?`<b>${escapeAttr(info.label)}</b> `:''}${escapeAttr(item.name)}</p>
-      ${info.sub?`<p class="shop-sub">${escapeAttr(info.sub)}</p>`:''}<p class="shop-why">${escapeAttr(why)}</p></div>
+      ${info.sub && !done?`<p class="shop-sub">${escapeAttr(info.sub)}</p>`:''}${home}</div>
     ${own?'<button class="shop-x" title="Entfernen">✕</button>':''}
   </div>`;
 }
@@ -5891,9 +5912,6 @@ function renderShopPreview(){
     if(e.target.closest('.shop-x')){
       try{ if(item.id) await atDelete('ShoppingNeeds', item.id); }catch(err){ console.error(err); }
       shoppingNeeds = shoppingNeeds.filter(s=>s.id!==id);
-    }else if(e.target.closest('.shop-main')){
-      row.classList.toggle('open');   // Name antippen -> Vorrat/Minimum anzeigen
-      return;
     }else{
       if(item.status==='liste'){
         const stillNeeded = buildShoppingList().some(n=> n.name.trim().toLowerCase()===item.name.trim().toLowerCase());

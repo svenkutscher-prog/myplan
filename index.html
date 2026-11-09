@@ -5840,7 +5840,30 @@ function shoppingListText(items){
 
 /* ============ ShoppingNeeds: persistenter Status pro fehlender Zutat ============ */
 const _needsCreating = new Set();
+/* Mehrere Geräte (dein Handy, ihr Handy, Mac) rechnen die Liste unabhängig voneinander – deshalb:
+   1) Läufe nacheinander statt gleichzeitig, 2) vor dem Rechnen den echten Stand aus der Datenbank holen
+   (nicht den lokalen Zwischenspeicher), 3) doppelte Einträge zum selben Artikel automatisch zusammenführen. */
+let _shopComputeRunning = null;
 async function computeShoppingNeeds(){
+  if(_shopComputeRunning) await _shopComputeRunning.catch(()=>{});
+  _shopComputeRunning = _computeShoppingNeeds();
+  try{ return await _shopComputeRunning; } finally { _shopComputeRunning = null; }
+}
+async function _computeShoppingNeeds(){
+  try{
+    const nRecs = await atList('ShoppingNeeds');
+    shoppingNeeds = nRecs.map(r=>({ id:r.id, name:r.fields.Name||'', unit:r.fields.Unit||'', amount:Number(r.fields.Amount)||0, status:r.fields.Status||'offen', boughtAmount:Number(r.fields.BoughtAmount)||0 }));
+  }catch(e){ console.error('ShoppingNeeds konnten nicht frisch geladen werden', e); }
+  // Doppelte zusammenführen: pro Artikel bleibt einer (bevorzugt der, der schon "im Wagen" ist)
+  const seen = new Map(), dupes = [];
+  shoppingNeeds.filter(s=> s.status!=='gekauft').forEach(s=>{
+    const k = s.name.trim().toLowerCase(), prev = seen.get(k);
+    if(!prev){ seen.set(k, s); return; }
+    if(s.status==='liste' && prev.status!=='liste'){ dupes.push(prev); seen.set(k, s); } else dupes.push(s);
+  });
+  for(const d of dupes){ try{ await atDelete('ShoppingNeeds', d.id); }catch(e){ console.error(e); } }
+  if(dupes.length) shoppingNeeds = shoppingNeeds.filter(s=> !dupes.includes(s));
+
   const needed = buildShoppingList();
   const neededNames = new Set(needed.map(i=> i.name.trim().toLowerCase()));
   for(const item of needed){

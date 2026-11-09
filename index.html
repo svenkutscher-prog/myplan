@@ -1017,6 +1017,7 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
       <p style="margin:0 0 6px;font-size:14px;color:#6B4B1A;" id="dbWarningText">–</p>
       <button class="btn" id="dbCleanupBtn" style="padding:6px 12px;font-size:13px;">Datenbank aufräumen</button>
     </div>
+    <p id="dbUsageLine" style="font-size:12px;color:var(--ink-soft);margin:-4px 2px 12px;"></p>
     <div class="guthaben-card" id="guthabenCard">
       <span class="gh-emoji">🎉</span>
       <p class="gh-label">Kcal-Guthaben</p>
@@ -1370,42 +1371,6 @@ async function atBatchDelete(table, ids){
   }
 }
 
-/* ===== Einmalige Datenübernahme aus Airtable =====
-   In der Konsole aufrufen:  await migrateFromAirtable()
-   Liest alle Tabellen aus Airtable und schreibt sie nach Supabase (IDs bleiben gleich).
-   Mehrfaches Ausführen ist unschädlich: vorhandene Datensätze werden überschrieben, nicht verdoppelt. */
-const AIRTABLE_BASE = 'appMXs8muaZVg3xxN';
-const AIRTABLE_TOKEN = 'patxRn3XE4fIDytHi.21480c9d52102110c8d7d8fcc9f791cc4eb7402d079db12b22a20d1d8c5db7cd';
-const AIRTABLE_TABLES = ['Pantry','Dishes','WeekPlan','WeekPlanAI','WeekVersion','LogEntries','ShoppingNeeds','Profile',
-  'DayBounds','Weights','Steps','Snacks','PortionSplits','DaySwaps','RoutineTasks','RoutineLog','Bonus','BonusLog'];
-async function migrateFromAirtable(){
-  const atHeaders = { Authorization: `Bearer ${AIRTABLE_TOKEN}` };
-  const summary = [];
-  for(const table of AIRTABLE_TABLES){
-    let recs = [], offset = null;
-    try{
-      do{
-        const url = `https://api.airtable.com/v0/${AIRTABLE_BASE}/${encodeURIComponent(table)}` + (offset ? `?offset=${offset}` : '');
-        const res = await fetch(url, { headers: atHeaders });
-        if(!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-        recs = recs.concat(data.records || []);
-        offset = data.offset;
-      } while(offset);
-    }catch(e){ summary.push({ Tabelle:table, Airtable:'Fehler: '+e.message, Supabase:'–' }); continue; }
-    const rows = recs.map(r=> ({ id:r.id, tbl:table, fields:r.fields||{}, created_at:r.createdTime }));
-    let ok = 0, err = '';
-    for(let i=0;i<rows.length;i+=500){
-      const res = await fetch(`${SB_REST}/records`, { method:'POST',
-        headers:{ ...SB_HEADERS, Prefer:'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify(rows.slice(i,i+500)) });
-      if(res.ok) ok += Math.min(500, rows.length-i); else { err = await sbError(res); break; }
-    }
-    summary.push({ Tabelle:table, Airtable:recs.length, Supabase: err ? 'Fehler: '+err : ok });
-  }
-  console.table(summary);
-  console.log('Fertig. Danach in der App auf "Neu laden" tippen (oder: loadAll(true)).');
-  return summary;
-}
 /* LogEntries anlegen mit Source-Feld (snack/manual/quick) - fällt automatisch ohne Source zurück,
    falls die Spalte in Airtable noch nicht existiert, damit das Loggen nie komplett fehlschlägt. */
 async function atCreateLogEntry(fields){
@@ -1768,7 +1733,7 @@ document.querySelectorAll('.tab').forEach(t=>{
     document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
     t.classList.add('active');
     document.getElementById('panel'+t.dataset.tab.charAt(0).toUpperCase()+t.dataset.tab.slice(1)).classList.add('active');
-    if(t.dataset.tab === 'dashboard') renderDashboard();
+    if(t.dataset.tab === 'dashboard'){ renderDashboard(); loadDbUsage(); }
     if(t.dataset.tab === 'einkaufen') computeShoppingNeeds();
     if(t.dataset.tab === 'kiplan'){ initKiDayPicker(); renderAiDayProposal(); }
     if(t.dataset.tab === 'vorrat'){
@@ -2255,16 +2220,34 @@ function setCleanupArray(table, arr){
     case 'PortionSplits': portionSplits = arr; break;
   }
 }
+/* Datenbankgröße (Supabase, Gratis-Tarif 500 MB). Warnung + Aufräum-Button ab DB_WARN_MB.
+   Wird beim Start und beim Öffnen des Dashboards abgefragt, höchstens einmal pro Stunde. */
+const DB_LIMIT_MB = 500;
+const DB_WARN_MB = 400;
+let dbUsage = null, dbUsageAt = 0;
+async function loadDbUsage(force){
+  if(!force && dbUsage && Date.now()-dbUsageAt < 60*60*1000) return;
+  try{
+    const res = await fetch(`${SB_REST}/rpc/db_usage`, { method:'POST', headers: SB_HEADERS, body:'{}' });
+    if(!res.ok) throw new Error(await sbError(res));
+    dbUsage = await res.json(); dbUsageAt = Date.now();
+  }catch(err){ console.warn('DB-Größe nicht abrufbar (supabase_db_usage.sql ausgeführt?)', err); }
+  renderDbWarning();
+}
 function renderDbWarning(){
-  const totals = DB_CLEANUP_TABLES.map(t=> ({ table:t, count:getCleanupArray(t).length }));
-  const totalCount = totals.reduce((sum,x)=> sum+x.count, 0);
   const card = document.getElementById('dbWarningCard');
   const tabBadge = document.getElementById('dbLimitBadge');
-  if(totalCount < DB_WARN_THRESHOLD){ card.style.display='none'; tabBadge.style.display='none'; return; }
+  const line = document.getElementById('dbUsageLine');
+  if(!dbUsage){ card.style.display='none'; tabBadge.style.display='none'; line.textContent=''; return; }
+  const mb = dbUsage.db_bytes/1048576;
+  const mbTxt = mb < 10 ? mb.toFixed(1).replace('.',',') : Math.round(mb);
+  const pct = Math.round(mb/DB_LIMIT_MB*100);
+  line.textContent = `🗄️ Datenbank: ${mbTxt} MB von ${DB_LIMIT_MB} MB (${pct} %) · ${dbUsage.records_count} Datensätze`;
+  if(mb < DB_WARN_MB){ card.style.display='none'; tabBadge.style.display='none'; return; }
   card.style.display='block';
   tabBadge.style.display='inline-block';
   document.getElementById('dbWarningText').textContent =
-    `⚠️ Insgesamt ${totalCount} von 1000 Datensätzen (Gratis-Plan-Limit) in den Log-Tabellen belegt.`;
+    `⚠️ Die Datenbank belegt ${mbTxt} MB von ${DB_LIMIT_MB} MB (Gratis-Tarif). Alte Tages-Logs aufräumen?`;
 }
 function openDbCleanupModal(){
   const cutoff = addDays(todayStr(), -DB_RETENTION_DAYS);
@@ -6184,6 +6167,7 @@ document.addEventListener('touchend', e=>{
      if (tab) tab.click();
      // Einkaufsliste bei jedem Start neu berechnen, damit ShoppingNeeds (und das Badge auf der Startseite) aktuell sind
      else computeShoppingNeeds().catch(err=> console.error(err));
+     loadDbUsage();
    });
 </script>
 

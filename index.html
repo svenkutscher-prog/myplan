@@ -643,6 +643,37 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
 .shop-bar{height:6px;border-radius:3px;background:var(--line);overflow:hidden;margin:2px 0 10px;}
 .shop-bar div{height:100%;width:0;background:var(--olive);transition:width .2s;}
 .shop-add{display:flex;gap:8px;margin-bottom:4px;}
+.shop-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:.4rem 0 .7rem;}
+.shop-title{font-family:'Fraunces',serif;font-weight:600;font-size:24px;margin:0;color:var(--ink);}
+.shop-count{font-size:13px;font-weight:600;padding:5px 12px;border-radius:20px;background:var(--olive);color:#fff;white-space:nowrap;}
+.shop-count:empty{display:none;}
+.shop-count.done{background:var(--line);color:var(--olive-dark);}
+.shop-progress-row{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+.shop-progress-row .shop-bar{flex:1;margin:0;height:8px;border-radius:4px;}
+.shop-progress-row .shop-progress{margin:0;font-size:12px;color:var(--ink-soft);white-space:nowrap;}
+.shop-add{gap:8px;margin-bottom:6px;}
+.shop-add input{height:46px;border-radius:14px;padding:0 14px;font-size:16px;background:var(--card);}
+.shop-add-btn{width:46px;height:46px;flex-shrink:0;border:none;border-radius:14px;background:var(--olive);color:#fff;font-size:24px;line-height:1;cursor:pointer;}
+.shop-cat{display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-soft);margin:14px 4px 5px;}
+.shop-cat span{font-weight:500;color:var(--ink-soft);opacity:.7;}
+.shop-group{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden;}
+.shop-group .shop-row{padding:9px 12px;border-bottom:1px solid var(--line);gap:10px;min-height:46px;}
+.shop-group .shop-row:last-child{border-bottom:none;}
+.shop-group .shop-row:active{background:var(--bg);}
+.shop-group .shop-cb{width:24px;height:24px;border-width:2px;border-color:#B9C4AC;font-size:13px;}
+.shop-group .shop-name{flex:1;min-width:0;margin:0;font-size:15.5px;font-weight:500;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.shop-home-s{flex-shrink:0;font-size:12px;color:var(--ink-soft);white-space:nowrap;}
+.shop-home-s.zero{color:var(--coral);font-weight:600;}
+.shop-meta{margin:4px 0 0;font-size:12.5px;color:var(--ink-soft);line-height:1.5;}
+.shop-meta .nw{white-space:nowrap;}
+.shop-meta .home{font-weight:500;color:var(--olive-dark);}
+.shop-meta .home.zero{color:var(--coral);}
+.shop-qty{flex-shrink:0;min-width:64px;text-align:center;font-size:13.5px;font-weight:600;padding:4px 10px;border-radius:10px;background:var(--bg);color:var(--ink);white-space:nowrap;}
+.shop-group .shop-row.done .shop-qty{background:transparent;color:var(--ink-soft);font-weight:500;text-decoration:line-through;}
+.shop-group.cart{opacity:.75;}
+.shop-finish{width:100%;height:50px;border-radius:14px;font-size:16px;margin-top:1.4rem;}
+.shop-empty{text-align:center;padding:2rem 1rem;color:var(--ink-soft);background:var(--card);border:1px solid var(--line);border-radius:16px;margin-top:14px;}
+.shop-empty b{display:block;font-family:'Fraunces',serif;font-size:18px;color:var(--ink);margin-bottom:4px;}
 .shop-reset{display:block;margin:1rem auto 0;background:none;border:none;color:var(--ink-soft);font-size:12px;text-decoration:underline;cursor:pointer;}
 .shop-add input{flex:1;min-width:0;font-size:15px;border:1px solid var(--line);border-radius:8px;padding:9px 10px;background:var(--card);}
 .shop-add .btn{width:auto;padding:0 14px;}
@@ -937,13 +968,15 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
 
   <!-- EINKAUFEN -->
   <div class="panel" id="panelEinkaufen">
-    <h2 class="section">Einkaufsliste <span class="section-note" id="previewMeta"></span></h2>
-    <p class="shop-progress" id="shopProgress"></p>
-    <div class="shop-bar"><div id="shopBar"></div></div>
-    <div class="shop-add"><input type="text" id="shopAddInput" placeholder="+ Eigener Artikel, z. B. Milch"><button class="btn" id="shopAddBtn">Hinzufügen</button></div>
+    <div class="shop-head">
+      <h2 class="shop-title">Einkaufsliste</h2>
+      <span class="shop-count" id="previewMeta"></span>
+    </div>
+    <div class="shop-progress-row"><div class="shop-bar"><div id="shopBar"></div></div><span class="shop-progress" id="shopProgress"></span></div>
+    <div class="shop-add"><input type="text" id="shopAddInput" placeholder="Eigener Artikel, z. B. Milch" enterkeyhint="done"><button class="shop-add-btn" id="shopAddBtn" aria-label="Hinzufügen">+</button></div>
     <div id="shopPreview"></div>
 
-    <button class="btn primary" id="finishShopBtn" style="margin-top:1.2rem;">✓ Einkauf abschließen – Vorrat buchen</button>
+    <button class="btn primary shop-finish" id="finishShopBtn">✓ Einkauf abschließen</button>
     <button type="button" class="shop-reset" id="shopResetBtn">↺ Liste neu aufbauen</button>
     <!-- bleiben unsichtbar, damit bestehende Handler weiter funktionieren -->
     <button class="btn" id="refreshNeedsBtn" style="display:none;">↻</button>
@@ -5753,11 +5786,11 @@ function buildUpcomingList(){
 }
 
 const SHOP_CATEGORIES = [
-  {name:'Obst & Gemüse', keys:['paprika','brokkoli','tomate','zitrone','zwiebel','knoblauch','apfel','banane','gurke','salat','spinat','karotte','kartoffel','avocado','pilz']},
-  {name:'Milchprodukte & Eier', keys:['joghurt','käse','feta','quark','butter','sahne','ei','mozzarella','milch']},
+  {name:'Obst & Gemüse', keys:['paprika','brokkoli','tomate','zitrone','zwiebel','knoblauch','apfel','äpfel','banane','gurke','salat','spinat','karotte','kartoffel','avocado','pilz','zucchini','lauch','kiwi','melone','beere']},
+  {name:'Milchprodukte & Eier', keys:['joghurt','skyr','käse','feta','quark','butter','sahne','eier','mozzarella','milch']},
   {name:'Fleisch & Fisch', keys:['hähnchen','huhn','rind','schwein','hack','lachs','thunfisch','fisch','wurst','speck']},
   {name:'Brot & Backwaren', keys:['brot','brötchen','toast','wrap','tortilla']},
-  {name:'Tiefkühl', keys:['tiefkühl','(tk)','tk-']},
+  {name:'Tiefkühl', keys:['tiefkühl','(tk)','tk-',' tk ',' tk']},
   {name:'Trockenware & Sonstiges', keys:['reis','nudel','pasta','linsen','bohnen','kichererbsen','haferflocken','mehl','zucker','honig','sojasauce','essig','öl','salz','pfeffer']},
 ];
 function categoryFor(name){
@@ -5865,6 +5898,11 @@ function homeQtyLabel(amount, p){
   const v = (u==='g'||u==='ml') ? Math.round(amount/10)*10 : Math.round(amount*10)/10;
   return `${fmtAmt(v)} ${p.unit}`;
 }
+/* Kompakte Zeile: [○] Name ……… 🏠 2 | 3 Stück  – eine Zeile pro Artikel, damit auch 20+ Artikel übersichtlich bleiben */
+function homeShortLabel(amount, p){
+  const full = homeQtyLabel(amount, p);           // z.B. "2 Stück", "1½ Dosen", "120 g"
+  return full.replace(/ (Stück|Stk)$/,'');         // Stück weglassen – Zahl reicht
+}
 function shopRowHtml(item, done){
   const info = packInfo(item.name, item.amount, item.unit);
   const p = pantryItem(item.name);
@@ -5873,16 +5911,15 @@ function shopRowHtml(item, done){
   if(!done && p){
     const b = Number(p.bestand)||0;
     const ni = shopNeedInfo.get(item.name.trim().toLowerCase());
-    const chip = b>0 ? `<span class="shop-chip">🏠 zuhause: ${escapeAttr(homeQtyLabel(b, p))}</span>` : '<span class="shop-chip zero">🏠 zuhause: nichts</span>';
-    const need = ni && ni.benoetigt>0
-      ? `${SHOP_PLAN_DAYS===7 ? 'Woche braucht' : `nächste ${SHOP_PLAN_DAYS} Tage:`} ${escapeAttr(homeQtyLabel(ni.benoetigt, p))}`
-      : 'Mindestbestand';
-    home = `<p class="shop-home">${chip}<span>${need}</span></p>`;
+    const tip = `Zuhause: ${homeQtyLabel(Math.max(0,b), p)}${ni && ni.benoetigt>0 ? ` · Woche: ${homeQtyLabel(ni.benoetigt, p)}` : ''}`;
+    home = b>0 ? `<span class="shop-home-s" title="${escapeAttr(tip)}">🏠 ${escapeAttr(homeShortLabel(b, p))}</span>`
+               : `<span class="shop-home-s zero" title="${escapeAttr(tip)}">🏠 0</span>`;
   }
   return `<div class="shop-row ${done?'done':''}" data-id="${item.id}">
     <div class="shop-cb">${done?'✓':''}</div>
-    <div class="shop-main"><p class="shop-name">${info.label?`<b>${escapeAttr(info.label)}</b> `:''}${escapeAttr(item.name)}</p>
-      ${info.sub && !done?`<p class="shop-sub">${escapeAttr(info.sub)}</p>`:''}${home}</div>
+    <p class="shop-name shop-main">${escapeAttr(item.name)}</p>
+    ${home}
+    ${info.label?`<span class="shop-qty">${escapeAttr(info.label)}</span>`:''}
     ${own?'<button class="shop-x" title="Entfernen">✕</button>':''}
   </div>`;
 }
@@ -5895,24 +5932,28 @@ function renderShopPreview(){
   const open = active.filter(s=> s.status!=='liste');
   const inCart = active.filter(s=> s.status==='liste');
 
-  document.getElementById('previewMeta').textContent = open.length ? open.length+' offen' : '';
-  document.getElementById('shopProgress').textContent = active.length ? `${inCart.length} von ${active.length} im Wagen` : '';
+  const cnt = document.getElementById('previewMeta');
+  cnt.textContent = active.length ? (open.length ? open.length+' offen' : 'Alles im Wagen ✓') : '';
+  cnt.classList.toggle('done', active.length>0 && !open.length);
+  document.getElementById('shopProgress').textContent = active.length ? `${inCart.length}/${active.length} im Wagen` : '';
+  document.querySelector('.shop-progress-row').style.display = active.length ? '' : 'none';
   document.getElementById('shopBar').style.width = active.length ? (inCart.length/active.length*100)+'%' : '0';
 
-  if(!active.length){ wrap.innerHTML = '<div class="empty">Alles da – aktuell nichts zu kaufen.</div>'; return; }
+  if(!active.length){ wrap.innerHTML = '<div class="shop-empty"><b>Alles da 🎉</b>Aktuell muss nichts eingekauft werden.</div>'; return; }
 
   const order = SHOP_CATEGORIES.map(c=>c.name).concat('Sonstiges', 'Eigene Artikel');
   const byCat = {};
   open.forEach(i=>{ const c = pantryItem(i.name) ? categoryFor(i.name) : 'Eigene Artikel'; (byCat[c]=byCat[c]||[]).push(i); });
   let html = '';
   order.filter(c=>byCat[c]).forEach(cat=>{
-    html += `<p class="shop-cat">${cat}</p>`;
+    html += `<p class="shop-cat">${cat} <span>${byCat[cat].length}</span></p><div class="shop-group">`;
     byCat[cat].sort((a,b)=> a.name.localeCompare(b.name,'de')).forEach(i=>{ html += shopRowHtml(i, false); });
+    html += '</div>';
   });
-  if(!open.length) html += '<div class="empty" style="margin-top:.6rem;">Alles im Wagen 🎉</div>';
   if(inCart.length){
-    html += `<p class="shop-cat">Im Wagen (${inCart.length})</p>`;
+    html += `<p class="shop-cat">Im Wagen <span>${inCart.length}</span></p><div class="shop-group cart">`;
     inCart.sort((a,b)=> a.name.localeCompare(b.name,'de')).forEach(i=>{ html += shopRowHtml(i, true); });
+    html += '</div>';
   }
   wrap.innerHTML = html;
 

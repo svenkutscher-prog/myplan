@@ -2761,6 +2761,14 @@ async function savePantryItem(p){
     }
     if(p.id) await atUpdate('Pantry', p.id, fieldsWithoutNew);
   }
+  scheduleShoppingRecompute();
+}
+/* Nach jeder Vorratsänderung (Abhaken in "Heute", Rückgängig, Vorrat-Tab) die Einkaufsliste in Airtable neu berechnen,
+   damit das rote Badge auf der Startseite sofort stimmt. Gebündelt: rechnet 2 s nach der letzten Änderung einmal. */
+let _shopRecomputeTimer = null;
+function scheduleShoppingRecompute(){
+  clearTimeout(_shopRecomputeTimer);
+  _shopRecomputeTimer = setTimeout(()=>{ computeShoppingNeeds().catch(err=> console.error(err)); }, 2000);
 }
 /* kcal/Ballaststoffe pro Einheit -> tatsächlicher Beitrag für eine gegebene Zutatmenge.
    g/ml: Wert gilt pro 100 Einheiten. Stück/Dose/TL/EL: Wert gilt pro 1 Stück/Dose/TL/EL. */

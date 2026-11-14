@@ -684,6 +684,17 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
 .p-dfield select.pf-packname{width:100%;border:none;background:transparent;font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--ink);padding:0;}
 .shoplist-text{width:100%;font-family:'IBM Plex Mono',monospace;font-size:12.5px;line-height:1.6;border:1px solid var(--line);border-radius:10px;padding:.8rem .9rem;background:#fff;color:var(--ink);resize:vertical;}
 .copy-status{font-size:12px;color:var(--olive-dark);margin:.4rem 0 0;min-height:14px;}
+/* Aktions-Tasten als kompakte Reihe mit runden Symbolen */
+.pill-row.action-row{grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;margin:.6rem 0 1.2rem;}
+.action-row .open-btn{background:none;border:none;padding:4px 0;gap:5px;font-size:11.5px;line-height:1.2;border-radius:12px;}
+.action-row .open-btn:hover{background:none;}
+.action-row .open-btn .ic{width:52px;height:52px;border-radius:50%;font-size:22px;border:1px solid var(--line);transition:transform .15s;}
+.action-row .open-btn:active .ic{transform:scale(.92);}
+.action-row .open-btn .sub{font-size:10px;min-height:0;}
+.action-row .open-btn .sub:empty{display:none;}
+.action-row .end-btn .ic{border:1.5px solid var(--coral);}
+.action-row .open-btn.done{background:none;}
+.action-row .open-btn.done .ic{background:#EDEFE7;border-color:var(--line);}
 /* Detail-Level "Limitiert": Bewertung, Ballaststoffe und Protein in den Essens-Zeilen ausblenden (Details weiter über ⓘ) */
 body.detail-limit #planList .food-row .fullness-badge,
 body.detail-limit #planList .food-kcal br,
@@ -811,12 +822,12 @@ body.detail-limit #extraList .food-fiber{display:none}
       <div class="eb-calc" id="ebCalc"></div>
     </div></div>
 
-    <div class="tw" data-w="actions"><div class="pill-row">
-      <button class="open-btn" id="openQuickEatBtn" style="grid-column:1 / -1;"><span class="ic a">⚡</span> Schnell essen</button>
-      <button class="open-btn" id="openExtraBtn"><span class="ic a">🍽️</span> Gericht hinzufügen</button>
+    <div class="tw" data-w="actions"><div class="pill-row action-row">
+      <button class="open-btn" id="openQuickEatBtn"><span class="ic a">⚡</span> Schnell essen</button>
+      <button class="open-btn" id="openExtraBtn"><span class="ic a">🍽️</span> Gericht</button>
       <button class="open-btn" id="openWeightBtn"><span class="ic b">⚖️</span> Gewicht <span class="sub" id="weightBtnSub"></span></button>
       <button class="open-btn" id="openStepsBtn"><span class="ic c">👟</span> Schritte <span class="sub" id="stepsBtnSub"></span></button>
-      <button class="open-btn" id="endTagBtn"><span class="ic c">🏁</span> Tag beenden <span class="sub" id="endTagBtnSub"></span></button>
+      <button class="open-btn end-btn" id="endTagBtn"><span class="ic c">🏁</span> Tag beenden <span class="sub" id="endTagBtnSub"></span></button>
     </div></div>
 
     <div class="tw" data-w="ai"><button class="btn primary" id="aiCheckBtn" style="margin-top:1.2rem;">🤖 2-Tage-Check von deinem Personal Trainer</button>

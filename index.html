@@ -684,6 +684,11 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
 .p-dfield select.pf-packname{width:100%;border:none;background:transparent;font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--ink);padding:0;}
 .shoplist-text{width:100%;font-family:'IBM Plex Mono',monospace;font-size:12.5px;line-height:1.6;border:1px solid var(--line);border-radius:10px;padding:.8rem .9rem;background:#fff;color:var(--ink);resize:vertical;}
 .copy-status{font-size:12px;color:var(--olive-dark);margin:.4rem 0 0;min-height:14px;}
+/* Detail-Level "Limitiert": Bewertung, Ballaststoffe und Protein in den Essens-Zeilen ausblenden (Details weiter über ⓘ) */
+body.detail-limit #planList .food-row .fullness-badge,
+body.detail-limit #planList .food-kcal br,
+body.detail-limit #planList .food-fiber,
+body.detail-limit #extraList .food-fiber{display:none}
 </style>
 </head>
 <body>
@@ -1176,6 +1181,17 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
   </div>
 </div>
 
+<div class="modal-bg" id="endTagConfirmBg">
+  <div class="modal">
+    <h2>Tag wirklich beenden?</h2>
+    <p class="section-label">Danach ist der heutige Tag abgeschlossen.</p>
+    <div class="modal-actions">
+      <button class="btn" id="endTagNein">Nein</button>
+      <button class="btn primary" id="endTagJa">Ja</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-bg" id="eatLockModalBg">
   <div class="modal">
     <h2>Essensfenster ist zu</h2>
@@ -1224,6 +1240,12 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
     <div class="profile-field"><label>Grundumsatz (kcal) – automatisch berechnet aus Gewicht/Größe/Alter/Geschlecht</label><p class="ds-val" id="profBmrDisplay" style="margin:0;font-size:22px;">–</p></div>
     <div class="profile-field"><label>Ziel-Defizit pro Tag (kcal)</label><input type="number" id="profDeficitWarn" step="50"></div>
     <div class="profile-field"><label>Fastenziel (Stunden ohne Essen)</label><input type="number" id="profFastGoal" step="1" min="1" max="23"></div>
+    <div class="profile-field"><label>Detail-Level der Essens-Zeilen (nur auf diesem Gerät)</label>
+      <select id="profDetailLevel" style="width:100%;font-size:14px;border:1px solid var(--line);border-radius:8px;padding:8px;background:#fff;color:var(--ink);">
+        <option value="max">Max – Kalorien, Bewertung, Ballaststoffe, Protein</option>
+        <option value="limit">Limitiert – nur Name und Kalorien</option>
+      </select>
+    </div>
     <div class="profile-field"><label>Claude API-Key (nur lokal in diesem Browser gespeichert, für den KI-Wochenplan)</label><input type="password" id="profClaudeKey" placeholder="sk-ant-..." autocomplete="off"></div>
     <div class="profile-field" id="freigabeSection">
       <label>Freigabe – Direkt-Links (wer den Link hat, kommt ohne Login rein)</label>
@@ -1673,8 +1695,14 @@ document.getElementById('missedEndSkip').addEventListener('click', async ()=>{
   document.getElementById('missedEndModalBg').classList.remove('open');
   renderDashboard();
 });
-document.getElementById('endTagBtn').addEventListener('click', async ()=>{
+document.getElementById('endTagBtn').addEventListener('click', ()=>{
   if(currentDate !== todayStr()){ setStatus('Tag beenden geht nur für heute'); return; }
+  if(dayEnded(todayStr())) return;
+  document.getElementById('endTagConfirmBg').classList.add('open'); // erst nachfragen
+});
+document.getElementById('endTagNein').addEventListener('click', ()=> document.getElementById('endTagConfirmBg').classList.remove('open'));
+document.getElementById('endTagJa').addEventListener('click', async ()=>{
+  document.getElementById('endTagConfirmBg').classList.remove('open');
   if(dayEnded(todayStr())) return;
   try{
     await setEndTag(todayStr(), nowHM());
@@ -1684,6 +1712,17 @@ document.getElementById('endTagBtn').addEventListener('click', async ()=>{
     showFastHintToast();
   }catch(e){ console.error(e); setStatus(e.message||'Fehler beim Beenden des Tages'); }
 });
+/* Detail-Level der Essens-Zeilen: "max" oder "limit", pro Gerät gespeichert */
+function applyDetailLevel(){
+  let lvl='max'; try{ lvl = localStorage.getItem('nouriDetailLevel') || 'max'; }catch(e){}
+  document.body.classList.toggle('detail-limit', lvl==='limit');
+  const sel = document.getElementById('profDetailLevel'); if(sel) sel.value = lvl;
+}
+document.getElementById('profDetailLevel').addEventListener('change', e=>{
+  try{ localStorage.setItem('nouriDetailLevel', e.target.value); }catch(_){}
+  applyDetailLevel();
+});
+applyDetailLevel();
 let fastHintTimer = null;
 function showFastHintToast(){
   const toast = document.getElementById('fastHintToast');

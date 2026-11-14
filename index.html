@@ -697,6 +697,10 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
   <p style="font-size:13px;color:var(--ink-soft);margin:0 0 18px;">Starte deinen Tag, um loszulegen.</p>
   <button class="btn primary" id="startTagBtn" style="padding:14px 32px;font-size:15px;">Start Tag</button>
 </div>
+<div class="loading-overlay hidden" id="noAccessOverlay">
+  <p style="font-family:'Fraunces',serif;font-weight:600;font-size:17px;color:var(--ink);margin:0 0 6px;">Kein Zugang</p>
+  <p style="font-size:13px;color:var(--ink-soft);margin:0;max-width:260px;text-align:center;">Bitte öffne Nouri über deinen persönlichen Freigabe-Link.</p>
+</div>
 <div class="wrap">
   <h1>Nouri <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:500;color:var(--ink-soft);vertical-align:middle;">v2</span></h1>
   <div class="tabs">
@@ -1221,6 +1225,19 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
     <div class="profile-field"><label>Ziel-Defizit pro Tag (kcal)</label><input type="number" id="profDeficitWarn" step="50"></div>
     <div class="profile-field"><label>Fastenziel (Stunden ohne Essen)</label><input type="number" id="profFastGoal" step="1" min="1" max="23"></div>
     <div class="profile-field"><label>Claude API-Key (nur lokal in diesem Browser gespeichert, für den KI-Wochenplan)</label><input type="password" id="profClaudeKey" placeholder="sk-ant-..." autocomplete="off"></div>
+    <div class="profile-field" id="freigabeSection">
+      <label>Freigabe – Direkt-Links (wer den Link hat, kommt ohne Login rein)</label>
+      <div id="freigabeList" style="font-size:13.5px;"></div>
+      <div style="display:flex;gap:6px;margin-top:8px;">
+        <input type="text" id="freigabeName" placeholder="Name, z. B. Einkauf" style="flex:1;min-width:0;">
+        <select id="freigabeRolle" style="font-size:13px;border:1px solid var(--line);border-radius:8px;padding:6px;background:#fff;color:var(--ink);">
+          <option value="einkauf">Bearbeiten Einkaufsliste</option>
+          <option value="alles">Bearbeiten alles</option>
+        </select>
+        <button type="button" class="btn" id="freigabeAddBtn">+ Link</button>
+      </div>
+      <p class="copy-status" id="freigabeStatus"></p>
+    </div>
     <div class="modal-actions">
       <button class="btn" id="profileCancel">Abbrechen</button>
       <button class="btn primary" id="profileSave">Speichern</button>
@@ -1322,7 +1339,36 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
 const SUPABASE_URL = 'https://gfpmqksvfjssgulrubdd.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_jYwtERZ86B8fwKItTErRrg_1GeakHK-';
 const SB_REST = SUPABASE_URL + '/rest/v1';
-const SB_HEADERS = { apikey: SUPABASE_KEY, 'Content-Type': 'application/json' };
+/* ===== Freigabe-Link (Direkt-Link mit Code, z. B. …/myplan/#k=abc123) =====
+   Der Code steht nur im Link (nicht in dieser Datei) und wird bei jeder Anfrage als Header
+   "x-nouri-code" mitgeschickt. Supabase prüft damit per RLS, ob und was erlaubt ist
+   (Ansicht-Modus "alles" oder "einkauf"). Einrichtung: nouri_freigabe.sql */
+const NOURI_HASH_PARTS = location.hash.slice(1).split('&').filter(Boolean);
+const NOURI_HASH_ZIEL = NOURI_HASH_PARTS.filter(x=> !x.startsWith('k=')).join('&'); // z. B. "einkaufen" für den Direkt-Sprung
+(function(){
+  const k = NOURI_HASH_PARTS.find(x=> x.startsWith('k='));
+  if(k){ try{ localStorage.setItem('nouriCode', decodeURIComponent(k.slice(2))); }catch(e){} }
+})();
+let NOURI_CODE = ''; try{ NOURI_CODE = localStorage.getItem('nouriCode') || ''; }catch(e){}
+let NOURI_ROLLE = null; // 'alles' | 'einkauf' – wird beim Start von Supabase abgefragt
+const SB_HEADERS = { apikey: SUPABASE_KEY, 'Content-Type': 'application/json', 'x-nouri-code': NOURI_CODE };
+
+/* Fragt bei Supabase ab, welchen Ansicht-Modus der Code hat (null = kein Zugang). */
+async function nouriZugangPruefen(){
+  try{
+    const res = await fetch(`${SB_REST}/rpc/nouri_rolle`, { method:'POST', headers: SB_HEADERS, body:'{}' });
+    if(res.status===404) return 'alles'; // Freigabe-SQL noch nicht ausgeführt -> App läuft wie bisher
+    if(!res.ok) throw new Error(await sbError(res));
+    const rolle = await res.json();
+    try{ if(rolle) localStorage.setItem('nouriRolle', rolle); else localStorage.removeItem('nouriRolle'); }catch(e){}
+    return rolle || null;
+  }catch(err){
+    // offline o. ä.: zuletzt bekannten Modus nehmen, Supabase schützt die Daten trotzdem
+    console.warn('Zugang konnte nicht geprüft werden', err);
+    try{ return localStorage.getItem('nouriRolle'); }catch(e){ return null; }
+  }
+}
+function nouriLink(code){ return location.origin + location.pathname + '#k=' + encodeURIComponent(code); }
 document.getElementById('airtableAccountNote').textContent = 'Datenbank: Supabase';
 
 const sbRec = r => ({ id: r.id, fields: r.fields || {}, createdTime: r.created_at });
@@ -1579,6 +1625,7 @@ function openMissedEndModal(dateStr){
   document.getElementById('missedEndModalBg').classList.add('open');
 }
 async function runGateCheck(){
+  if(NOURI_ROLLE==='einkauf'){ document.getElementById('startGateOverlay').classList.add('hidden'); return; } // Freigabe Einkaufsliste: kein Tagesstart
   const today = todayStr();
   if(dayStarted(today)){
     document.getElementById('startGateOverlay').classList.add('hidden');
@@ -2014,7 +2061,67 @@ document.getElementById('openProfileBtn').addEventListener('click', ()=>{
   document.getElementById('profFastGoal').value = profile.fastGoalHours;
   document.getElementById('profClaudeKey').value = claudeApiKey;
   refreshBmrPreview();
+  loadFreigaben();
   document.getElementById('profileModalBg').classList.add('open');
+});
+
+/* Freigabe-Links verwalten (nur Ansicht-Modus "alles") */
+const FREIGABE_MODUS = { alles:'Bearbeiten alles', einkauf:'Bearbeiten Einkaufsliste' };
+function freigabeStatus(t){ document.getElementById('freigabeStatus').textContent = t||''; }
+async function freigabeRpc(name, body){
+  const res = await fetch(`${SB_REST}/rpc/${name}`, { method:'POST', headers: SB_HEADERS, body: JSON.stringify(body||{}) });
+  if(res.status===404) throw new Error('Freigabe noch nicht eingerichtet (nouri_freigabe.sql in Supabase ausführen)');
+  if(!res.ok) throw new Error(await sbError(res));
+  const txt = await res.text(); return txt ? JSON.parse(txt) : null;
+}
+async function copyText(t){
+  try{ await navigator.clipboard.writeText(t); return true; }
+  catch(e){ const ta=document.createElement('textarea'); ta.value=t; document.body.appendChild(ta); ta.select(); let ok=false; try{ ok=document.execCommand('copy'); }catch(_){} ta.remove(); return ok; }
+}
+async function loadFreigaben(){
+  const sec = document.getElementById('freigabeSection');
+  sec.style.display = NOURI_ROLLE==='alles' ? '' : 'none';
+  if(NOURI_ROLLE!=='alles') return;
+  const list = document.getElementById('freigabeList');
+  list.textContent = 'Lädt…'; freigabeStatus('');
+  try{
+    const rows = await freigabeRpc('nouri_freigaben');
+    list.innerHTML = '';
+    if(!rows || !rows.length){ list.textContent = 'Noch keine Links.'; return; }
+    rows.forEach(r=>{
+      const eigen = r.code===NOURI_CODE;
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;align-items:center;gap:6px;padding:6px 0;border-bottom:1px solid var(--line);';
+      const txt = document.createElement('div'); txt.style.cssText='flex:1;min-width:0;';
+      const nm = document.createElement('div'); nm.style.fontWeight='500'; nm.textContent = (r.name||'Ohne Name') + (eigen ? ' (dieses Gerät)' : '');
+      const md = document.createElement('div'); md.style.cssText='font-size:12px;color:var(--ink-soft);'; md.textContent = FREIGABE_MODUS[r.rolle]||r.rolle;
+      txt.append(nm, md);
+      const cp = document.createElement('button'); cp.type='button'; cp.className='btn'; cp.textContent='Kopieren'; cp.style.padding='.45rem .7rem';
+      cp.addEventListener('click', async ()=> freigabeStatus(await copyText(nouriLink(r.code)) ? 'Link kopiert: '+(r.name||'') : 'Kopieren nicht möglich'));
+      row.append(txt, cp);
+      if(!eigen){
+        const del = document.createElement('button'); del.type='button'; del.className='btn'; del.textContent='Löschen'; del.style.padding='.45rem .7rem';
+        del.addEventListener('click', async ()=>{
+          if(!confirm('Link "'+(r.name||'')+'" löschen? Wer ihn hat, kommt danach nicht mehr rein.')) return;
+          try{ await freigabeRpc('nouri_freigabe_loeschen', { p_code:r.code }); loadFreigaben(); }
+          catch(err){ freigabeStatus(err.message); }
+        });
+        row.append(del);
+      }
+      list.append(row);
+    });
+  }catch(err){ list.textContent = ''; freigabeStatus(err.message); }
+}
+document.getElementById('freigabeAddBtn').addEventListener('click', async ()=>{
+  const name = document.getElementById('freigabeName').value.trim();
+  const rolle = document.getElementById('freigabeRolle').value;
+  if(!name){ freigabeStatus('Bitte einen Namen eingeben'); return; }
+  try{
+    const code = await freigabeRpc('nouri_freigabe_neu', { p_name:name, p_rolle:rolle });
+    document.getElementById('freigabeName').value = '';
+    await loadFreigaben();
+    freigabeStatus(await copyText(nouriLink(code)) ? 'Neuer Link erstellt und kopiert' : 'Neuer Link erstellt');
+  }catch(err){ freigabeStatus(err.message); }
 });
 function refreshBmrPreview(){
   const h = Number(document.getElementById('profHeight').value)||profile.height;
@@ -2303,6 +2410,7 @@ async function performDbCleanup(silent){
 /* Läuft automatisch max. 1x pro Woche im Hintergrund (unabhängig von der 800er-Warnung),
    damit die 4-Wochen-Bereinigung nicht vom manuellen Öffnen des Dashboards abhängt. */
 function autoDbCleanupIfDue(){
+  if(NOURI_ROLLE==='einkauf') return; // darf keine Log-Tabellen löschen
   const last = localStorage.getItem('dbLastAutoCleanup');
   if(last){
     const days = Math.round((new Date(todayStr()+'T00:00:00') - new Date(last+'T00:00:00')) / 86400000);
@@ -6183,15 +6291,27 @@ document.addEventListener('touchend', e=>{
   lastTouchEnd = now;
 }, false);
 
+   (async ()=>{
+     NOURI_ROLLE = await nouriZugangPruefen();
+     if(!NOURI_ROLLE){
+       document.getElementById('loadingOverlay').classList.add('hidden');
+       document.getElementById('noAccessOverlay').classList.remove('hidden');
+       return;
+     }
+     if(NOURI_ROLLE==='einkauf'){
+       // Freigabe Einkaufsliste: nur der Einkaufen-Tab ist sichtbar
+       document.querySelectorAll('.tab').forEach(t=>{ if(t.dataset.tab!=='einkaufen') t.style.display='none'; });
+     }
    loadAll().finally(()=>{
      // Direkt-Sprung von der Startseite, z. B. …/myplan/#einkaufen
-     const ziel = location.hash.slice(1);
+     const ziel = NOURI_ROLLE==='einkauf' ? 'einkaufen' : NOURI_HASH_ZIEL;
      const tab = ziel && document.querySelector('.tab[data-tab="' + ziel + '"]');
      if (tab) tab.click();
      // Einkaufsliste bei jedem Start neu berechnen, damit ShoppingNeeds (und das Badge auf der Startseite) aktuell sind
      else computeShoppingNeeds().catch(err=> console.error(err));
      loadDbUsage();
    });
+   })();
 </script>
 
 </body>

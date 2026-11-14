@@ -695,6 +695,10 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
 .action-row .end-btn .ic{border:1.5px solid var(--coral);}
 .action-row .open-btn.done{background:none;}
 .action-row .open-btn.done .ic{background:#EDEFE7;border-color:var(--line);}
+/* Gegessene Gerichte gruppiert */
+.eaten-toggle{display:flex;justify-content:space-between;align-items:center;width:100%;margin:.9rem 0 .4rem;padding:10px 6px;background:none;border:none;border-top:1px solid var(--line);color:var(--olive-dark);font:500 13.5px 'Inter',sans-serif;cursor:pointer;text-align:left;}
+.eaten-group{display:none;}
+.eaten-group.open{display:block;}
 /* Detail-Level "Limitiert": Bewertung, Ballaststoffe und Protein in den Essens-Zeilen ausblenden (Details weiter über ⓘ) */
 body.detail-limit #planList .food-row .fullness-badge,
 body.detail-limit #planList .food-kcal br,
@@ -4041,7 +4045,7 @@ function renderToday(){
   resolvedSlots.sort((a,b)=> a.slot.time.localeCompare(b.slot.time));
 
   const planList = document.getElementById('planList');
-  planList.innerHTML = resolvedSlots.map(({slot, swap, dish, logHit, split, half, baseSlotId, ratio})=>{
+  const planRowsHtml = resolvedSlots.map(({slot, swap, dish, logHit, split, half, baseSlotId, ratio})=>{
     if(!dish) return '';
     const checked = !!logHit;
     const score = dishFullnessScore(dish);
@@ -4067,7 +4071,25 @@ function renderToday(){
         ${!checked?`<button class="ing-swap-btn split-btn" title="${split?'Aufteilung bearbeiten':'Portion aufteilen'}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="3" x2="12" y2="21"/><path d="M5 8l-3 4 3 4"/><path d="M19 8l3 4-3 4"/></svg></button>`:''}
       </div>
     </div>`;
-  }).join('');
+  });
+  // Offene Gerichte oben, Gegessenes unten in einer einklappbaren Gruppe
+  const openHtml = planRowsHtml.filter((h,i)=> h && !resolvedSlots[i].logHit).join('');
+  const doneIdx = resolvedSlots.map((x,i)=> i).filter(i=> planRowsHtml[i] && resolvedSlots[i].logHit);
+  const doneKcal = doneIdx.reduce((sum,i)=> sum + Math.round(effectiveKcal(resolvedSlots[i].dish)*resolvedSlots[i].ratio), 0);
+  let eatenOpen = false; try{ eatenOpen = localStorage.getItem('nouriEatenOpen')==='1'; }catch(e){}
+  planList.innerHTML =
+    (openHtml || (doneIdx.length ? '<p class="section-note" style="text-align:center;padding:10px 0;">Alles gegessen für heute</p>' : ''))
+    + (doneIdx.length ? `<button type="button" class="eaten-toggle" id="eatenToggle" aria-expanded="${eatenOpen}"><span>Gegessen (${doneIdx.length}) · ${doneKcal} kcal</span><span class="eaten-arrow">${eatenOpen?'▴':'▾'}</span></button>
+        <div class="eaten-group ${eatenOpen?'open':''}" id="eatenGroup">${doneIdx.map(i=> planRowsHtml[i]).join('')}</div>` : '');
+  const eatenToggle = document.getElementById('eatenToggle');
+  if(eatenToggle) eatenToggle.addEventListener('click', ()=>{
+    const grp = document.getElementById('eatenGroup');
+    const open = !grp.classList.contains('open');
+    grp.classList.toggle('open', open);
+    eatenToggle.setAttribute('aria-expanded', open);
+    eatenToggle.querySelector('.eaten-arrow').textContent = open ? '▴' : '▾';
+    try{ localStorage.setItem('nouriEatenOpen', open?'1':'0'); }catch(e){}
+  });
   planList.querySelectorAll('.info-btn').forEach(btn=> btn.addEventListener('click', e=>{
     e.stopPropagation();
     const panel = btn.closest('.food-row').querySelector('.ing-panel');

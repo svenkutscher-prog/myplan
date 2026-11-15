@@ -50,8 +50,25 @@ h2.section{font-family:'Fraunces',serif;font-weight:600;font-size:18px;margin:1.
 .chips{display:flex;gap:6px;justify-content:center;margin-bottom:1.1rem;}
 .chip{font-size:11px;padding:5px 11px;border-radius:20px;border:1px solid var(--line);color:var(--ink-soft);background:#fff;cursor:pointer;}
 .chip.active{background:var(--mustard-bg);border-color:var(--olive);color:var(--olive-dark);font-weight:500;}
-.snack-chips{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:1rem;}
-.snack-chip{font-size:12px;padding:6px 12px;border-radius:20px;border:1px solid transparent;cursor:pointer;font-weight:500;}
+.snack-chips{display:flex;flex-wrap:nowrap;gap:7px;margin-bottom:1rem;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:2px;}
+.snack-chips::-webkit-scrollbar{display:none;}
+.snack-chip{font-size:12px;padding:6px 12px;border-radius:20px;border:1px solid transparent;cursor:pointer;font-weight:500;flex:0 0 auto;white-space:nowrap;}
+/* Zuckerfrei-Leiste (0–24 Uhr) */
+.sugar-card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:.8rem;}
+.sugar-head{display:flex;align-items:center;gap:8px;font-size:13px;}
+.sugar-head .sg-main{flex:1;min-width:0;}
+.sugar-val{font-family:'IBM Plex Mono',monospace;color:var(--olive-dark);}
+.sugar-sub{font-size:12px;color:var(--ink-soft);margin:3px 0 0;}
+.sugar-sub .sugar-val{color:var(--ink);}
+.sugar-btn{border:1px solid var(--coral);background:var(--coral-bg);color:#8A3A25;border-radius:8px;padding:5px 10px;font-size:12px;cursor:pointer;white-space:nowrap;font-family:inherit;}
+.sugar-track{position:relative;height:12px;background:#E9ECE2;border-radius:6px;margin:14px 0 4px;}
+.sugar-goal{position:absolute;top:0;height:100%;background:#E4EDDD;border:1px dashed var(--olive);box-sizing:border-box;border-radius:4px;}
+.sugar-fill{position:absolute;top:0;height:100%;background:var(--olive);border-radius:4px;}
+.sugar-fill.failed{background:#D9B8A8;}
+.sugar-mk{position:absolute;top:-5px;width:3px;height:22px;border-radius:2px;margin-left:-1px;}
+.sugar-pt{position:absolute;top:-2px;width:16px;height:16px;margin-left:-8px;border-radius:50%;background:var(--coral);border:2px solid var(--card);box-sizing:border-box;cursor:pointer;padding:0;}
+.sugar-axis{position:relative;height:16px;font-size:11px;color:var(--ink-soft);}
+.sugar-axis span{position:absolute;white-space:nowrap;}
 .snack-chip.green{background:#E4EDDD;border-color:var(--olive);color:var(--olive-dark);}
 .snack-chip.orange{background:var(--mustard-bg);border-color:var(--mustard);color:#8A5A17;}
 .snack-chip.locked{background:var(--card);border-color:var(--line);color:var(--ink-soft);opacity:.55;}
@@ -776,6 +793,8 @@ body.detail-limit #extraList .food-fiber{display:none}
       </div>
     </div></div>
 
+    <div class="tw" data-w="sugar"><div class="sugar-card" id="sugarCard"></div></div>
+
     <div class="tw" data-w="summary"><p class="section-label">Heute gesamt (Plan + Extras): <span id="planKcalTotal">0</span>/<span id="dayPlanKcal">0</span> kcal (<span id="planFiberTotal">0</span>/<span id="dayPlanFiber">0</span> g Ball., <span id="planProteinTotal">0</span>/<span id="dayPlanProtein">0</span> g Prot.) · Ø <span id="planFullnessTotal">–</span>/10 Fullness</p>
     </div>
     <div class="tw" data-w="macros"><div class="macro-card" id="macroCard">
@@ -806,6 +825,7 @@ body.detail-limit #extraList .food-fiber{display:none}
     <div class="tw" data-w="plan"><div id="planList"></div></div>
 
     <div class="tw" data-w="snacks"><p class="section-label" style="margin-top:1rem;">Snacks – passend zu deinem Rest-Budget</p>
+    <p class="section-note" id="snackBudgetLine" style="margin:0 0 .4rem;"></p>
     <div class="snack-chips" id="snackChips"></div></div>
 
     <div class="tw" data-w="extras"><p class="section-label">Zusätzlich gegessen</p>
@@ -1255,6 +1275,7 @@ body.detail-limit #extraList .food-fiber{display:none}
     <div class="profile-field"><label>Grundumsatz (kcal) – automatisch berechnet aus Gewicht/Größe/Alter/Geschlecht</label><p class="ds-val" id="profBmrDisplay" style="margin:0;font-size:22px;">–</p></div>
     <div class="profile-field"><label>Ziel-Defizit pro Tag (kcal)</label><input type="number" id="profDeficitWarn" step="50"></div>
     <div class="profile-field"><label>Fastenziel (Stunden ohne Essen)</label><input type="number" id="profFastGoal" step="1" min="1" max="23"></div>
+    <div class="profile-field"><label>Zuckerfrei-Ziel (Stunden ab „Start Tag“)</label><input type="number" id="profSugarGoal" step="1" min="1" max="24"></div>
     <div class="profile-field"><label>Detail-Level der Essens-Zeilen (nur auf diesem Gerät)</label>
       <select id="profDetailLevel" style="width:100%;font-size:14px;border:1px solid var(--line);border-radius:8px;padding:8px;background:#fff;color:var(--ink);">
         <option value="max">Max – Kalorien, Bewertung, Ballaststoffe, Protein</option>
@@ -1645,6 +1666,115 @@ async function setEndTag(dateStr, timeStr){
   dayBounds.push(obj);
   return obj;
 }
+/* ===== Zuckerfrei =====
+   Tagesziel: X Stunden (Stammdaten, Standard 12) ohne Zucker ab "Start Tag". Leiste zeigt den ganzen Tag 0–24 Uhr.
+   Strafpunkte liegen in der Tabelle "SugarLog" (Felder: Date, Time). "Am Stück" = Stunden seit dem letzten Strafpunkt
+   (bzw. seit Beginn der Zuckerfrei-Messung, Feld "SugarSince" im Profil). */
+function sgMin(hm){ const [h,m] = String(hm||'').split(':').map(Number); return (h||0)*60+(m||0); }
+function sgDt(date, hm){ return new Date(date+'T'+(hm||'00:00')+':00'); }
+function sgDur(min){ min = Math.max(0, Math.round(min)); return Math.floor(min/60)+' h '+String(min%60).padStart(2,'0'); }
+function sgPct(min){ return (Math.max(0, Math.min(1440, min))/1440*100).toFixed(2)+'%'; }
+function ensureSugarSince(){
+  if(profile.sugarSince || !profile.id) return;
+  profile.sugarSince = new Date().toISOString();
+  if(profile.id) atUpdate('Profile', profile.id, { SugarSince: profile.sugarSince }).catch(e=> console.warn(e));
+}
+function sugarStreaks(){
+  // Alle Strafpunkte chronologisch; Startpunkt = Beginn der Messung
+  const now = new Date();
+  const since = profile.sugarSince ? new Date(profile.sugarSince) : now;
+  const times = sugarLog.map(x=> sgDt(x.date, x.time)).filter(d=> d<=now && d>=since).sort((a,b)=> a-b);
+  let prev = since, best = 0;
+  times.forEach(t=>{ best = Math.max(best, t-prev); prev = t; });
+  const current = now - prev;
+  best = Math.max(best, current);
+  return { currentMin: current/60000, bestMin: best/60000 };
+}
+let sugarArmTimer = null;
+let sugarDelId = null;
+function renderSugarCard(){
+  const card = document.getElementById('sugarCard');
+  if(!card) return;
+  ensureSugarSince();
+  const isToday = currentDate === todayStr();
+  const b = dayBoundFor(currentDate);
+  const goalH = profile.sugarGoalHours || 12;
+  const n = new Date();
+  const nowMin = isToday ? n.getHours()*60+n.getMinutes() : 1440;
+  const pts = sugarLog.filter(x=> x.date===currentDate).sort((a,c)=> a.time.localeCompare(c.time));
+  const st = sugarStreaks();
+  const btn = isToday ? `<button type="button" class="sugar-btn" id="sugarBtn">🍬 Zucker</button>` : '';
+  const streakLine = `<p class="sugar-sub">Am Stück <span class="sugar-val">${Math.floor(st.currentMin/60)} h</span> · Rekord <span class="sugar-val">${Math.floor(st.bestMin/60)} h</span></p>`;
+  if(!b || !b.startTag){
+    card.innerHTML = `<div class="sugar-head"><span>🚫🍬</span><div class="sg-main">Zuckerfrei <span class="section-note">– Tag noch nicht gestartet</span></div>${btn}</div>${streakLine}`;
+    bindSugarCard();
+    return;
+  }
+  const startMin = sgMin(b.startTag);
+  const goalEnd = Math.min(1440, startMin + goalH*60);
+  const ptsInDay = pts.map(x=> ({ ...x, m: sgMin(x.time) })).filter(x=> x.m<=nowMin);
+  const lastAfterStart = ptsInDay.filter(x=> x.m>=startMin).pop();
+  const failed = ptsInDay.some(x=> x.m>=startMin && x.m<=goalEnd);
+  const freeToday = nowMin - (lastAfterStart ? lastAfterStart.m : startMin);
+  let status;
+  if(failed) status = `<span style="color:var(--coral);">${ptsInDay.length} Strafpunkt${ptsInDay.length>1?'e':''}</span>`;
+  else if(nowMin>=goalEnd) status = `<span style="color:var(--olive);">Ziel erreicht ✓</span>`;
+  else status = `Ziel ${String(Math.floor(goalEnd/60)%24).padStart(2,'0')}:${String(goalEnd%60).padStart(2,'0')}`;
+  const fillEnd = Math.min(nowMin, goalEnd);
+  const delPt = sugarDelId ? sugarLog.find(x=> x.id===sugarDelId) : null;
+  card.innerHTML = `
+    <div class="sugar-head"><span>🚫🍬</span>
+      <div class="sg-main">Zuckerfrei heute <span class="sugar-val">${sgDur(freeToday)}</span> <span class="section-note">/ ${goalH} h</span></div>${btn}</div>
+    ${streakLine}
+    <div class="sugar-track">
+      <div class="sugar-goal" style="left:${sgPct(startMin)};width:${sgPct(goalEnd-startMin)};"></div>
+      <div class="sugar-fill ${failed?'failed':''}" style="left:${sgPct(startMin)};width:${sgPct(Math.max(0,fillEnd-startMin))};"></div>
+      <div class="sugar-mk" style="left:${sgPct(startMin)};background:var(--mustard);" title="Start Tag ${b.startTag}"></div>
+      ${isToday ? `<div class="sugar-mk" style="left:${sgPct(nowMin)};background:var(--water);" title="jetzt"></div>` : ''}
+      ${pts.map(x=> `<button type="button" class="sugar-pt" data-id="${x.id}" style="left:${sgPct(sgMin(x.time))};" title="Strafpunkt ${x.time}"></button>`).join('')}
+    </div>
+    <div class="sugar-axis">
+      <span style="left:0;">0</span>
+      <span style="left:${sgPct(startMin)};transform:translateX(-50%);color:#8A5A17;">${b.startTag}</span>
+      ${isToday && Math.abs(nowMin-startMin)>90 ? `<span style="left:${sgPct(nowMin)};transform:translateX(-50%);color:#3E6F87;">${nowHM()}</span>` : ''}
+      <span style="right:0;">24</span>
+    </div>
+    <p class="sugar-sub">${delPt ? `Strafpunkt ${delPt.time} löschen? <a href="#" id="sugarDelYes" style="color:var(--coral);">Löschen</a> · <a href="#" id="sugarDelNo" style="color:var(--ink-soft);">Abbrechen</a>`
+      : `<span style="color:#8A5A17;">▍Start Tag</span> · <span style="color:#3E6F87;">▍jetzt</span> · ${status}${pts.length?' · '+pts.map(x=>x.time).join(', '):''}`}</p>`;
+  bindSugarCard();
+}
+function bindSugarCard(){
+  const btn = document.getElementById('sugarBtn');
+  if(btn) btn.addEventListener('click', async ()=>{
+    if(!btn.dataset.armed){
+      btn.dataset.armed = '1'; btn.textContent = 'Sicher?';
+      clearTimeout(sugarArmTimer);
+      sugarArmTimer = setTimeout(()=>{ if(btn.isConnected){ delete btn.dataset.armed; btn.textContent = '🍬 Zucker'; } }, 3000);
+      return;
+    }
+    clearTimeout(sugarArmTimer);
+    btn.disabled = true;
+    try{
+      const date = todayStr(), time = nowHM();
+      const rec = await atCreate('SugarLog', { Date: date, Time: time });
+      sugarLog.push({ id: rec.id, date, time });
+      setStatus('Strafpunkt '+time+' eingetragen');
+      scheduleSaveDataCache();
+    }catch(e){ console.error(e); setStatus(e.message||'Strafpunkt konnte nicht gespeichert werden'); }
+    renderSugarCard();
+  });
+  document.querySelectorAll('#sugarCard .sugar-pt').forEach(p=> p.addEventListener('click', ()=>{ sugarDelId = p.dataset.id; renderSugarCard(); }));
+  const yes = document.getElementById('sugarDelYes'), no = document.getElementById('sugarDelNo');
+  if(no) no.addEventListener('click', e=>{ e.preventDefault(); sugarDelId = null; renderSugarCard(); });
+  if(yes) yes.addEventListener('click', async e=>{
+    e.preventDefault();
+    const id = sugarDelId; sugarDelId = null;
+    try{ await atDelete('SugarLog', id); sugarLog = sugarLog.filter(x=> x.id!==id); scheduleSaveDataCache(); }
+    catch(err){ console.error(err); setStatus(err.message||'Löschen fehlgeschlagen'); }
+    renderSugarCard();
+  });
+}
+setInterval(()=>{ if(!sugarDelId && !document.querySelector('#sugarBtn[data-armed]')) renderSugarCard(); }, 60000);
 /* Prüft, ob ein Vortag ohne "Ende Tag" offen geblieben ist (bis zu 7 Tage zurück) und fragt
    in dem Fall per Modal nach einer ungefähren Uhrzeit nach ("weiß nicht mehr" überspringt dauerhaft). */
 function findUnclosedPastDay(){
@@ -1785,6 +1915,7 @@ let dayBounds = [];   // {id, date, startTag, endTag}
 let pantry = [];      // {id|null, name, staple}  id null = noch nicht in Airtable angelegt
 let shoppingNeeds = []; // {id, name, unit, amount, status:'offen'|'manuell'|'liste'(=im Wagen)|'gekauft', boughtAmount}
 let snacks = []; // {id, name, kcal}
+let sugarLog = []; // Zuckerfrei-Strafpunkte {id, date, time}
 let daySwaps = []; // {id, date, slotId, dishName} - Gericht nur für einen bestimmten Tag getauscht, ohne den Wochenplan zu ändern
 let portionSplits = []; // {id, date, slotId, secondTime} - Portion für einen Tag in 2 Hälften geteilt (je 50%), zweite Hälfte zu eigener Uhrzeit
 let water = []; // {id, date, ml}
@@ -1794,7 +1925,7 @@ let routineLog = [];   // {id, date, taskName} - ein Eintrag pro erledigter Aufg
 let bonusLog = []; // {id, date, name, kcal} - jede Einlösung, zieht dauerhaft vom Guthaben ab
 let targets = { base:1800, deficit:1400 };
 let activeTarget = 'deficit';
-let profile = { id:null, startWeight:110, goalWeight:99, stepsGoal:8000, kcalMax:1400, kcalMin:1100, fiberGoal:30, proteinGoal:130, bmr:1955, deficitWarnThreshold:1000, fastGoalHours:12, height:175, age:35, sex:'m' };
+let profile = { id:null, startWeight:110, goalWeight:99, stepsGoal:8000, kcalMax:1400, kcalMin:1100, fiberGoal:30, proteinGoal:130, bmr:1955, deficitWarnThreshold:1000, fastGoalHours:12, height:175, age:35, sex:'m', sugarGoalHours:12, sugarSince:'' };
 /* Grundumsatz nach Mifflin-St-Jeor-Formel, aus aktuellstem Gewicht (aus dem Gewichtsverlauf, sonst Startgewicht) + Größe/Alter/Geschlecht */
 function calcBmr(height, age, sex){
   height = height||profile.height||175; age = age||profile.age||35; sex = sex||profile.sex||'m';
@@ -1896,7 +2027,7 @@ const DATA_CACHE_MAX_AGE_MS = 30*60*1000;
 function getDataCacheSnapshot(){
   return { dishes, weekPlan, weekPlanAI, weekVersion, weekVersionRecId, weekDayContext, weekDayNotes,
     weekDayEventDate, weekDayContextDate, logEntries, weights, steps, dayBounds, pantry, shoppingNeeds,
-    snacks, daySwaps, portionSplits, water, bonusItems, routineTasks, routineLog, bonusLog, profile, todayLayout };
+    snacks, daySwaps, portionSplits, water, bonusItems, routineTasks, routineLog, bonusLog, profile, todayLayout, sugarLog };
 }
 function applyDataCacheSnapshot(d){
   dishes=d.dishes; weekPlan=d.weekPlan; weekPlanAI=d.weekPlanAI; weekVersion=d.weekVersion;
@@ -1905,6 +2036,7 @@ function applyDataCacheSnapshot(d){
   weights=d.weights; steps=d.steps; dayBounds=d.dayBounds; pantry=d.pantry; shoppingNeeds=d.shoppingNeeds;
   snacks=d.snacks; daySwaps=d.daySwaps; portionSplits=d.portionSplits; water=d.water; bonusItems=d.bonusItems;
   routineTasks=d.routineTasks; routineLog=d.routineLog; bonusLog=d.bonusLog; profile=d.profile;
+  sugarLog = Array.isArray(d.sugarLog) ? d.sugarLog : [];
   if(d.todayLayout) todayLayout = normalizeTodayLayout(d.todayLayout);
 }
 let saveCacheTimer = null;
@@ -2113,6 +2245,7 @@ document.getElementById('openProfileBtn').addEventListener('click', ()=>{
   document.getElementById('profSex').value = profile.sex;
   document.getElementById('profDeficitWarn').value = profile.deficitWarnThreshold;
   document.getElementById('profFastGoal').value = profile.fastGoalHours;
+  document.getElementById('profSugarGoal').value = profile.sugarGoalHours||12;
   document.getElementById('profClaudeKey').value = claudeApiKey;
   refreshBmrPreview();
   loadFreigaben();
@@ -2205,8 +2338,10 @@ document.getElementById('profileSave').addEventListener('click', async ()=>{
   const bmr = calcBmr(height, age, sex);
   const deficitWarnThreshold = Number(document.getElementById('profDeficitWarn').value)||profile.deficitWarnThreshold||1000;
   const fastGoalHours = Math.max(1, Math.min(23, Number(document.getElementById('profFastGoal').value)||profile.fastGoalHours||12));
+  const sugarGoalHours = Math.max(1, Math.min(24, Number(document.getElementById('profSugarGoal').value)||profile.sugarGoalHours||12));
+  const sugarSince = profile.sugarSince||'';
   const kcalMax = calcKcalMax(bmr, deficitWarnThreshold);
-  const fields = { StartWeight: startWeight, GoalWeight: goalWeight, StepsGoal: stepsGoal, KcalMax: kcalMax, KcalMin: kcalMin, FiberGoal: fiberGoal, ProteinGoal: proteinGoal, Bmr: bmr, DeficitWarnThreshold: deficitWarnThreshold, FastGoalHours: fastGoalHours, Height: height, Age: age, Sex: sex };
+  const fields = { StartWeight: startWeight, GoalWeight: goalWeight, StepsGoal: stepsGoal, KcalMax: kcalMax, KcalMin: kcalMin, FiberGoal: fiberGoal, ProteinGoal: proteinGoal, Bmr: bmr, DeficitWarnThreshold: deficitWarnThreshold, FastGoalHours: fastGoalHours, Height: height, Age: age, Sex: sex, SugarGoalHours: sugarGoalHours };
   try{
     try{
       if(profile.id) await atUpdate('Profile', profile.id, fields);
@@ -2225,12 +2360,12 @@ document.getElementById('profileSave').addEventListener('click', async ()=>{
         else{ const rec = await atCreate('Profile', fieldsWithoutFast); profile.id = rec.id; }
         setStatus('Gespeichert (Feld "FastGoalHours" fehlt noch in Airtable – bitte in der Profile-Tabelle als Number-Spalte ergänzen, dann erneut speichern)');
       }
-      profile = { id:profile.id, startWeight, goalWeight, stepsGoal, kcalMax, kcalMin, fiberGoal, proteinGoal, bmr, deficitWarnThreshold, fastGoalHours, height, age, sex };
+      profile = { id:profile.id, startWeight, goalWeight, stepsGoal, kcalMax, kcalMin, fiberGoal, proteinGoal, bmr, deficitWarnThreshold, fastGoalHours, height, age, sex, sugarGoalHours, sugarSince };
       document.getElementById('profileModalBg').classList.remove('open');
       renderGoalCard(); renderScoreCard(); render();
       return;
     }
-    profile = { id:profile.id, startWeight, goalWeight, stepsGoal, kcalMax, kcalMin, fiberGoal, proteinGoal, bmr, deficitWarnThreshold, fastGoalHours, height, age, sex };
+    profile = { id:profile.id, startWeight, goalWeight, stepsGoal, kcalMax, kcalMin, fiberGoal, proteinGoal, bmr, deficitWarnThreshold, fastGoalHours, height, age, sex, sugarGoalHours, sugarSince };
     setStatus('Stammdaten gespeichert');
     document.getElementById('profileModalBg').classList.remove('open');
     renderGoalCard(); renderScoreCard(); render();
@@ -3510,6 +3645,7 @@ async function loadAll(force){
     const dayBoundsP = atList('DayBounds').catch(()=>null);
     const weekPlanAIP = atList('WeekPlanAI').catch(()=>null);
     const weekVersionP = atList('WeekVersion').catch(()=>null);
+    const sugarLogP = atList('SugarLog').catch(()=>null);
     let pRecs = [];
     try{ pRecs = await pantryP; if(pRecs===null) throw new Error('missing'); }
     catch(e){ pRecs = []; console.warn('Pantry-Tabelle noch nicht vorhanden – lege sie in Airtable an (Felder: Name, Bestand, Mindestbestand, Unit).'); }
@@ -3541,7 +3677,7 @@ async function loadAll(force){
       if(profRecs[0]){
         const remoteLayout = parseTodayLayout(profRecs[0].fields.TodayLayout);
         if(remoteLayout){ todayLayout = remoteLayout; try{ localStorage.setItem(TODAY_LAYOUT_LS, JSON.stringify(remoteLayout)); }catch(e){} }
-        profile = { id:profRecs[0].id, startWeight:Number(profRecs[0].fields.StartWeight)||profile.startWeight, goalWeight:Number(profRecs[0].fields.GoalWeight)||profile.goalWeight, stepsGoal:Number(profRecs[0].fields.StepsGoal)||profile.stepsGoal, kcalMax:Number(profRecs[0].fields.KcalMax)||profile.kcalMax, kcalMin:Number(profRecs[0].fields.KcalMin)||profile.kcalMin, fiberGoal:Number(profRecs[0].fields.FiberGoal)||profile.fiberGoal, proteinGoal:Number(profRecs[0].fields.ProteinGoal)||profile.proteinGoal, bmr:Number(profRecs[0].fields.Bmr)||profile.bmr, deficitWarnThreshold:Number(profRecs[0].fields.DeficitWarnThreshold)||profile.deficitWarnThreshold, fastGoalHours:Number(profRecs[0].fields.FastGoalHours)||profile.fastGoalHours, height:Number(profRecs[0].fields.Height)||profile.height, age:Number(profRecs[0].fields.Age)||profile.age, sex: profRecs[0].fields.Sex==='w' ? 'w' : 'm' };
+        profile = { id:profRecs[0].id, startWeight:Number(profRecs[0].fields.StartWeight)||profile.startWeight, goalWeight:Number(profRecs[0].fields.GoalWeight)||profile.goalWeight, stepsGoal:Number(profRecs[0].fields.StepsGoal)||profile.stepsGoal, kcalMax:Number(profRecs[0].fields.KcalMax)||profile.kcalMax, kcalMin:Number(profRecs[0].fields.KcalMin)||profile.kcalMin, fiberGoal:Number(profRecs[0].fields.FiberGoal)||profile.fiberGoal, proteinGoal:Number(profRecs[0].fields.ProteinGoal)||profile.proteinGoal, bmr:Number(profRecs[0].fields.Bmr)||profile.bmr, deficitWarnThreshold:Number(profRecs[0].fields.DeficitWarnThreshold)||profile.deficitWarnThreshold, fastGoalHours:Number(profRecs[0].fields.FastGoalHours)||profile.fastGoalHours, height:Number(profRecs[0].fields.Height)||profile.height, age:Number(profRecs[0].fields.Age)||profile.age, sex: profRecs[0].fields.Sex==='w' ? 'w' : 'm', sugarGoalHours:Number(profRecs[0].fields.SugarGoalHours)||profile.sugarGoalHours||12, sugarSince:profRecs[0].fields.SugarSince||'' };
       }
     }catch(e){ console.warn('Profile-Tabelle noch nicht vorhanden – lege sie in Airtable an (Felder: StartWeight, GoalWeight, StepsGoal, KcalMax, FiberGoal). Nutze bis dahin Standardwerte.'); }
     try{
@@ -3564,6 +3700,10 @@ async function loadAll(force){
       const dbRecs = await dayBoundsP; if(dbRecs===null) throw new Error('missing');
       dayBounds = dbRecs.map(r=>({ id:r.id, date:r.fields.Date||'', startTag:r.fields.StartTag||'', endTag:r.fields.EndTag||'' }));
     }catch(e){ console.warn('DayBounds-Tabelle noch nicht vorhanden – lege sie in Airtable an (Felder: Date, StartTag, EndTag). Start/Ende-Tag funktioniert erst danach.'); dayBounds = []; }
+    try{
+      const sgRecs = await sugarLogP; if(sgRecs===null) throw new Error('missing');
+      sugarLog = sgRecs.map(r=>({ id:r.id, date:r.fields.Date||'', time:r.fields.Time||'' })).filter(x=> x.date && x.time);
+    }catch(e){ console.warn('SugarLog konnte nicht geladen werden', e); sugarLog = []; }
     weekPlanAI = {}; WEEKDAYS.forEach(wd=> weekPlanAI[wd]=[]);
     try{
       const wpaRecs = await weekPlanAIP; if(wpaRecs===null) throw new Error('missing');
@@ -3766,6 +3906,7 @@ function renderMacroCard(eatenKcal, eatenProtein, eatenFat, eatenFiber){
    zusätzlich lokal als Rückfall, falls das Feld in Airtable noch fehlt. */
 const TODAY_WIDGETS = {
   fast:{ label:'Essensfenster / Fasten' },
+  sugar:{ label:'Zuckerfrei' },
   summary:{ label:'Tagessumme' },
   macros:{ label:'Makro-Ziele' },
   processed:{ label:'Unverarbeitet-Anteil' },
@@ -3784,7 +3925,7 @@ let todayLayoutEditing = false;
 function normalizeTodayLayout(l){
   const keys = Object.keys(TODAY_WIDGETS);
   const order = (l && Array.isArray(l.order) ? l.order : []).filter(k=> keys.includes(k));
-  keys.forEach(k=>{ if(!order.includes(k)) order.push(k); }); // neue Widgets hinten anhängen
+  keys.forEach((k,ki)=>{ if(!order.includes(k)){ const prev = order.indexOf(keys[ki-1]); if(prev>=0) order.splice(prev+1,0,k); else order.push(k); } }); // neue Widgets hinter ihrem Vorgänger einsortieren
   const hidden = (l && Array.isArray(l.hidden) ? l.hidden : []).filter(k=> keys.includes(k) && !TODAY_WIDGETS[k].fixed);
   return { order, hidden };
 }
@@ -3953,6 +4094,7 @@ function renderProteinGapCard(eatenProtein, eatenKcal){
 }
 function renderToday(){
   scheduleSaveDataCache();
+  renderSugarCard();
   updateFastStatus(); // muss vor dem Bauen der Essenszeilen laufen, damit canEatNow (Sperre bei geschlossenem Essensfenster) aktuell ist
   const wd = weekdayOf(currentDate);
 
@@ -4215,12 +4357,29 @@ function renderSnackChips(remaining, eatenProtein, eatenFat, eatenFiber){
     }
   }
   const visible = filtered;
-  if(!visible.length){ wrap.innerHTML = '<p class="section-note">Keine Favoriten-Snacks passend zum Rest-Budget – im Vorrat-Tab welche markieren (★).</p>'; return; }
-  const budgetLine = `<p class="section-note" style="width:100%;margin:0 0 .3rem;">Noch ${Math.max(0,Math.round(remaining))} kcal Rest-Budget für Snacks${gapLabel?` · 🤖 nur welche, die deine ${gapLabel}-Lücke schließen`:''}</p>`;
-  wrap.innerHTML = budgetLine + [...visible].sort((a,b)=>a.kcal-b.kcal).map(s=>{
+  const budgetEl = document.getElementById('snackBudgetLine');
+  if(!visible.length){ if(budgetEl) budgetEl.textContent = ''; wrap.innerHTML = '<p class="section-note">Keine Favoriten-Snacks passend zum Rest-Budget – im Vorrat-Tab welche markieren (★).</p>'; return; }
+  if(budgetEl) budgetEl.textContent = `Noch ${Math.max(0,Math.round(remaining))} kcal Rest-Budget für Snacks${gapLabel?` · 🤖 nur welche, die deine ${gapLabel}-Lücke schließen`:''}`;
+  const chipsHtml = [...visible].sort((a,b)=>a.kcal-b.kcal).map(s=>{
     const color = canEatNow ? (s.kcal <= remaining ? 'green' : 'orange') : 'locked';
     return `<button class="snack-chip ${color}" data-id="${s.id}" data-name="${escapeAttr(s.name)}" data-kcal="${s.kcal}" data-fiber="${s.fiber}" data-protein="${s.protein}" data-fat="${s.fat}" data-water="${s.water}">${escapeAttr(s.name)} · ${s.kcal} kcal</button>`;
   }).join('');
+  // Endlos-Reihe: Pillen 3× hintereinander, beim Wischen wird unbemerkt in den mittleren Block zurückgesprungen
+  const loop = visible.length >= 3;
+  const prevOffset = (wrap._loopW && wrap.scrollLeft) ? wrap.scrollLeft - wrap._loopW : 0;
+  wrap.innerHTML = loop ? chipsHtml + chipsHtml + chipsHtml : chipsHtml;
+  wrap._loop = loop; wrap._loopW = 0;
+  if(loop) requestAnimationFrame(()=>{ const w = wrap.scrollWidth/3; if(w>0){ wrap._loopW = w; wrap.scrollLeft = w + Math.max(0, Math.min(w, prevOffset)); } });
+  if(!wrap._loopBound){
+    wrap._loopBound = true;
+    wrap.addEventListener('scroll', ()=>{
+      if(!wrap._loop) return;
+      const w = wrap._loopW || (wrap._loopW = wrap.scrollWidth/3);
+      if(!w) return;
+      if(wrap.scrollLeft < w*0.5) wrap.scrollLeft += w;
+      else if(wrap.scrollLeft > w*1.5) wrap.scrollLeft -= w;
+    }, { passive:true });
+  }
   wrap.querySelectorAll('.snack-chip').forEach(btn=> btn.addEventListener('click', async ()=>{
     if(!canEatNow){
       eatLockPendingSnack = { name: btn.dataset.name, kcal: Number(btn.dataset.kcal), fiber: Number(btn.dataset.fiber), protein: Number(btn.dataset.protein), fat: Number(btn.dataset.fat), water: Number(btn.dataset.water), source:'snack' };

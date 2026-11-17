@@ -71,6 +71,15 @@ h2.section{font-family:'Fraunces',serif;font-weight:600;font-size:18px;margin:1.
 .sugar-axis span{position:absolute;white-space:nowrap;}
 .snack-chip.green{background:#E4EDDD;border-color:var(--olive);color:var(--olive-dark);}
 .snack-chip.orange{background:var(--mustard-bg);border-color:var(--mustard);color:#8A5A17;}
+.snack-chip.c0{background:#E4EDDD;border-color:#4F6B44;color:#3A4F32;}
+.snack-chip.c1{background:#F6E9D2;border-color:#C9862F;color:#7A4E12;}
+.snack-chip.c2{background:#DCEAF0;border-color:#5B8FA8;color:#2F5A6E;}
+.snack-chip.c3{background:#EAE3F3;border-color:#7C5CAE;color:#4F3680;}
+.snack-chip.c4{background:#F2DFD7;border-color:#B3543A;color:#7E3420;}
+.snack-chip.c5{background:#FBE7EE;border-color:#C2577D;color:#7D2A48;}
+.snack-chip.c6{background:#E0F1EC;border-color:#3E9478;color:#1F5E4B;}
+.snack-chip.c7{background:#FFF4C9;border-color:#B8930F;color:#6B5405;}
+.snack-chip.over{border-style:dashed;opacity:.75;}
 .snack-chip.locked{background:var(--card);border-color:var(--line);color:var(--ink-soft);opacity:.55;}
 .snack-manage-row{display:flex;align-items:center;justify-content:space-between;padding:8px 11px;background:var(--card);border:1px solid var(--line);border-radius:10px;margin-bottom:6px;}
 .snack-manage-row button{border:none;background:none;color:var(--coral);cursor:pointer;font-size:13px;}
@@ -365,7 +374,10 @@ select.hour-select{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1
 .new-ing-addpart{border:none;background:transparent;color:var(--olive-dark);font-size:12.5px;cursor:pointer;padding:4px 0;font-weight:500;}
 .new-ing-addpart:hover{text-decoration:underline;}
 #newIngSumNote{margin:.3rem 0 .2rem;font-family:'IBM Plex Mono',monospace;}
-.new-ing-box .quick-add{margin:.4rem 0 0;flex-wrap:wrap;}
+.new-ing-box .quick-add{margin:.4rem 0 0;flex-wrap:wrap;align-items:flex-end;}
+.ni-f{display:flex;flex-direction:column;gap:2px;font-size:10.5px;color:var(--ink-soft);}
+.ni-f.ni-kcal span{color:var(--olive-dark);font-weight:600;}
+.new-ing-box .quick-add button{height:36px;}
 .new-ing-box .quick-add input.qkcal{width:64px;}
 .new-ing-box select#newIngUnit{flex-shrink:0;width:64px;font-size:12.5px;border:1px solid var(--line);border-radius:8px;padding:8px 4px;background:#fff;color:var(--ink-soft);}
 .editor-row button{border:none;background:transparent;color:var(--ink-soft);cursor:pointer;font-size:15px;padding:2px 5px;border-radius:6px;}
@@ -980,12 +992,12 @@ body.detail-limit #extraList .food-fiber{display:none}
     <div class="new-ing-box">
       <input type="text" id="newIngName" placeholder="Name (z.B. Cappu)">
       <div class="quick-add">
-        <select id="newIngUnit"></select>
-        <input type="number" id="newIngBestand" class="qkcal" placeholder="Bestand" value="0">
-        <input type="number" id="newIngMin" class="qkcal" placeholder="Minimum" value="0">
-        <input type="number" id="newIngKcal" class="qkcal" placeholder="kcal">
-        <input type="number" id="newIngFiber" class="qkcal" placeholder="Bal.">
-        <input type="number" id="newIngProtein" class="qkcal" placeholder="Prot.">
+        <label class="ni-f"><span>Einheit</span><select id="newIngUnit"></select></label>
+        <label class="ni-f"><span>Bestand</span><input type="number" id="newIngBestand" class="qkcal" placeholder="0"></label>
+        <label class="ni-f"><span>Minimum</span><input type="number" id="newIngMin" class="qkcal" placeholder="0"></label>
+        <label class="ni-f ni-kcal"><span id="newIngKcalLabel">kcal/100 g</span><input type="number" id="newIngKcal" class="qkcal" placeholder="kcal"></label>
+        <label class="ni-f"><span>Ballastst.</span><input type="number" id="newIngFiber" class="qkcal" placeholder="g"></label>
+        <label class="ni-f"><span>Protein</span><input type="number" id="newIngProtein" class="qkcal" placeholder="g"></label>
         <button id="newIngSaveBtn">+</button>
       </div>
     </div>
@@ -3386,7 +3398,7 @@ document.getElementById('pantryViewToggle').addEventListener('click', e=>{
   renderPantry();
 });
 function renderPantry(){
-  document.getElementById('newIngUnit').innerHTML = UNITS.map(u=>`<option value="${u}">${u}</option>`).join('');
+  { const unitSel = document.getElementById('newIngUnit'); const prevUnit = unitSel.value; unitSel.innerHTML = UNITS.map(u=>`<option value="${u}">${u}</option>`).join(''); if(prevUnit) unitSel.value = prevUnit; updateNewIngKcalLabel(); }
   document.querySelectorAll('.pvt-btn').forEach(b=> b.classList.toggle('active', b.dataset.mode===pantryViewMode));
   const wrap = document.getElementById('pantryList');
   if(!pantry.length){ wrap.innerHTML = '<p class="section-note">Noch keine Zutaten – lege zuerst ein paar Gerichte an.</p>'; return; }
@@ -3455,12 +3467,21 @@ function renderPantry(){
 }
 
 /* Neue Zutat direkt anlegen: Name + Werte, ohne Umweg über andere Zutaten */
+function updateNewIngKcalLabel(){
+  const u = document.getElementById('newIngUnit').value || 'g';
+  document.getElementById('newIngKcalLabel').textContent = (u==='g'||u==='ml') ? 'kcal/100 '+u : 'kcal/'+u;
+}
+document.getElementById('newIngUnit').addEventListener('change', updateNewIngKcalLabel);
 document.getElementById('newIngSaveBtn').addEventListener('click', async ()=>{
   const statusEl = document.getElementById('newIngStatus');
   statusEl.textContent = '';
   const name = document.getElementById('newIngName').value.trim();
   if(!name){ statusEl.textContent = 'Bitte einen Namen eingeben.'; return; }
-  if(pantryItem(name)){ statusEl.textContent = 'Diese Zutat gibt es schon im Vorrat.'; return; }
+  if(pantryItem(name)){ statusEl.textContent = 'Diese Zutat gibt es schon im Vorrat.'; setStatus('„'+name+'" gibt es schon im Vorrat'); return; }
+  if(!(Number(document.getElementById('newIngKcal').value)>0)
+     && !confirm('Ohne kcal erscheint „'+name+'" nicht in Snacks, Gerichten und beim Essen-Eintragen.\n\nTrotzdem ohne kcal anlegen?')){
+    document.getElementById('newIngKcal').focus(); return;
+  }
   const unit = document.getElementById('newIngUnit').value;
   const bestand = Number(document.getElementById('newIngBestand').value)||0;
   const mindestbestand = Number(document.getElementById('newIngMin').value)||0;
@@ -3474,15 +3495,17 @@ document.getElementById('newIngSaveBtn').addEventListener('click', async ()=>{
     pantry.push(p);
     pantry.sort((a,b)=> a.name.localeCompare(b.name,'de'));
     document.getElementById('newIngName').value = '';
-    document.getElementById('newIngBestand').value = '0';
-    document.getElementById('newIngMin').value = '0';
+    document.getElementById('newIngBestand').value = '';
+    document.getElementById('newIngMin').value = '';
     document.getElementById('newIngKcal').value = '';
     document.getElementById('newIngFiber').value = '';
     document.getElementById('newIngProtein').value = '';
     renderPantry();
     renderSnackManage();
     statusEl.textContent = `„${name}" wurde angelegt.`;
-  }catch(e){ console.error(e); statusEl.textContent = e.message || 'Fehler beim Anlegen.'; }
+    setStatus(`„${name}" angelegt (${kcalPerUnit} ${(unit==='g'||unit==='ml')?'kcal/100 '+unit:'kcal/'+unit})`);
+    scheduleSaveDataCache();
+  }catch(e){ console.error(e); statusEl.textContent = e.message || 'Fehler beim Anlegen.'; setStatus('Zutat NICHT gespeichert: '+(e.message||'Fehler beim Anlegen')); }
 });
 
 /* ================= BONUS (Guthaben einlösen) ================= */
@@ -4360,9 +4383,12 @@ function renderSnackChips(remaining, eatenProtein, eatenFat, eatenFiber){
   const budgetEl = document.getElementById('snackBudgetLine');
   if(!visible.length){ if(budgetEl) budgetEl.textContent = ''; wrap.innerHTML = '<p class="section-note">Keine Favoriten-Snacks passend zum Rest-Budget – im Vorrat-Tab welche markieren (★).</p>'; return; }
   if(budgetEl) budgetEl.textContent = `Noch ${Math.max(0,Math.round(remaining))} kcal Rest-Budget für Snacks${gapLabel?` · 🤖 nur welche, die deine ${gapLabel}-Lücke schließen`:''}`;
+  // Bunte Pillen: jede Snack-Sorte bekommt eine feste "Zufallsfarbe" (aus dem Namen berechnet, flackert also nicht
+  // bei jedem Neuzeichnen). Über Budget = gestrichelter Rand + ⚠, gesperrtes Essensfenster = grau wie bisher.
+  const chipHue = name=>{ let h=0; for(const ch of name) h = (h*31 + ch.charCodeAt(0))>>>0; return 'c'+(h%8); };
   const chipsHtml = [...visible].sort((a,b)=>a.kcal-b.kcal).map(s=>{
-    const color = canEatNow ? (s.kcal <= remaining ? 'green' : 'orange') : 'locked';
-    return `<button class="snack-chip ${color}" data-id="${s.id}" data-name="${escapeAttr(s.name)}" data-kcal="${s.kcal}" data-fiber="${s.fiber}" data-protein="${s.protein}" data-fat="${s.fat}" data-water="${s.water}">${escapeAttr(s.name)} · ${s.kcal} kcal</button>`;
+    const color = canEatNow ? (chipHue(s.name) + (s.kcal <= remaining ? '' : ' over')) : 'locked';
+    return `<button class="snack-chip ${color}" data-id="${s.id}" data-name="${escapeAttr(s.name)}" data-kcal="${s.kcal}" data-fiber="${s.fiber}" data-protein="${s.protein}" data-fat="${s.fat}" data-water="${s.water}">${canEatNow && s.kcal > remaining ? '⚠ ' : ''}${escapeAttr(s.name)} · ${s.kcal} kcal</button>`;
   }).join('');
   // Endlos-Reihe: Pillen 3× hintereinander, beim Wischen wird unbemerkt in den mittleren Block zurückgesprungen
   const loop = visible.length >= 3;
